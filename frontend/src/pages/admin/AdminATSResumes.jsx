@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { getBaseUrl } from '../../services/api';
 const AdminATSResumes = () => {
   const { globalApplications } = useOutletContext();
   useEffect(() => {
@@ -8,7 +9,8 @@ const AdminATSResumes = () => {
 
   const getResumeDownloadUrl = (url) => {
     if (url.startsWith('/uploads')) {
-      return `http://localhost:5000${url}`;
+      const baseUrl = getBaseUrl().replace('/api', '');
+      return `${baseUrl}${url}`;
     }
     return url;
   };

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const getBaseUrl = () => {
+export const getBaseUrl = () => {
   // Try to use environment variable if explicitly set
   const envUrl = import.meta.env.VITE_API_URL;
   if (envUrl) {

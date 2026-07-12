@@ -12,14 +12,15 @@ export const SocketProvider = ({ children }) => {
     // Only connect socket if user is logged in
     const userId = user?._id || user?.id;
     if (user && userId) {
-      let socketUrl = 'http://localhost:5000';
+      let socketUrl = 'https://apexconsult.onrender.com';
+      const hostname = window.location.hostname;
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        socketUrl = 'http://localhost:5000';
+      }
+      
       const envUrl = import.meta.env.VITE_API_URL;
-      if (envUrl && !envUrl.includes('localhost')) {
+      if (envUrl) {
         socketUrl = envUrl.replace('/api', '');
-      } else {
-        const protocol = window.location.protocol;
-        const hostname = window.location.hostname;
-        socketUrl = `${protocol}//${hostname}:5000`;
       }
         
       const newSocket = io(socketUrl, {

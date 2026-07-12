@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Outlet, NavLink, useNavigate, Link } from 'react-router-dom';
-import api from '../services/api';
+import api, { getBaseUrl } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import FloatingChat from '../components/FloatingChat';
 import Loader from '../components/Loader';
@@ -104,7 +104,8 @@ const StudentDashboard = () => {
 
   const getResumeDownloadUrl = (url) => {
     if (url.startsWith('/uploads')) {
-      return `http://localhost:5000${url}`;
+      const baseUrl = getBaseUrl().replace('/api', '');
+      return `${baseUrl}${url}`;
     }
     return url;
   };
