@@ -1,17 +1,22 @@
 import axios from 'axios';
 
 const getBaseUrl = () => {
-  // Try to use environment variable if explicitly set (and not just pointing to localhost)
+  // Try to use environment variable if explicitly set
   const envUrl = import.meta.env.VITE_API_URL;
-  if (envUrl && !envUrl.includes('localhost')) {
+  if (envUrl) {
     return envUrl;
   }
   
-  // Dynamically determine the backend URL based on the browser's current address.
-  // This allows it to work seamlessly on local network IPs (e.g., testing on mobile).
-  const protocol = window.location.protocol;
+  // Dynamically determine the backend URL based on the environment
   const hostname = window.location.hostname;
-  return `${protocol}//${hostname}:5000/api`;
+  
+  // If running locally, connect to the local backend
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:5000/api';
+  }
+  
+  // If running in production (Vercel), connect to the live Render backend
+  return 'https://apexconsult.onrender.com/api';
 };
 
 const api = axios.create({
