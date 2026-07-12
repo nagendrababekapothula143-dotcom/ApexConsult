@@ -1,0 +1,186 @@
+const express = require('express');
+
+const { docClient } = require('../config/dynamodb');
+const { QueryCommand, PutCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
+const { protect, authorize } = require('../middleware/auth');
+const router = express.Router();
+
+
+
+// @desc    Register a new user (sync from Firebase)
+// @route   POST /api/auth/register
+// @access  Private (Needs Firebase Token)
+router.post('/register', protect, async (req, res) => {
+  const { name, email, role } = req.body;
+  const firebaseUserId = req.user.id; // from protect middleware
+
+  try {
+    const formattedEmail = email.toLowerCase().trim();
+
+    // Check if user exists using GSI
+    const existing = await docClient.send(new QueryCommand({
+      TableName: 'consulting_users',
+      IndexName: 'email-index',
+      KeyConditionExpression: 'email = :email',
+      ExpressionAttributeValues: { ':email': formattedEmail }
+    }));
+
+    if (existing.Items && existing.Items.length > 0) {
+      // If they already exist, just return them (maybe they are trying to register again or syncing)
+      const existingUser = existing.Items[0];
+      return res.status(200).json({
+        success: true,
+        data: {
+          _id: existingUser.id,
+          name: existingUser.name,
+          email: existingUser.email,
+          role: existingUser.role,
+        },
+      });
+    }
+
+    const newUser = {
+      id: firebaseUserId, // Use Firebase UID as the primary key
+      name: name || 'User',
+      email: formattedEmail,
+      role: role || 'student',
+      createdAt: new Date().toISOString()
+    };
+
+    // Save to DynamoDB
+    await docClient.send(new PutCommand({
+      TableName: 'consulting_users',
+      Item: newUser
+    }));
+
+    // Invalidate users cache if they are syncing for the first time
+    if (role === 'admin') {
+      usersCache.admins.data = null;
+    } else {
+      usersCache.students.data = null;
+    }
+
+    res.status(201).json({
+      success: true,
+      data: {
+        _id: firebaseUserId,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+      },
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// @desc    Authenticate user & get token (sync from Firebase)
+// @route   POST /api/auth/login
+// @access  Private (Needs Firebase Token)
+router.post('/login', protect, async (req, res) => {
+  try {
+    // protect middleware already checks if they exist in DynamoDB and adds to req.user
+    if (!req.user || !req.user.role) {
+       return res.status(404).json({ success: false, message: 'User record not found in database. Please register.' });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        _id: req.user.id,
+        name: req.user.name,
+        email: req.user.email,
+        role: req.user.role,
+      },
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// @desc    Get current logged in user
+// @route   GET /api/auth/me
+// @access  Private
+router.get('/me', protect, async (req, res) => {
+  try {
+    res.status(200).json({ success: true, data: req.user });
+  } catch (error) {
+    console.error('Fetch me error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Simple memory cache for users
+const usersCache = {
+  students: { data: null, lastFetch: null },
+  admins: { data: null, lastFetch: null },
+  ttl: 60000 // 1 minute cache
+};
+
+// @desc    Get all students
+// @route   GET /api/auth/students
+// @access  Private (Admin only)
+router.get('/students', protect, authorize('admin'), async (req, res) => {
+  try {
+    if (usersCache.students.data && (Date.now() - usersCache.students.lastFetch < usersCache.ttl)) {
+      return res.status(200).json(usersCache.students.data);
+    }
+
+    const result = await docClient.send(new ScanCommand({
+      TableName: 'consulting_users',
+      FilterExpression: '#role = :role',
+      ExpressionAttributeNames: { '#role': 'role' },
+      ExpressionAttributeValues: { ':role': 'student' }
+    }));
+
+    const students = (result.Items || []).map(student => ({
+      ...student,
+      _id: student.id // Maintain compatibility with frontend
+    })).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    const responseData = { success: true, count: students.length, data: students };
+    usersCache.students.data = responseData;
+    usersCache.students.lastFetch = Date.now();
+
+    res.status(200).json(responseData);
+  } catch (error) {
+    console.error('Fetch students error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// @desc    Get all admins
+// @route   GET /api/auth/admins
+// @access  Private (Admin only)
+router.get('/admins', protect, authorize('admin'), async (req, res) => {
+  try {
+    if (usersCache.admins.data && (Date.now() - usersCache.admins.lastFetch < usersCache.ttl)) {
+      return res.status(200).json(usersCache.admins.data);
+    }
+
+    const result = await docClient.send(new ScanCommand({
+      TableName: 'consulting_users',
+      FilterExpression: '#role = :role',
+      ExpressionAttributeNames: { '#role': 'role' },
+      ExpressionAttributeValues: { ':role': 'admin' }
+    }));
+
+    const admins = (result.Items || []).map(admin => ({
+      ...admin,
+      _id: admin.id // Maintain compatibility with frontend
+    })).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    const responseData = { success: true, count: admins.length, data: admins };
+    usersCache.admins.data = responseData;
+    usersCache.admins.lastFetch = Date.now();
+
+    res.status(200).json(responseData);
+  } catch (error) {
+    console.error('Fetch admins error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+module.exports = router;
