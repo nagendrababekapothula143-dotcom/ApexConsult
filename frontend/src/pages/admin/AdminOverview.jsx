@@ -26,6 +26,55 @@ const AdminOverview = () => {
   // Get recent 3 applications
   const recentApps = applications.slice(0, 3);
 
+  // Generate dynamic chart paths based on actual application volume over time
+  const generateChartPaths = () => {
+    if (!applications || applications.length === 0) {
+      return { line: "M 0 100 L 500 100", fill: "M 0 100 L 500 100 Z" };
+    }
+
+    const sorted = [...applications].sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+    const countsByDate = {};
+    
+    sorted.forEach(app => {
+      const date = new Date(app.createdAt || Date.now()).toISOString().split('T')[0];
+      countsByDate[date] = (countsByDate[date] || 0) + 1;
+    });
+
+    const dates = Object.keys(countsByDate).sort();
+    
+    // If only one day of data exists, create a simple slope
+    if (dates.length === 1) {
+      return { 
+        line: "M 0 100 L 250 50 L 500 50", 
+        fill: "M 0 100 L 250 50 L 500 50 L 500 100 L 0 100 Z" 
+      };
+    }
+
+    let cumulative = 0;
+    const dataPoints = dates.map(date => {
+      cumulative += countsByDate[date];
+      return cumulative;
+    });
+
+    const maxVal = Math.max(...dataPoints, 1);
+    
+    // Start at bottom left
+    let path = `M 0 100`;
+    
+    dataPoints.forEach((val, index) => {
+      const x = (index / (dataPoints.length - 1)) * 500;
+      const y = 100 - ((val / maxVal) * 85); 
+      path += ` L ${x} ${y}`;
+    });
+
+    return {
+      line: path,
+      fill: `${path} L 500 100 L 0 100 Z`
+    };
+  };
+
+  const { line: chartLinePath, fill: chartFillPath } = generateChartPaths();
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -79,15 +128,16 @@ const AdminOverview = () => {
               <line x1="0" y1="100" x2="500" y2="100" stroke="#f1f5f9" strokeWidth="1" />
               {/* Placement submission growth curve */}
               <path
-                d="M 0 90 Q 100 80, 200 45 T 400 30 T 500 15 L 500 100 L 0 100 Z"
+                d={chartFillPath}
                 fill="url(#chartGradient)"
               />
               <path
-                d="M 0 90 Q 100 80, 200 45 T 400 30 T 500 15"
+                d={chartLinePath}
                 fill="none"
                 stroke="#4f46e5"
                 strokeWidth="3.5"
                 strokeLinecap="round"
+                strokeLinejoin="round"
               />
             </svg>
           </div>
