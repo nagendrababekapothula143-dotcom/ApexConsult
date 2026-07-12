@@ -36,7 +36,7 @@ const Navbar = () => {
           <div /> // Spacer to preserve alignment
         )}
         
-        <ul className="flex items-center gap-3 sm:gap-6 list-none m-0 p-0 text-xs sm:text-sm">
+        <ul className="flex items-center gap-2 sm:gap-6 list-none m-0 p-0 text-xs sm:text-sm">
           {!isStudent && (
             <li className="hidden sm:block">
               <Link to="/" className={isActive('/')}>
@@ -60,10 +60,10 @@ const Navbar = () => {
                 </li>
               )}
               <li className="flex items-center gap-1 sm:gap-2">
-                <span className="font-medium text-slate-700">
+                <span className="font-medium text-slate-700 truncate max-w-[70px] sm:max-w-none">
                   {user.name ? user.name.split(' ')[0] : 'Hi'}
                 </span>
-                <span className="bg-indigo-50 border border-indigo-200 text-indigo-600 px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">
+                <span className="hidden sm:inline-block bg-indigo-50 border border-indigo-200 text-indigo-600 px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">
                   {user.role}
                 </span>
               </li>
