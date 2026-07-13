@@ -297,22 +297,22 @@ router.patch('/profile/:id', protect, async (req, res) => {
     if (name !== undefined) {
       updates.push('#name = :name');
       exprAttrNames['#name'] = 'name';
-      exprAttrVals[':name'] = name;
+      exprAttrVals[':name'] = name === '' ? null : name;
     }
     if (phone !== undefined) {
       updates.push('#phone = :phone');
       exprAttrNames['#phone'] = 'phone';
-      exprAttrVals[':phone'] = phone;
+      exprAttrVals[':phone'] = phone === '' ? null : phone;
     }
     if (university !== undefined) {
       updates.push('#university = :university');
       exprAttrNames['#university'] = 'university';
-      exprAttrVals[':university'] = university;
+      exprAttrVals[':university'] = university === '' ? null : university;
     }
     if (major !== undefined) {
       updates.push('#major = :major');
       exprAttrNames['#major'] = 'major';
-      exprAttrVals[':major'] = major;
+      exprAttrVals[':major'] = major === '' ? null : major;
     }
 
     if (updates.length === 0) {
