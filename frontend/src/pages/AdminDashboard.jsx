@@ -152,16 +152,17 @@ const AdminDashboard = () => {
     )
   };
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (isSilent = false) => {
     try {
-      setLoading(true);
+      if (!isSilent) setLoading(true);
       
+      const t = isSilent ? `?t=${Date.now()}` : '';
       const [jobsRes, studentsRes, ticketsRes, adminsRes, globalAppsRes] = await Promise.all([
-        api.get('/jobs'),
-        api.get('/auth/students'),
-        api.get('/tickets'),
-        api.get('/auth/admins'),
-        api.get('/applications')
+        api.get(`/jobs${t}`),
+        api.get(`/auth/students${t}`),
+        api.get(`/tickets${t}`),
+        api.get(`/auth/admins${t}`),
+        api.get(`/applications${t}`)
       ]);
 
       setJobs(jobsRes.data.data);
@@ -170,14 +171,14 @@ const AdminDashboard = () => {
       setTeamMembers(adminsRes.data.data);
       setGlobalApplications(globalAppsRes.data.data);
       
-      if (jobsRes.data.data.length > 0) {
-        handleJobSelect(jobsRes.data.data[0]);
+      if (!isSilent && jobsRes.data.data.length > 0) {
+        setSelectedJob(prev => prev || jobsRes.data.data[0]);
       }
     } catch (err) {
       console.error('Error fetching admin dashboard details:', err);
-      setError('Could not retrieve workspace information.');
+      if (!isSilent) setError('Could not retrieve workspace information.');
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
   };
 
@@ -185,6 +186,13 @@ const AdminDashboard = () => {
     if (user?.role === 'admin') {
       fetchDashboardData();
       fetchUnreadStatus();
+      
+      // Real-time background polling every 5 seconds
+      const interval = setInterval(() => {
+        fetchDashboardData(true);
+      }, 5000);
+      
+      return () => clearInterval(interval);
     }
   }, [user]);
 

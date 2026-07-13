@@ -270,4 +270,75 @@ router.patch('/students/:id/status', protect, authorize('admin'), async (req, re
   }
 });
 
+// @desc    Update a user's profile
+// @route   PATCH /api/auth/profile/:id
+// @access  Private (User themselves or Admin)
+router.patch('/profile/:id', protect, async (req, res) => {
+  try {
+    const userIdToUpdate = req.params.id;
+    const { name, phone, university, major } = req.body;
+
+    // Check permissions: Must be the user themselves OR an admin
+    const requesterId = req.user.id || req.user._id;
+    const requesterRole = req.user.role;
+
+    if (requesterId !== userIdToUpdate && requesterRole !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Not authorized to update this profile' });
+    }
+
+    const { UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+    
+    // Build update expression dynamically based on provided fields
+    let updateExpr = 'set ';
+    let exprAttrNames = {};
+    let exprAttrVals = {};
+    let updates = [];
+
+    if (name !== undefined) {
+      updates.push('#name = :name');
+      exprAttrNames['#name'] = 'name';
+      exprAttrVals[':name'] = name;
+    }
+    if (phone !== undefined) {
+      updates.push('#phone = :phone');
+      exprAttrNames['#phone'] = 'phone';
+      exprAttrVals[':phone'] = phone;
+    }
+    if (university !== undefined) {
+      updates.push('#university = :university');
+      exprAttrNames['#university'] = 'university';
+      exprAttrVals[':university'] = university;
+    }
+    if (major !== undefined) {
+      updates.push('#major = :major');
+      exprAttrNames['#major'] = 'major';
+      exprAttrVals[':major'] = major;
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ success: false, message: 'No fields provided for update' });
+    }
+
+    updateExpr += updates.join(', ');
+
+    const result = await docClient.send(new UpdateCommand({
+      TableName: 'consulting_users',
+      Key: { id: userIdToUpdate },
+      UpdateExpression: updateExpr,
+      ExpressionAttributeNames: exprAttrNames,
+      ExpressionAttributeValues: exprAttrVals,
+      ReturnValues: 'ALL_NEW'
+    }));
+
+    // Clear caches
+    usersCache.students.data = null;
+    usersCache.admins.data = null;
+
+    res.status(200).json({ success: true, message: 'Profile updated successfully', data: result.Attributes });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 module.exports = router;

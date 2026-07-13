@@ -21,30 +21,37 @@ const StudentDashboard = () => {
   const [actionError, setActionError] = useState('');
   const [actionSuccess, setActionSuccess] = useState('');
 
-  const fetchData = async () => {
+  const fetchData = async (isSilent = false) => {
     try {
-      setLoading(true);
+      if (!isSilent) setLoading(true);
+      const t = isSilent ? `?t=${Date.now()}` : '';
       const [jobsRes, appsRes] = await Promise.all([
-        api.get('/jobs'),
-        api.get('/applications/student')
+        api.get(`/jobs${t}`),
+        api.get(`/applications/student${t}`)
       ]);
       setJobs(jobsRes.data.data);
       setApplications(appsRes.data.data);
       
-      // Auto-select first job if available
-      if (jobsRes.data.data.length > 0) {
-        setSelectedJob(jobsRes.data.data[0]);
+      if (!isSilent && jobsRes.data.data.length > 0) {
+        setSelectedJob(prev => prev || jobsRes.data.data[0]);
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-      setActionError('Failed to fetch data from server.');
+      if (!isSilent) setActionError('Failed to fetch data from server.');
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchData();
+    
+    // Real-time background polling every 5 seconds
+    const interval = setInterval(() => {
+      fetchData(true);
+    }, 5000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const handleApply = async (e) => {
