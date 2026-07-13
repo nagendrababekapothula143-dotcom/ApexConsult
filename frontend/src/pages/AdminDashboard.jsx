@@ -333,6 +333,10 @@ const AdminDashboard = () => {
 
 
 
+  if (loading) {
+    return <Loader text="Loading ApexConsulting..." fullScreen={true} />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
       
@@ -427,16 +431,7 @@ const AdminDashboard = () => {
       {/* DYNAMIC CHILD WORKSPACE CONTENT */}
       <main className="lg:pl-[280px] min-h-screen pt-[64px] lg:pt-0">
         <div className="p-4 md:p-8">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
-              <div className="relative flex items-center justify-center">
-                <div className="absolute w-10 h-10 border-4 border-indigo-100 rounded-full"></div>
-                <div className="w-10 h-10 border-4 border-transparent border-t-indigo-600 rounded-full animate-spin"></div>
-              </div>
-              <p className="text-sm font-semibold text-slate-500 animate-pulse">Loading dashboard data...</p>
-            </div>
-          ) : (
-            <Outlet context={{
+          <Outlet context={{
               jobs,
               selectedJob,
               handleJobSelect,
@@ -462,8 +457,9 @@ const AdminDashboard = () => {
               success,
               setSuccess,
               setHasUnreadSupport,
+              fetchData: fetchDashboardData,
+              setApplications: setGlobalApplications
             }} />
-          )}
         </div>
       </main>
 

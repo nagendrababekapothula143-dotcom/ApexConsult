@@ -48,8 +48,12 @@ const protect = async (req, res, next) => {
 
     // If user doesn't exist in our DB yet, they just registered in Firebase but haven't synced
     // We allow them through, but they won't have a role yet. The register route handles syncing.
-    req.user = result.Item || { id: decodedToken.uid, email: decodedToken.email };
     
+    if (result.Item && result.Item.status === 'inactive') {
+      return res.status(403).json({ success: false, message: 'Your account has been deactivated. Please contact support.' });
+    }
+
+    req.user = result.Item ? result.Item : { id: decodedToken.uid, email: decodedToken.email };
     next();
   } catch (error) {
     console.error('Firebase token verification error:', error);

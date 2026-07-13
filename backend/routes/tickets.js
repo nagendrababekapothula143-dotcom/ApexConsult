@@ -5,35 +5,7 @@ const { ScanCommand, PutCommand } = require('@aws-sdk/lib-dynamodb');
 const { protect, authorize } = require('../middleware/auth');
 const router = express.Router();
 
-// Seed initial tickets if database is empty
-const seedTickets = async () => {
-  try {
-    const result = await docClient.send(new ScanCommand({
-      TableName: 'consulting_tickets'
-    }));
 
-    if (!result.Items || result.Items.length === 0) {
-      const initial = [
-        { id: crypto.randomUUID(), studentName: 'Jane Student', subject: 'Resume Format Guidance', category: 'Resume Prep', priority: 'Medium', status: 'Open', createdAt: new Date().toISOString() },
-        { id: crypto.randomUUID(), studentName: 'David Kim', subject: 'Interview Schedule Conflict', category: 'Scheduling', priority: 'High', status: 'Resolved', createdAt: new Date().toISOString() },
-        { id: crypto.randomUUID(), studentName: 'Charan Ambiripeta', subject: 'McKinsey Case Study Mock Request', category: 'Case Study', priority: 'High', status: 'Open', createdAt: new Date().toISOString() },
-      ];
-
-      for (const item of initial) {
-        await docClient.send(new PutCommand({
-          TableName: 'consulting_tickets',
-          Item: item
-        }));
-      }
-      console.log('Seed tickets inserted into DynamoDB successfully.');
-    }
-  } catch (err) {
-    console.error('Error seeding tickets:', err.message);
-  }
-};
-
-// Execute seeding after table check (delay slightly to let tables create if needed)
-setTimeout(seedTickets, 2500);
 
 // @desc    Get all tickets
 // @route   GET /api/tickets

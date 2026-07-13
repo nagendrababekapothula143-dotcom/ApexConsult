@@ -26,6 +26,9 @@ export const AuthProvider = ({ children }) => {
           setUser(response.data.data);
         } catch (error) {
           console.error('Failed to sync user with backend:', error);
+          if (error.response?.status === 403) {
+            await signOut(auth); // Force firebase signout if deactivated
+          }
           setUser(null);
         }
       } else {
@@ -48,9 +51,12 @@ export const AuthProvider = ({ children }) => {
       setUser(response.data.data);
       return { success: true };
     } catch (error) {
+      if (error.response?.status === 403) {
+        await signOut(auth); // Ensure Firebase doesn't keep them logged in
+      }
       return {
         success: false,
-        message: error.message || 'Login failed. Please check your credentials.',
+        message: error.response?.data?.message || error.message || 'Login failed. Please check your credentials.',
       };
     }
   };

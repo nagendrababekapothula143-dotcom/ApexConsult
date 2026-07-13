@@ -3,6 +3,7 @@ const express = require('express');
 const { docClient } = require('../config/dynamodb');
 const { QueryCommand, PutCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
 const { protect, authorize } = require('../middleware/auth');
+const { auth } = require('../config/firebase');
 const router = express.Router();
 
 
@@ -39,8 +40,11 @@ router.post('/register', protect, async (req, res) => {
       });
     }
 
+    const apexId = 'APX' + Math.floor(1000000 + Math.random() * 9000000);
+
     const newUser = {
       id: firebaseUserId, // Use Firebase UID as the primary key
+      apexId,
       name: name || 'User',
       email: formattedEmail,
       role: role || 'student',
@@ -135,10 +139,34 @@ router.get('/students', protect, authorize('admin'), async (req, res) => {
       ExpressionAttributeValues: { ':role': 'student' }
     }));
 
-    const students = (result.Items || []).map(student => ({
-      ...student,
-      _id: student.id // Maintain compatibility with frontend
-    })).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const { UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+    
+    const students = await Promise.all((result.Items || []).map(async (student) => {
+      let currentApexId = student.apexId;
+      
+      // Retroactively assign apexId to legacy students
+      if (!currentApexId) {
+        currentApexId = 'APX' + Math.floor(1000000 + Math.random() * 9000000);
+        try {
+          await docClient.send(new UpdateCommand({
+            TableName: 'consulting_users',
+            Key: { id: student.id },
+            UpdateExpression: 'set apexId = :apexId',
+            ExpressionAttributeValues: { ':apexId': currentApexId }
+          }));
+        } catch (updateErr) {
+          console.error('Failed to retroactively assign apexId:', updateErr);
+        }
+      }
+
+      return {
+        ...student,
+        apexId: currentApexId,
+        _id: student.id // Maintain compatibility with frontend
+      };
+    }));
+    
+    students.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     const responseData = { success: true, count: students.length, data: students };
     usersCache.students.data = responseData;
@@ -179,6 +207,65 @@ router.get('/admins', protect, authorize('admin'), async (req, res) => {
     res.status(200).json(responseData);
   } catch (error) {
     console.error('Fetch admins error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// @desc    Delete a student
+// @route   DELETE /api/auth/students/:id
+// @access  Private (Admin only)
+router.delete('/students/:id', protect, authorize('admin'), async (req, res) => {
+  try {
+    const studentId = req.params.id;
+    
+    const { DeleteCommand } = require('@aws-sdk/lib-dynamodb');
+    
+    // 1. Delete from Firebase Auth
+    try {
+      await auth.deleteUser(studentId);
+    } catch (firebaseErr) {
+      console.error('Firebase user deletion error (might not exist):', firebaseErr.message);
+    }
+
+    // 2. Delete from DynamoDB
+    await docClient.send(new DeleteCommand({
+      TableName: 'consulting_users',
+      Key: { id: studentId }
+    }));
+
+    // Clear cache
+    usersCache.students.data = null;
+
+    res.status(200).json({ success: true, message: 'Student deleted successfully' });
+  } catch (error) {
+    console.error('Delete student error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// @desc    Update a student's status (active/inactive)
+// @route   PATCH /api/auth/students/:id/status
+// @access  Private (Admin only)
+router.patch('/students/:id/status', protect, authorize('admin'), async (req, res) => {
+  try {
+    const studentId = req.params.id;
+    const { status } = req.body; // 'active' or 'inactive'
+    
+    const { UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+    await docClient.send(new UpdateCommand({
+      TableName: 'consulting_users',
+      Key: { id: studentId },
+      UpdateExpression: 'set #status = :status',
+      ExpressionAttributeNames: { '#status': 'status' },
+      ExpressionAttributeValues: { ':status': status || 'active' }
+    }));
+
+    // Clear cache
+    usersCache.students.data = null;
+
+    res.status(200).json({ success: true, message: 'Student status updated' });
+  } catch (error) {
+    console.error('Update student status error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
