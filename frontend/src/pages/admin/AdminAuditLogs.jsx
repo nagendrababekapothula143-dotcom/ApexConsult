@@ -56,23 +56,46 @@ const AdminAuditLogs = () => {
   const paginatedLogs = filteredLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const formatActionBadge = (action) => {
+    const baseClasses = "inline-block whitespace-nowrap px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider";
     switch (action) {
       case 'ASSIGN_RECRUITER':
-        return <span className="bg-indigo-50 text-indigo-600 border border-indigo-200 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Assign Recruiter</span>;
+        return <span className={`${baseClasses} bg-indigo-50 text-indigo-700 border border-indigo-200`}>Assign Recruiter</span>;
       case 'UPLOAD_RESUME':
-        return <span className="bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Upload Resume</span>;
+        return <span className={`${baseClasses} bg-emerald-50 text-emerald-700 border border-emerald-200`}>Upload Resume</span>;
       case 'STUDENT_REQUESTED_ASSISTANCE':
-        return <span className="bg-amber-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Requested Assistance</span>;
+        return <span className={`${baseClasses} bg-amber-50 text-amber-700 border border-amber-200`}>Requested Assistance</span>;
       case 'RECRUITER_SUBMITTED_APPLICATION':
-        return <span className="bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Recruiter Submitted</span>;
+        return <span className={`${baseClasses} bg-emerald-50 text-emerald-700 border border-emerald-200`}>Recruiter Submitted</span>;
       case 'SUBMIT_APPLICATION':
-        return <span className="bg-blue-50 text-blue-600 border border-blue-200 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">App Submitted</span>;
+        return <span className={`${baseClasses} bg-blue-50 text-blue-700 border border-blue-200`}>App Submitted</span>;
       case 'REGISTER_ACCOUNT':
-        return <span className="bg-purple-50 text-purple-600 border border-purple-200 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">New Registration</span>;
+        return <span className={`${baseClasses} bg-purple-50 text-purple-700 border border-purple-200`}>New Registration</span>;
       case 'CREATE_TICKET':
-        return <span className="bg-rose-50 text-rose-600 border border-rose-200 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Create Ticket</span>;
+        return <span className={`${baseClasses} bg-rose-50 text-rose-700 border border-rose-200`}>Create Ticket</span>;
       default:
-        return <span className="bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">{action}</span>;
+        return <span className={`${baseClasses} bg-slate-100 text-slate-600 border border-slate-200`}>{action}</span>;
+    }
+  };
+
+  const formatDetails = (log) => {
+    if (typeof log.details !== 'object' || !log.details) return String(log.details || 'No details provided');
+    
+    switch (log.action) {
+      case 'ASSIGN_RECRUITER':
+        return `Assigned to Recruiter: ${log.details.recruiterName || log.details.recruiterId}`;
+      case 'UPLOAD_RESUME':
+      case 'RECRUITER_SUBMITTED_APPLICATION':
+        return `Marked application as sent for student: ${log.details.originalStudent || 'Unknown'}`;
+      case 'STUDENT_REQUESTED_ASSISTANCE':
+      case 'SUBMIT_APPLICATION':
+        return `Applied for role: ${log.details.jobTitle || 'Unknown Job'}`;
+      case 'REGISTER_ACCOUNT':
+        return `Registered with role: ${log.details.role}, Email: ${log.details.email}`;
+      case 'CREATE_TICKET':
+        return `Support Category: ${log.details.category} - Subject: "${log.details.subject}"`;
+      default:
+        const parts = Object.entries(log.details).map(([k, v]) => `${k}: ${v}`);
+        return parts.join(' | ');
     }
   };
 
@@ -114,10 +137,10 @@ const AdminAuditLogs = () => {
         <table className="w-full table-fixed border-collapse text-left">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
-              <th className="p-4 w-[25%]">Actor</th>
-              <th className="p-4 w-[15%]">Action</th>
+              <th className="p-4 w-[20%]">Actor</th>
+              <th className="p-4 w-[25%]">Action</th>
               <th className="p-4 w-[40%]">Details</th>
-              <th className="p-4 w-[20%]">Timestamp</th>
+              <th className="p-4 w-[15%]">Timestamp</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-sm">
@@ -151,9 +174,9 @@ const AdminAuditLogs = () => {
                         {formatActionBadge(log.action)}
                       </td>
                       
-                      <td className="p-4 max-w-0">
-                        <div className="w-full truncate text-slate-600 font-medium text-xs font-mono bg-slate-50 p-1.5 rounded" title={typeof log.details === 'object' ? JSON.stringify(log.details, null, 2) : String(log.details)}>
-                          {typeof log.details === 'object' ? JSON.stringify(log.details) : String(log.details || '')}
+                      <td className="p-4">
+                        <div className="text-slate-700 font-medium text-sm">
+                          {formatDetails(log)}
                         </div>
                       </td>
                       

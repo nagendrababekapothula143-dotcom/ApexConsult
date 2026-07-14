@@ -715,6 +715,17 @@ router.patch('/:id/assign-recruiter', protect, authorize('admin'), async (req, r
     const application = getRes.Item;
     application.recruiterId = recruiterId || null;
 
+    let recruiterName = 'Unknown Recruiter';
+    if (recruiterId) {
+      const recRes = await docClient.send(new GetCommand({
+        TableName: 'consulting_users',
+        Key: { id: recruiterId }
+      }));
+      if (recRes.Item && recRes.Item.name) {
+        recruiterName = recRes.Item.name;
+      }
+    }
+
     await docClient.send(new PutCommand({
       TableName: 'consulting_applications',
       Item: application
@@ -726,7 +737,7 @@ router.patch('/:id/assign-recruiter', protect, authorize('admin'), async (req, r
       req.user.name || req.user.email,
       recruiterId ? 'ASSIGN_RECRUITER' : 'UNASSIGN_RECRUITER',
       application.id,
-      { recruiterId }
+      { recruiterId, recruiterName }
     );
 
     // Socket.io Real-time Updates
@@ -790,13 +801,24 @@ router.post('/:id/upload-resume', protect, authorize('recruiter'), handleUpload,
       Item: application
     }));
 
+    let studentName = application.studentName || 'Student';
+    if (application.student) {
+      const studentRes = await docClient.send(new GetCommand({
+        TableName: 'consulting_users',
+        Key: { id: application.student }
+      }));
+      if (studentRes.Item && studentRes.Item.name) {
+        studentName = studentRes.Item.name;
+      }
+    }
+
     // Log the upload action
     await logAuditAction(
       req.user.id || req.user._id,
       req.user.name || req.user.email,
       'RECRUITER_SUBMITTED_APPLICATION',
       application.id,
-      { status: 'application sent', originalStudent: application.studentName || 'Student' }
+      { status: 'application sent', originalStudent: studentName }
     );
 
     const responseApp = {

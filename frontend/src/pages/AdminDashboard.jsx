@@ -497,104 +497,170 @@ const AdminDashboard = () => {
 
       {/* CREATE JOB MODAL OVERLAY */}
       {showJobModal && (
-        <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-8 shadow-xl relative">
-            <button onClick={() => setShowJobModal(false)} className="absolute top-4 right-4 bg-transparent border-none text-slate-400 hover:text-slate-900 text-2xl font-semibold cursor-pointer">
-              &times;
-            </button>
-            <h2 className="text-xl font-bold text-slate-900 mb-6">Create Job Listing</h2>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl w-full max-w-3xl max-h-[90vh] shadow-2xl relative flex flex-col overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-100">
             
-            <form onSubmit={handleCreateJob} className="space-y-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-slate-600">Job Title *</label>
-                <input
-                  type="text"
-                  className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
-                  placeholder="e.g. Associate Consultant"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  required
-                />
+            {/* Modal Premium Header */}
+            <div className="bg-slate-900 text-white p-6 sm:px-8 relative overflow-hidden shrink-0">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500 rounded-full blur-3xl opacity-20 -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
+              <button 
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setShowJobModal(false);
+                }} 
+                className="absolute top-6 right-6 bg-white/10 hover:bg-white/20 text-white w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer border-none z-50"
+              >
+                <svg className="w-4 h-4 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              
+              <div className="relative z-10 flex items-center gap-4">
+                <div className="w-14 h-14 bg-indigo-500/20 rounded-2xl flex items-center justify-center border border-indigo-500/30 text-indigo-300 shadow-inner">
+                  <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black mb-1">Create Job Listing</h2>
+                  <p className="text-sm text-slate-400 font-medium">Publish a new consulting position to the student portal.</p>
+                </div>
               </div>
+            </div>
+            
+            {/* Modal Body / Form */}
+            <form id="create-job-form" onSubmit={handleCreateJob} className="flex-1 overflow-y-auto p-6 sm:p-8 custom-scrollbar">
+              <div className="space-y-6">
+                
+                {/* Row 1: Title & Company */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Job Title <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium placeholder-slate-400"
+                      placeholder="e.g. Associate Consultant"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      required
+                    />
+                  </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-slate-600">Company Name *</label>
-                <input
-                  type="text"
-                  className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
-                  placeholder="e.g. McKinsey, Bain"
-                  value={company}
-                  onChange={(e) => setCompany(e.target.value)}
-                  required
-                />
-              </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Company Name <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium placeholder-slate-400"
+                      placeholder="e.g. McKinsey, Bain"
+                      value={company}
+                      onChange={(e) => setCompany(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-slate-600">Location *</label>
-                  <input
-                    type="text"
-                    className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
-                    placeholder="e.g. London, Hybrid"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
+                {/* Row 2: Location & Salary */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Location <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium placeholder-slate-400"
+                      placeholder="e.g. London, Hybrid"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Salary <span className="text-slate-400 normal-case tracking-normal">(Optional)</span></label>
+                    <input
+                      type="text"
+                      className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium placeholder-slate-400"
+                      placeholder="e.g. $90k - $110k"
+                      value={salary}
+                      onChange={(e) => setSalary(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Row 3: Link & Requirements */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Posting Link <span className="text-slate-400 normal-case tracking-normal">(Optional)</span></label>
+                    <input
+                      type="url"
+                      className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium placeholder-slate-400"
+                      placeholder="https://careers.company.com/..."
+                      value={link}
+                      onChange={(e) => setLink(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Requirements</label>
+                    <input
+                      type="text"
+                      className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium placeholder-slate-400"
+                      placeholder="e.g. Analysis, Communication (comma separated)"
+                      value={requirements}
+                      onChange={(e) => setRequirements(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Row 4: Description */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Job Description <span className="text-red-500">*</span></label>
+                  <textarea
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium placeholder-slate-400 min-h-[140px] resize-y custom-scrollbar"
+                    placeholder="Provide a detailed description of the role, responsibilities, and expected impact..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
                     required
                   />
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-slate-600">Salary (Optional)</label>
-                  <input
-                    type="text"
-                    className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
-                    placeholder="e.g. $90k - $110k"
-                    value={salary}
-                    onChange={(e) => setSalary(e.target.value)}
-                  />
-                </div>
-              </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-slate-600">Job Posting Link (Optional)</label>
-                <input
-                  type="url"
-                  className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
-                  placeholder="e.g. https://careers.mckinsey.com/jobs/102"
-                  value={link}
-                  onChange={(e) => setLink(e.target.value)}
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-slate-600">Requirements (comma-separated)</label>
-                <input
-                  type="text"
-                  className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
-                  placeholder="e.g. Analysis, Case Prep, Communication"
-                  value={requirements}
-                  onChange={(e) => setRequirements(e.target.value)}
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-slate-600">Job Description *</label>
-                <textarea
-                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all min-h-[120px]"
-                  placeholder="Provide detailed description of role..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4">
-                <button type="button" className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-4 py-2 rounded-lg cursor-pointer transition-colors border-none" onClick={() => setShowJobModal(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2 rounded-lg cursor-pointer transition-all shadow-sm hover:shadow" disabled={submittingJob}>
-                  {submittingJob ? 'Publishing...' : 'Publish Job'}
-                </button>
               </div>
             </form>
+
+            {/* Sticky Footer */}
+            <div className="bg-slate-50 p-6 sm:px-8 border-t border-slate-200 flex items-center justify-between shrink-0">
+              <span className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
+                <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Fields marked with <span className="text-red-500">*</span> are required.
+              </span>
+              
+              <div className="flex items-center gap-3">
+                <button 
+                  type="button" 
+                  className="bg-white border border-slate-200 hover:bg-slate-100 hover:border-slate-300 text-slate-700 font-bold text-sm px-6 py-2.5 rounded-xl cursor-pointer transition-all shadow-sm" 
+                  onClick={() => setShowJobModal(false)}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  form="create-job-form"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-8 py-2.5 rounded-xl cursor-pointer transition-all shadow-sm shadow-indigo-500/30 hover:shadow flex items-center gap-2" 
+                  disabled={submittingJob}
+                >
+                  {submittingJob ? (
+                    <>
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Publishing...
+                    </>
+                  ) : (
+                    'Publish Listing'
+                  )}
+                </button>
+              </div>
+            </div>
 
           </div>
         </div>
