@@ -6,7 +6,7 @@ const AdminOverview = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = 'Admin Overview | Apex Console';
+    document.title = 'Admin Overview | Kryntel Console';
   }, []);
 
   const acceptedAppsCount = applications.filter((a) => a.status === 'accepted').length;

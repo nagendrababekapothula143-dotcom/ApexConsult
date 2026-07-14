@@ -5,7 +5,7 @@ const AdminTeam = () => {
   const { teamMembers } = useOutletContext();
 
   useEffect(() => {
-    document.title = 'Team Management | Apex Console';
+    document.title = 'Team Management | Kryntel Console';
   }, []);
 
   return (

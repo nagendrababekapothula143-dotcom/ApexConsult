@@ -5,7 +5,7 @@ const AdminAccess = () => {
   const { students, teamMembers } = useOutletContext();
 
   useEffect(() => {
-    document.title = 'Access Control | Apex Console';
+    document.title = 'Access Control | Kryntel Console';
   }, []);
 
   return (

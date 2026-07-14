@@ -164,7 +164,7 @@ const FloatingChat = () => {
           <div className="bg-indigo-600 p-4 text-white flex justify-between items-center shrink-0">
             <div>
               <h3 className="font-extrabold text-sm flex items-center gap-2">
-                Apex Support
+                Kryntel Support
                 <span className="w-2 h-2 bg-emerald-400 rounded-full inline-block"></span>
               </h3>
               <p className="text-xs text-indigo-100 mt-0.5">We typically reply in a few minutes.</p>

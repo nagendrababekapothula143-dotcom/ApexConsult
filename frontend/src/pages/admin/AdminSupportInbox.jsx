@@ -72,7 +72,7 @@ const AdminSupportInbox = () => {
   }, [activeTicket]);
 
   useEffect(() => {
-    document.title = 'Support Inbox | Apex Console';
+    document.title = 'Support Inbox | Kryntel Console';
   }, []);
 
   useEffect(() => {

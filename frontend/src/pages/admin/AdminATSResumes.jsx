@@ -11,7 +11,7 @@ const AdminATSResumes = () => {
   const [processingId, setProcessingId] = useState(null);
 
   useEffect(() => {
-    document.title = 'ATS Resumes | Apex Console';
+    document.title = 'ATS Resumes | Kryntel Console';
   }, []);
 
   const getResumeDownloadUrl = (url) => {

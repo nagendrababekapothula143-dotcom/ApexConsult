@@ -45,7 +45,7 @@ const AdminPlacements = () => {
   };
 
   useEffect(() => {
-    document.title = 'Post Jobs | Apex Console';
+    document.title = 'Post Jobs | Kryntel Console';
   }, []);
 
   return (

@@ -11,7 +11,7 @@ const AdminStudents = () => {
   const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
-    document.title = 'All Students | Apex Console';
+    document.title = 'All Students | Kryntel Console';
   }, []);
 
   const handleStatusToggle = async () => {
