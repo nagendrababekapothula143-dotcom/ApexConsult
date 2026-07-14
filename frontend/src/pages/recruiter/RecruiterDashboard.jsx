@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link, NavLink } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { SocketContext } from '../../context/SocketContext';
 import api from '../../services/api';
@@ -13,6 +13,8 @@ const RecruiterDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('pending');
   
   const [uploadingId, setUploadingId] = useState(null);
   const [resumeFiles, setResumeFiles] = useState({});
@@ -97,36 +99,134 @@ const RecruiterDashboard = () => {
     }
   };
 
+  const Icons = {
+    Students: () => (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+        <circle cx="9" cy="7" r="4"></circle>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+      </svg>
+    ),
+    Chat: () => (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+    ),
+    Logout: () => (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+        <polyline points="16 17 21 12 16 7"></polyline>
+        <line x1="21" y1="12" x2="9" y2="12"></line>
+      </svg>
+    )
+  };
+
+  const renderNavLink = (to, icon, label, end = false) => {
+    return (
+      <NavLink
+        to={to}
+        end={end}
+        onClick={() => setIsSidebarOpen(false)}
+        className={({ isActive }) =>
+          `flex items-center gap-3 px-4 py-2.5 text-sm font-semibold rounded-xl w-full text-left transition-all cursor-pointer no-underline ${
+            isActive
+              ? 'bg-slate-100 text-indigo-600'
+              : 'bg-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+          }`
+        }
+      >
+        {icon}
+        {label}
+      </NavLink>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-inter">
-      {/* Navbar */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-800 flex items-center justify-center shadow-lg shadow-indigo-200">
-              <span className="text-white font-black text-sm tracking-tighter">KC</span>
-            </div>
-            <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
-              Recruiter Dashboard
-            </h1>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <div className="text-sm font-medium text-slate-700 hidden sm:block">
-              Welcome, <span className="text-indigo-600 font-bold">{user?.name}</span>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="text-sm font-bold text-slate-500 hover:text-red-600 transition-colors px-3 py-1.5 rounded-lg hover:bg-red-50"
-            >
-              Sign Out
-            </button>
-          </div>
+      
+      {/* Mobile Top Header */}
+      <header className="lg:hidden fixed top-0 left-0 right-0 h-[64px] bg-white border-b border-slate-200 flex items-center justify-between px-6 z-40">
+        <button
+          onClick={() => setIsSidebarOpen(true)}
+          className="bg-transparent border-none text-slate-600 hover:text-slate-900 cursor-pointer p-1.5 focus:outline-none"
+          title="Open Menu"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <div className="text-lg font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent flex items-center gap-1.5">
+          <img src="/Untitled%20design%20(1).png" alt="Logo" className="w-8 h-8 object-contain shrink-0 -ml-1" />
+          Kryntel
+        </div>
+        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-800 uppercase">
+          {(user?.name || "Recruiter").charAt(0).toUpperCase()}
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Backdrop Scrim for mobile sidebar */}
+      {isSidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-slate-950/20 backdrop-blur-xs z-45"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* LEFT SIDEBAR SECTION */}
+      <aside className={`w-[280px] bg-white border-r border-slate-200 flex flex-col justify-between h-screen fixed left-0 top-0 z-50 p-6 transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="flex flex-col gap-6 overflow-y-auto pr-1">
+          
+          <div className="flex justify-between items-center">
+            <Link to="/" className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent flex items-center gap-1.5 no-underline hover:opacity-90 transition-opacity">
+              <img src="/Untitled%20design%20(1).png" alt="Logo" className="w-8 h-8 object-contain shrink-0 -ml-1" />
+              Kryntel <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full inline-block"></span>
+            </Link>
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="lg:hidden bg-transparent border-none text-slate-400 hover:text-slate-800 text-xl font-semibold cursor-pointer p-1"
+              title="Close Menu"
+            >
+              &times;
+            </button>
+          </div>
+
+          <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 px-4">Navigation</span>
+
+          <ul className="flex flex-col gap-1 list-none m-0 p-0">
+            <li>{renderNavLink('/recruiter', <Icons.Students />, 'Assigned Students', true)}</li>
+          </ul>
+
+        </div>
+
+        {/* PROFILE CARD AT BOTTOM */}
+        <div className="flex items-center justify-between pt-4 border-t border-slate-200 mt-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-slate-100 border border-slate-200 rounded-full flex items-center justify-center font-bold text-slate-800">
+              {(user?.name || "Recruiter").charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-slate-900 leading-none mb-1">{user?.name || "Recruiter"}</h4>
+              <p className="text-[10px] text-slate-400 font-medium">Recruiter Team</p>
+            </div>
+          </div>
+          <div className="flex gap-1.5">
+            <button className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="Open Chat">
+              <Icons.Chat />
+            </button>
+            <button onClick={handleLogout} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="Sign Out">
+              <Icons.Logout />
+            </button>
+          </div>
+        </div>
+
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="lg:pl-[280px] min-h-screen pt-[64px] lg:pt-0">
+        <div className="p-4 md:p-8">
         
         {/* Messages */}
         {error && (
@@ -142,30 +242,62 @@ const RecruiterDashboard = () => {
           </div>
         )}
 
-        <div className="mb-8">
-          <h2 className="text-2xl font-black text-slate-900">Your Assigned Students</h2>
-          <p className="text-slate-500 text-sm mt-1">Assist students with their applications and upload finalized resumes.</p>
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-black text-slate-900">Your Assigned Students</h2>
+            <p className="text-slate-500 text-sm mt-1">Assist students with their applications and upload finalized resumes.</p>
+          </div>
+          
+          <div className="flex bg-slate-100 p-1 rounded-xl w-fit">
+            <button 
+              onClick={() => setActiveTab('pending')}
+              className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'pending' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              Pending Assistance
+            </button>
+            <button 
+              onClick={() => setActiveTab('completed')}
+              className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'completed' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              Completed
+            </button>
+          </div>
         </div>
 
         {loading ? (
           <div className="flex justify-center py-20">
             <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
           </div>
-        ) : applications.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
-            <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-1">No Assigned Applications</h3>
-            <p className="text-slate-500 text-sm max-w-sm mx-auto">
-              You currently have no students assigned to you for assistance. When an admin assigns a student, they will appear here.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {applications.map((app) => (
+        ) : (() => {
+          const displayedApps = applications.filter(app => 
+            activeTab === 'pending' 
+              ? app.status === 'recruiter_requested' 
+              : app.status !== 'recruiter_requested'
+          );
+
+          if (displayedApps.length === 0) {
+            return (
+              <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
+                <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 mb-1">
+                  {activeTab === 'pending' ? 'No Pending Applications' : 'No Completed Applications'}
+                </h3>
+                <p className="text-slate-500 text-sm max-w-sm mx-auto">
+                  {activeTab === 'pending' 
+                    ? 'You currently have no students assigned to you for assistance.' 
+                    : 'You have not completed any application assistance yet.'}
+                </p>
+              </div>
+            );
+          }
+
+          return (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {displayedApps.map((app) => (
               <div key={app._id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col">
                 <div className="p-5 border-b border-slate-100">
                   <div className="flex justify-between items-start mb-3">
@@ -241,15 +373,29 @@ const RecruiterDashboard = () => {
                       <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 mb-2">
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"></path></svg>
                       </div>
-                      <div className="text-sm font-bold text-slate-800">Assistance Complete</div>
-                      <div className="text-xs text-slate-500 mt-1">Resume has been uploaded to ATS.</div>
+                      <div className="text-sm font-bold text-slate-800 mb-3">Assistance Complete</div>
+                      
+                      {app.resumeUrl ? (
+                        <a
+                          href={app.resumeUrl.startsWith('/uploads') ? `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}${app.resumeUrl}` : app.resumeUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center justify-center w-full bg-white border border-slate-200 text-indigo-600 hover:text-indigo-700 hover:border-indigo-300 font-bold text-sm px-4 py-2.5 rounded-xl transition-colors shadow-sm no-underline"
+                        >
+                          🗎 View Uploaded Resume
+                        </a>
+                      ) : (
+                        <div className="text-xs text-slate-500 mt-1">Resume has been uploaded to ATS.</div>
+                      )}
                     </div>
                   )}
                 </div>
               </div>
             ))}
           </div>
-        )}
+        );
+      })()}
+        </div>
       </main>
     </div>
   );
