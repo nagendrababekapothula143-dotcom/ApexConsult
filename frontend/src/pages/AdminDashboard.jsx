@@ -217,11 +217,17 @@ const AdminDashboard = () => {
         fetchDashboardData(true);
       };
 
+      const handleAppUpdate = (data) => {
+        fetchDashboardData(true);
+      };
+
       socket.on('newMessage', handleNewMessage);
       socket.on('new_application', handleNewApp);
+      socket.on('application_updated', handleAppUpdate);
       return () => {
         socket.off('newMessage', handleNewMessage);
         socket.off('new_application', handleNewApp);
+        socket.off('application_updated', handleAppUpdate);
       };
     }
   }, [socket]);

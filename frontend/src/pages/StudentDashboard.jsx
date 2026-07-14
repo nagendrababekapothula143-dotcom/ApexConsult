@@ -2,11 +2,13 @@ import React, { useState, useEffect, useContext } from 'react';
 import { Outlet, NavLink, useNavigate, Link } from 'react-router-dom';
 import api, { getBaseUrl } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
+import { SocketContext } from '../context/SocketContext';
 import FloatingChat from '../components/FloatingChat';
 import Loader from '../components/Loader';
 
 const StudentDashboard = () => {
   const { user, logout } = useContext(AuthContext);
+  const socket = useContext(SocketContext);
   const navigate = useNavigate();
 
   // Dynamic States
@@ -45,14 +47,17 @@ const StudentDashboard = () => {
 
   useEffect(() => {
     fetchData();
-    
-    // Real-time background polling every 5 seconds
-    const interval = setInterval(() => {
-      fetchData(true);
-    }, 5000);
-    
-    return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (socket) {
+      const handleAppUpdate = () => fetchData(true);
+      socket.on('application_updated', handleAppUpdate);
+      return () => {
+        socket.off('application_updated', handleAppUpdate);
+      };
+    }
+  }, [socket]);
 
   const handleApply = async (e) => {
     e.preventDefault();

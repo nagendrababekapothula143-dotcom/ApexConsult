@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
+import { SocketContext } from '../../context/SocketContext';
 import api from '../../services/api';
 
 const RecruiterDashboard = () => {
   const { user, logout } = useContext(AuthContext);
+  const socket = useContext(SocketContext);
   const navigate = useNavigate();
 
   const [applications, setApplications] = useState([]);
@@ -36,6 +38,16 @@ const RecruiterDashboard = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (socket) {
+      const handleAppUpdate = () => fetchApplications();
+      socket.on('application_updated', handleAppUpdate);
+      return () => {
+        socket.off('application_updated', handleAppUpdate);
+      };
+    }
+  }, [socket]);
 
   const handleLogout = () => {
     logout();

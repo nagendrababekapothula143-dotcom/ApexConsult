@@ -711,6 +711,24 @@ router.patch('/:id/assign-recruiter', protect, authorize('admin'), async (req, r
       Item: application
     }));
 
+    // Socket.io Real-time Updates
+    const io = req.app.get('io');
+    const connectedUsers = req.app.get('connectedUsers');
+    if (io) {
+      // 1. Notify Admins
+      io.to('admins').emit('application_updated', application);
+      
+      // 2. Notify the newly assigned Recruiter
+      if (recruiterId && connectedUsers && connectedUsers.has(recruiterId)) {
+        io.to(connectedUsers.get(recruiterId)).emit('application_updated', application);
+      }
+      
+      // 3. Notify the Student
+      if (application.student && connectedUsers && connectedUsers.has(application.student)) {
+        io.to(connectedUsers.get(application.student)).emit('application_updated', application);
+      }
+    }
+
     res.status(200).json({ success: true, message: 'Recruiter assigned successfully', data: application });
   } catch (error) {
     console.error('Assign recruiter error:', error);
@@ -763,6 +781,19 @@ router.post('/:id/upload-resume', protect, authorize('recruiter'), handleUpload,
       const signed = await getPresignedUrl(responseApp.resumeKey);
       if (signed) {
         responseApp.resumeUrl = signed;
+      }
+    }
+
+    // Socket.io Real-time Updates
+    const io = req.app.get('io');
+    const connectedUsers = req.app.get('connectedUsers');
+    if (io) {
+      // 1. Notify Admins
+      io.to('admins').emit('application_updated', responseApp);
+      
+      // 2. Notify the Student
+      if (application.student && connectedUsers && connectedUsers.has(application.student)) {
+        io.to(connectedUsers.get(application.student)).emit('application_updated', responseApp);
       }
     }
 
