@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 
 const AdminOverview = () => {
-  const { jobs, applications, students } = useOutletContext();
+  const { jobs, globalApplications: applications, students } = useOutletContext();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -11,20 +11,23 @@ const AdminOverview = () => {
 
   const acceptedAppsCount = applications.filter((a) => a.status === 'accepted').length;
 
+  // Filter applications to only those that actually have a resume uploaded (completed submissions)
+  const submittedApps = applications.filter(app => app.status !== 'recruiter_requested');
+
   // Calculate dynamic ATS score metrics
   const calculateAvgScore = () => {
-    if (!applications || applications.length === 0) return 0;
-    const total = applications.reduce((sum, app) => {
+    if (!submittedApps || submittedApps.length === 0) return 0;
+    const total = submittedApps.reduce((sum, app) => {
       const score = 65 + ((app.student?.name?.length || 5) * 7 % 31);
       return sum + score;
     }, 0);
-    return Math.round(total / applications.length);
+    return Math.round(total / submittedApps.length);
   };
 
   const avgATSScore = calculateAvgScore();
 
-  // Get recent 3 applications
-  const recentApps = applications.slice(0, 3);
+  // Get recent 3 actual submissions
+  const recentApps = submittedApps.slice(0, 3);
 
   // Generate dynamic chart paths based on actual application volume over time
   const generateChartPaths = () => {
@@ -97,13 +100,13 @@ const AdminOverview = () => {
         </div>
         <div className="bg-white border border-slate-200/60 rounded-xl p-5 shadow-xs">
           <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Total Submissions</h4>
-          <div className="text-3xl font-extrabold text-slate-900 mb-0.5">{applications.length}</div>
+          <div className="text-3xl font-extrabold text-slate-900 mb-0.5">{submittedApps.length}</div>
           <p className="text-[10px] text-slate-400 font-medium">Uploaded resume files</p>
         </div>
         <div className="bg-white border border-slate-200/60 rounded-xl p-5 shadow-xs">
           <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Avg ATS Match</h4>
           <div className="text-3xl font-extrabold text-emerald-600 mb-0.5">
-            {applications.length > 0 ? `${avgATSScore}%` : 'N/A'}
+            {submittedApps.length > 0 ? `${avgATSScore}%` : 'N/A'}
           </div>
           <p className="text-[10px] text-slate-400 font-medium">Keyword accuracy score</p>
         </div>
@@ -154,12 +157,12 @@ const AdminOverview = () => {
             <div>
               <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
                 <span>Direct Hired Rate</span>
-                <span>{applications.length > 0 ? Math.round((acceptedAppsCount / applications.length) * 100) : 0}%</span>
+                <span>{submittedApps.length > 0 ? Math.round((acceptedAppsCount / submittedApps.length) * 100) : 0}%</span>
               </div>
               <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
                 <div
                   className="bg-indigo-600 h-full rounded-full transition-all duration-500"
-                  style={{ width: `${applications.length > 0 ? (acceptedAppsCount / applications.length) * 100 : 0}%` }}
+                  style={{ width: `${submittedApps.length > 0 ? (acceptedAppsCount / submittedApps.length) * 100 : 0}%` }}
                 ></div>
               </div>
             </div>
