@@ -401,13 +401,6 @@ const AdminDashboard = () => {
             <li>{renderNavLink('/admin/students', <Icons.Students />, 'All Students')}</li>
             <li>{renderNavLink('/admin/ats-resumes', <Icons.ATSResumes />, 'ATS Resumes')}</li>
             <li>{renderNavLink('/admin/post-jobs', <Icons.JobPlacements />, 'Post Jobs')}</li>
-            <li className="relative">
-              {renderNavLink('/admin/support', <Icons.Chat />, 'Support Inbox')}
-              {hasUnreadSupport && (
-                <span className="absolute top-2 right-4 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white shadow-sm"></span>
-              )}
-            </li>
-            <li>{renderNavLink('/admin/access', <Icons.UserAccess />, 'User Access')}</li>
             <li>{renderNavLink('/admin/team', <Icons.TeamManagement />, 'Team Management')}</li>
           </ul>
 

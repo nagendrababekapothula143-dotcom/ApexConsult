@@ -105,8 +105,14 @@ const StudentJobs = () => {
       });
 
       clearInterval(interval);
-      setTailorResult(res.data.data);
-      setTailoredText(res.data.data.tailoredText);
+      const resultData = res.data.data;
+      setTailorResult(resultData);
+      setTailoredText(resultData.tailoredText);
+      
+      // Immediately generate PDF and preview URL
+      const url = generatePdfBlobUrl(resultData);
+      setPreviewPdfUrl(url);
+      
       setTailorStep('completed');
     } catch (err) {
       clearInterval(interval);
@@ -117,8 +123,10 @@ const StudentJobs = () => {
     }
   };
 
-  const handleDownloadAndUse = () => {
-    if (!tailorResult) return;
+  const [previewPdfUrl, setPreviewPdfUrl] = useState('');
+
+  const generatePdfBlobUrl = (data) => {
+    if (!data) return null;
 
     const doc = new jsPDF({
       orientation: 'portrait',
@@ -126,101 +134,241 @@ const StudentJobs = () => {
       format: 'letter'
     });
 
-    const margin = 54; // 0.75 inch margins
-    let y = 50;
+    const margin = 40; // tighter margins
+    let y = 40;
+
+    const checkPageBreak = (neededHeight) => {
+      if (y + neededHeight > 750) {
+        doc.addPage();
+        y = margin;
+      }
+    };
+
+    // Draw Job Description Header
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(30, 41, 59);
+    doc.text('JOB DESCRIPTION', 306, y, { align: 'center' });
+    y += 18;
+
+    doc.setFontSize(11);
+    doc.text(`${data.jobCompany || 'Company'} - ${data.jobTitle || 'Role'}`, 306, y, { align: 'center' });
+    y += 14;
+
+    doc.setFont('Helvetica', 'normal');
+    doc.setFontSize(9.5);
+    doc.setTextColor(51, 65, 85);
+    
+    if (data.jobDescription) {
+      const descLines = doc.splitTextToSize(data.jobDescription, 612 - margin * 2);
+      checkPageBreak(descLines.length * 11 + 6);
+      doc.text(descLines, margin, y);
+      y += descLines.length * 11 + 10;
+    }
+
+    // Force a page break so the resume starts on a fresh page
+    doc.addPage();
+    y = margin;
 
     // Draw Candidate Name
     doc.setFont('Helvetica', 'bold');
-    doc.setFontSize(22);
-    doc.setTextColor(30, 41, 59); // slate-800
-    doc.text(tailorResult.studentName.toUpperCase(), 306, y, { align: 'center' });
-    y += 24;
+    doc.setFontSize(16);
+    doc.setTextColor(30, 41, 59);
+    doc.text((data.studentName || '').toUpperCase(), 306, y, { align: 'center' });
+    y += 16;
 
     // Draw Subtitle / Target Role
     doc.setFont('Helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.setTextColor(100, 116, 139); // slate-500
-    doc.text(tailorResult.jobTitle.toUpperCase() + ' OPTIMIZED PROFILE', 306, y, { align: 'center' });
-    y += 16;
+    doc.setFontSize(9.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text((data.jobTitle || '').toUpperCase() + ' OPTIMIZED PROFILE', 306, y, { align: 'center' });
+    y += 12;
 
     // Contact info
-    doc.setFontSize(9);
-    doc.text(`+123-456-7890   |   ${tailorResult.studentEmail}   |   Dallas, TX`, 306, y, { align: 'center' });
-    y += 12;
+    doc.setFontSize(8.5);
+    const phoneStr = data.studentPhone || '+123-456-7890';
+    const locationStr = data.studentLocation || 'Dallas, TX';
+    const emailStr = data.studentEmail || '';
+    doc.text(`${phoneStr}   |   ${emailStr}   |   ${locationStr}`, 306, y, { align: 'center' });
+    y += 10;
 
     // Horizontal divider line
-    doc.setDrawColor(226, 232, 240); // slate-200
+    doc.setDrawColor(226, 232, 240);
     doc.setLineWidth(1);
     doc.line(margin, y, 612 - margin, y);
-    y += 20;
+    y += 14;
 
-    // About Me
-    doc.setFont('Helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor(79, 70, 229); // Indigo accent
-    doc.text('ABOUT ME', margin, y);
-    y += 12;
+    const ai = data.aiData || {};
 
-    doc.setFont('Helvetica', 'normal');
-    doc.setFontSize(9.5);
-    doc.setTextColor(51, 65, 85); // Slate-700
-    const aboutLines = doc.splitTextToSize(tailorResult.aboutMe, 612 - margin * 2);
-    doc.text(aboutLines, margin, y);
-    y += aboutLines.length * 13 + 15;
+    // Professional Summary
+    if (ai.professionalSummary && ai.professionalSummary.length > 0) {
+      checkPageBreak(20);
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(30, 41, 59);
+      doc.text('PROFESSIONAL SUMMARY:', margin, y);
+      y += 12;
 
-    // Education
-    doc.setFont('Helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor(79, 70, 229); // Indigo accent
-    doc.text('EDUCATION', margin, y);
-    y += 12;
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(51, 65, 85);
+      ai.professionalSummary.forEach(bullet => {
+        const text = `• ${bullet.replace(/^•\s*/, '')}`;
+        const lines = doc.splitTextToSize(text, 612 - margin * 2 - 10);
+        checkPageBreak(lines.length * 11 + 3);
+        doc.text(lines, margin + 10, y);
+        y += lines.length * 11 + 3;
+      });
+      y += 6;
+    }
 
-    doc.setFont('Helvetica', 'normal');
-    doc.setFontSize(9.5);
-    doc.setTextColor(51, 65, 85);
-    const eduLines = doc.splitTextToSize(tailorResult.education, 612 - margin * 2);
-    doc.text(eduLines, margin, y);
-    y += eduLines.length * 13 + 15;
+    // Technical Skills
+    if (ai.technicalSkills && ai.technicalSkills.length > 0) {
+      checkPageBreak(20);
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(30, 41, 59);
+      doc.text('TECHNICAL SKILLS:', margin, y);
+      y += 12;
 
-    // Work Experience
-    doc.setFont('Helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor(79, 70, 229); // Indigo accent
-    doc.text('PROFESSIONAL EXPERIENCE', margin, y);
-    y += 12;
+      ai.technicalSkills.forEach(cat => {
+        checkPageBreak(15);
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(51, 65, 85);
+        doc.text(`• ${cat.category} - `, margin + 10, y);
+        
+        const catWidth = doc.getTextWidth(`• ${cat.category} - `);
+        doc.setFont('Helvetica', 'normal');
+        
+        const lines = doc.splitTextToSize(cat.skills, 612 - margin * 2 - 10 - catWidth);
+        checkPageBreak(lines.length * 11);
+        doc.text(lines, margin + 10 + catWidth, y);
+        y += lines.length * 11 + 2;
+      });
+      y += 6;
+    }
 
-    doc.setFont('Helvetica', 'normal');
-    doc.setFontSize(9.5);
-    doc.setTextColor(51, 65, 85);
-    const expLines = doc.splitTextToSize(tailorResult.experience, 612 - margin * 2);
-    doc.text(expLines, margin, y);
-    y += expLines.length * 13 + 15;
+    // Professional Experience
+    if (ai.professionalExperience && ai.professionalExperience.length > 0) {
+      checkPageBreak(20);
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(30, 41, 59);
+      doc.text('PROFESSIONAL EXPERIENCE:', margin, y);
+      y += 12;
 
-    // Skills
-    doc.setFont('Helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor(79, 70, 229); // Indigo accent
-    doc.text('TECHNICAL & STRATEGIC SKILLS', margin, y);
-    y += 12;
+      ai.professionalExperience.forEach(exp => {
+        checkPageBreak(25);
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(9.5);
+        doc.setTextColor(30, 41, 59);
+        doc.text(exp.company, margin, y);
+        doc.setFont('Helvetica', 'normal');
+        doc.text(exp.dates, 612 - margin, y, { align: 'right' });
+        y += 12;
+        
+        doc.setFont('Helvetica', 'bold');
+        doc.text(exp.role, margin, y);
+        y += 12;
 
-    doc.setFont('Helvetica', 'normal');
-    doc.setFontSize(9.5);
-    doc.setTextColor(51, 65, 85);
-    const skillsText = tailorResult.skills.map(s => `• ${s}`).join('   ');
-    const skillsLines = doc.splitTextToSize(skillsText, 612 - margin * 2);
-    doc.text(skillsLines, margin, y);
+        if (exp.responsibilities && exp.responsibilities.length > 0) {
+          doc.text('Responsibilities:', margin, y);
+          y += 11;
+          
+          doc.setFont('Helvetica', 'normal');
+          exp.responsibilities.forEach(bullet => {
+            const text = `• ${bullet.replace(/^•\s*/, '')}`;
+            const lines = doc.splitTextToSize(text, 612 - margin * 2 - 10);
+            checkPageBreak(lines.length * 11 + 3);
+            doc.text(lines, margin + 10, y);
+            y += lines.length * 11 + 3;
+          });
+        }
+        y += 6;
+      });
+    }
 
-    // Save/Download PDF
+    // Certifications
+    if (ai.certifications && ai.certifications.length > 0) {
+      checkPageBreak(20);
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(30, 41, 59);
+      doc.text('Certifications:', margin, y);
+      y += 12;
+
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(51, 65, 85);
+      ai.certifications.forEach(cert => {
+        const text = `• ${cert.replace(/^•\s*/, '')}`;
+        const lines = doc.splitTextToSize(text, 612 - margin * 2 - 10);
+        checkPageBreak(lines.length * 11 + 3);
+        doc.text(lines, margin + 10, y);
+        y += lines.length * 11 + 3;
+      });
+      y += 6;
+    }
+
+    // Educational Details
+    if (ai.educationalDetails && ai.educationalDetails.length > 0) {
+      checkPageBreak(20);
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(30, 41, 59);
+      doc.text('Educational Details:', margin, y);
+      y += 12;
+
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(51, 65, 85);
+      ai.educationalDetails.forEach(edu => {
+        const text = edu;
+        const lines = doc.splitTextToSize(text, 612 - margin * 2);
+        checkPageBreak(lines.length * 11 + 3);
+        doc.text(lines, margin, y);
+        y += lines.length * 11 + 3;
+      });
+      y += 14;
+    }
+
+    // Interview Prep
+    if (ai.interviewPrep && ai.interviewPrep.length > 0) {
+      checkPageBreak(20 + ai.interviewPrep.length * 13);
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(30, 41, 59);
+      doc.text('Please prepare responses for the questions listed below', margin, y);
+      y += 14;
+
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(79, 70, 229); // Accent color for questions
+      ai.interviewPrep.forEach(q => {
+        const text = q.startsWith('•') ? q : `• ${q}`;
+        const lines = doc.splitTextToSize(text, 612 - margin * 2 - 10);
+        doc.text(lines, margin + 10, y);
+        y += lines.length * 11 + 3;
+      });
+    }
+
     const pdfOutputBlob = doc.output('blob');
+    return URL.createObjectURL(pdfOutputBlob);
+  };
+
+  const handleDownloadAndUse = async () => {
+    if (!previewPdfUrl) return;
+
+    const response = await fetch(previewPdfUrl);
+    const pdfOutputBlob = await response.blob();
     const fileName = `${(tailorResult.studentName || 'Student').replace(/\s+/g, '_')}_Tailored_Resume_${tailorResult.jobCompany.replace(/\s+/g, '_')}.pdf`;
     
     // Trigger download
-    const url = URL.createObjectURL(pdfOutputBlob);
     const link = document.createElement('a');
-    link.href = url;
+    link.href = previewPdfUrl;
     link.download = fileName;
     link.click();
-    URL.revokeObjectURL(url);
 
     // Create File object to bind to state
     const file = new File([pdfOutputBlob], fileName, { type: 'application/pdf' });
@@ -451,7 +599,7 @@ const StudentJobs = () => {
                         <input
                           type="file"
                           id="resume-file"
-                          accept=".pdf,.doc,.docx,.txt"
+                          accept=".pdf"
                           className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-xs text-slate-900 outline-none focus:border-indigo-500 focus:ring-3 focus:ring-indigo-50 transition-all"
                           onChange={(e) => { setResumeFile(e.target.files[0]); setConfirmFile(e.target.files[0]); }}
                         />
@@ -508,7 +656,7 @@ const StudentJobs = () => {
       {/* AI TAILORING MODAL */}
       {showTailorModal && (
         <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-xl p-8 shadow-xl relative">
+          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-4xl p-6 shadow-xl relative max-h-[95vh] overflow-y-auto">
             <button
               onClick={() => setShowTailorModal(false)}
               className="absolute top-4 right-4 bg-transparent border-none text-slate-400 hover:text-slate-950 text-2xl font-semibold cursor-pointer"
@@ -532,82 +680,12 @@ const StudentJobs = () => {
                   <p className="text-xs text-slate-500">We have restructured your experiences to highlight the matching skills required for <strong>{selectedJob.title}</strong> at <strong>{selectedJob.company}</strong>.</p>
                 </div>
 
-                <div className="bg-white border border-slate-200 shadow-inner rounded-xl p-6 max-h-[300px] overflow-y-auto text-slate-800 text-left font-sans text-xs">
-                  <div className="space-y-5">
-                    {/* Header */}
-                    <div className="text-center space-y-1">
-                      <h2 className="text-xl font-bold tracking-tight text-slate-900 uppercase">{tailorResult?.studentName || user?.name || 'Student Name'}</h2>
-                      <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">{tailorResult?.jobTitle || selectedJob?.title || 'Management Consultant'}</p>
-                    </div>
-
-                    {/* Contacts Row */}
-                    <div className="border-t border-b border-slate-200 py-1.5 flex flex-wrap justify-center gap-4 text-[9px] text-slate-500 font-medium">
-                      <span>📞 +123-456-7890</span>
-                      <span>✉️ {tailorResult?.studentEmail || user?.email || 'hello@reallygreatsite.com'}</span>
-                      <span>📍 Dallas, TX</span>
-                    </div>
-
-                    {/* About Me */}
-                    <div className="space-y-1">
-                      <h3 className="text-[10px] font-bold text-slate-800 uppercase tracking-wide">About Me</h3>
-                      <hr className="border-t border-slate-200" />
-                      <p className="text-[10px] text-slate-600 leading-relaxed">
-                        {tailorResult?.aboutMe || `Highly analytical consulting candidate offering hands-on expertise in quantitative modeling, strategic slides preparation, and the case interview method. Specifically optimized to align with ${selectedJob?.company || 'target consulting firms'}'s active requirements for the ${selectedJob?.title || 'consultant'} role.`}
-                      </p>
-                    </div>
-
-                    {/* Education */}
-                    <div className="space-y-1">
-                      <h3 className="text-[10px] font-bold text-slate-800 uppercase tracking-wide">Education</h3>
-                      <hr className="border-t border-slate-200" />
-                      <div className="text-[10px] text-slate-600 space-y-1 whitespace-pre-wrap">
-                        {tailorResult?.education || (
-                          <>
-                            <div className="flex justify-between font-bold text-slate-700">
-                              <span>Borcelle University | 2026-2030</span>
-                              <span>GPA: 3.8/4.0</span>
-                            </div>
-                            <p className="font-semibold text-slate-600 italic">Bachelor of Science in Economics & Business</p>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Work Experience */}
-                    <div className="space-y-1">
-                      <h3 className="text-[10px] font-bold text-slate-800 uppercase tracking-wide">Work Experience</h3>
-                      <hr className="border-t border-slate-200" />
-                      <div className="text-[10px] text-slate-600 space-y-2 whitespace-pre-wrap">
-                        {tailorResult?.experience || (
-                          <div>
-                            <div className="flex justify-between font-bold text-slate-700">
-                              <span>Salford & Co. | 2033 - 2035</span>
-                              <span>Dallas, TX</span>
-                            </div>
-                            <p className="font-semibold text-slate-600 italic">Management Intern</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Skills */}
-                    <div className="space-y-1">
-                      <h3 className="text-[10px] font-bold text-slate-800 uppercase tracking-wide">Skills</h3>
-                      <hr className="border-t border-slate-200" />
-                      <ul className="grid grid-cols-3 gap-y-1 gap-x-4 text-[10px] text-slate-600 list-disc pl-4">
-                        {tailorResult?.skills?.map((s, i) => (
-                          <li key={i} className="capitalize">{s}</li>
-                        )) || (
-                          <>
-                            <li>Case Method</li>
-                            <li>Financial Modeling</li>
-                            <li>Strategic Presentation</li>
-                          </>
-                        )}
-                      </ul>
-                    </div>
-
-                  </div>
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2 w-full h-[60vh] min-h-[400px]">
+                  {previewPdfUrl ? (
+                    <iframe src={previewPdfUrl} className="w-full h-full rounded border-none" title="Tailored Resume Preview" />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-slate-500 text-sm animate-pulse">Generating PDF Preview...</div>
+                  )}
                 </div>
 
                 <div className="flex justify-end gap-3 pt-2">

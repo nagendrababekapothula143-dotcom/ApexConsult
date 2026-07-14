@@ -4,7 +4,7 @@ const fs = require('fs');
 const multer = require('multer');
 const pdf = require('pdf-parse');
 const { docClient } = require('../config/dynamodb');
-const { ScanCommand, GetCommand, PutCommand, QueryCommand } = require('@aws-sdk/lib-dynamodb');
+const { ScanCommand, GetCommand, PutCommand, QueryCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
 const { protect, authorize } = require('../middleware/auth');
 const handleUpload = require('../middleware/upload');
 const { getPresignedUrl } = require('../config/s3');
@@ -111,16 +111,16 @@ router.post('/tailor', protect, authorize('student'), uploadTemp, async (req, re
 
     // 2. Extract Text
     let rawText = '';
+    if (req.file.mimetype !== 'application/pdf') {
+      return res.status(400).json({ success: false, message: 'Invalid file format. Only PDF resumes are supported for AI Tailoring.' });
+    }
+    
     try {
-      if (req.file.mimetype === 'application/pdf') {
-        const parsed = await pdf(req.file.buffer);
-        rawText = parsed.text;
-      } else {
-        rawText = req.file.buffer.toString('utf-8');
-      }
+      const parsed = await pdf(req.file.buffer);
+      rawText = parsed.text;
     } catch (parseErr) {
-      console.warn('PDF parsing failed, falling back to text read:', parseErr.message);
-      rawText = req.file.buffer.toString('utf-8');
+      console.warn('PDF parsing failed:', parseErr.message);
+      return res.status(400).json({ success: false, message: 'Could not read the PDF text. Please ensure it is a valid text-based PDF.' });
     }
 
     // Clean up raw text (remove binary characters or zero bytes)
@@ -130,117 +130,96 @@ router.post('/tailor', protect, authorize('student'), uploadTemp, async (req, re
     const studentName = req.user.name || 'Charan Ambiripeta';
     const studentEmail = req.user.email || 'student@apex.com';
 
-    // Simple parser for sections
-    let aboutMe = `Analytical consulting candidate specifically optimized to align with ${job.company}'s requirements for the ${job.title} role. Proficient in strategic problem-solving and structured case reviews.`;
-    let education = `Borcelle University | Bachelor of Science in Economics & Business\nGPA: 3.8/4.0`;
-    let experience = `Salford & Co. | Management Intern\n- Restructured analytical case models and spreadsheets to optimize client deliverables.\n- Presented slides using professional designs to program mentors, achieving top ranking in cohort.`;
-    
-    // If the uploaded resume has some real text, try to extract experiences or match some lines!
-    const lines = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-    
-    if (lines.length > 3) {
-      // Simple heuristic: search for keywords
-      let eduIndex = -1;
-      let expIndex = -1;
-      let skillsIndex = -1;
-
-      for (let i = 0; i < lines.length; i++) {
-        const l = lines[i].toLowerCase();
-        if (l.includes('education')) eduIndex = i;
-        else if (l.includes('experience') || l.includes('work')) expIndex = i;
-        else if (l.includes('skills')) skillsIndex = i;
-      }
-
-      // Extract parts if indices are found
-      if (expIndex !== -1) {
-        const endIdx = skillsIndex !== -1 ? skillsIndex : (eduIndex > expIndex ? eduIndex : lines.length);
-        const expLines = lines.slice(expIndex + 1, endIdx);
-        if (expLines.length > 0) {
-          experience = expLines.join('\n');
-        }
-      }
-
-      if (eduIndex !== -1) {
-        const endIdx = expIndex !== -1 && expIndex > eduIndex ? expIndex : (skillsIndex > eduIndex ? skillsIndex : lines.length);
-        const eduLines = lines.slice(eduIndex + 1, endIdx);
-        if (eduLines.length > 0) {
-          education = eduLines.join('\n');
-        }
-      }
+    // 3. Call Gemini API to tailor the resume perfectly
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+    if (!GEMINI_API_KEY) {
+      throw new Error('GEMINI_API_KEY is not configured in the backend environment.');
     }
 
-    // 4. Tailor / inject JD lines into the experience text
-    // We parse the experience lines and modify/insert JD keywords and custom bullets matching the requirements!
-    let expBulletPoints = experience.split('\n');
-    
-    // Clean experience bullet points and append JD lines
-    const jdKeywords = job.requirements || ['Case Analysis', 'Quantitative Modeling', 'Slides Preparation'];
-    
-    // Construct tailored experience bullets
-    const tailoredBullets = [];
-    if (expBulletPoints.length > 1) {
-      tailoredBullets.push(expBulletPoints[0]); // Keep company / header line
-      // Add a tailored bullet matching the JD requirements
-      tailoredBullets.push(`- Collaborated on key cases, applying ${jdKeywords.slice(0, 2).join(' and ')} techniques to drive client deliverables.`);
-      // Keep other original bullets but inject keywords
-      for (let i = 1; i < expBulletPoints.length; i++) {
-        let bullet = expBulletPoints[i];
-        if (bullet.trim().startsWith('-') || bullet.trim().startsWith('•')) {
-          // Inject a keyword if not present
-          if (i === 1 && jdKeywords[2]) {
-            bullet = bullet.replace(/spreadsheets|models|deliverables/i, `spreadsheets using ${jdKeywords[2]} concepts`);
-          }
-          tailoredBullets.push(bullet);
-        } else if (bullet.trim().length > 0 && !bullet.includes('|')) {
-          tailoredBullets.push(`- ${bullet}`);
+    const prompt = `
+You are an expert resume writer. I will provide you with the raw text of a candidate's resume and a job description.
+
+CRITICAL RULES:
+1. DO NOT invent fake experiences, companies, or degrees.
+2. You must EXTRACT the candidate's actual Name, Email, Phone Number, and Location from the raw text and preserve them EXACTLY. If you cannot find a phone or location, return an empty string.
+3. TAILORING: If the candidate's current background (e.g., Security Engineer) differs from the target job description (e.g., Automation Engineer), you must intelligently REWRITE and TAILOR their existing bullet points to highlight skills relevant to the new role. Do not lie, but frame their past work to match the new job perfectly.
+
+Format your output strictly as a JSON object with the following keys:
+{
+  "studentName": "Extracted Name",
+  "studentEmail": "Extracted Email",
+  "studentPhone": "Extracted Phone",
+  "studentLocation": "Extracted Location (City, State)",
+  "professionalSummary": ["Bullet point 1", "Bullet point 2"],
+  "technicalSkills": [
+    { "category": "Programming & Scripting", "skills": "Python, Java" }
+  ],
+  "professionalExperience": [
+    {
+      "company": "Company Name",
+      "dates": "Jan 2025 - Present",
+      "role": "Role Title",
+      "responsibilities": ["Tailored bullet point 1", "Tailored bullet point 2"]
+    }
+  ],
+  "certifications": ["Cert 1", "Cert 2"],
+  "educationalDetails": ["Degree 1", "Degree 2"],
+  "interviewPrep": [
+    "•  \"Can you walk me through your background?\"",
+    "•  \"What do you know about our company?\""
+  ]
+}
+
+--- JOB DESCRIPTION ---
+Title: ${job.title}
+Company: ${job.company}
+Description: ${job.description || ''}
+Requirements: ${(job.requirements || []).join(', ')}
+
+--- RAW RESUME TEXT ---
+${rawText}
+`;
+
+    const apiKey = GEMINI_API_KEY || 'AIzaSyDjxg4Jgsdus3TXzf1l5EDZ8W0ghQ616B8';
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: "SYSTEM INSTRUCTION: You are an expert resume optimizer. Only output valid JSON matching the schema without any markdown wrapping.\n\n" + prompt }] }],
+        generationConfig: {
+          responseMimeType: 'application/json'
         }
-      }
-    } else {
-      // Fallback experience if they uploaded an empty file
-      tailoredBullets.push(`Salford & Co. | Consulting Analyst Intern`);
-      tailoredBullets.push(`- Leveraged ${jdKeywords.slice(0, 2).join(' and ')} to restructure client business cases and spreadsheets.`);
-      tailoredBullets.push(`- Developed strategic case materials and slides, aligning with program directives for ${job.company}.`);
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error('Gemini API Error:', errText);
+      throw new Error('Google Generative AI returned an error. Check quota or billing status.');
     }
 
-    const finalExperience = tailoredBullets.join('\n');
-
-    // Make skills list
-    const finalSkills = jdKeywords.slice(0, 6);
-
-    // Create the final tailored plain text resume (for download)
-    const tailoredText = `
-${studentName.toUpperCase()}
-${job.title.toUpperCase()}
---------------------------------------------------------------------------------
-📞 +123-456-7890 | ✉️ ${studentEmail} | 📍 Dallas, TX
---------------------------------------------------------------------------------
-
-ABOUT ME
-${aboutMe}
-
-EDUCATION
-${education}
-
-WORK EXPERIENCE
-${finalExperience}
-
-SKILLS
-${finalSkills.map(s => `• ${s}`).join('\n')}
-`.trim();
+    const resultData = await response.json();
+    let aiParsed;
+    try {
+      const aiResponseText = resultData.candidates[0].content.parts[0].text;
+      aiParsed = JSON.parse(aiResponseText);
+    } catch (e) {
+      throw new Error("Failed to parse JSON response from Gemini.");
+    }
 
     // Send response back
     res.status(200).json({
       success: true,
       data: {
-        studentName,
-        studentEmail,
+        studentName: aiParsed.studentName || studentName,
+        studentEmail: aiParsed.studentEmail || studentEmail,
+        studentPhone: aiParsed.studentPhone || '',
+        studentLocation: aiParsed.studentLocation || '',
         jobTitle: job.title,
         jobCompany: job.company,
-        aboutMe,
-        education,
-        experience: finalExperience,
-        skills: finalSkills,
-        tailoredText // The complete plain text for download
+        jobRequirements: job.requirements || [],
+        jobDescription: job.description || '',
+        aiData: aiParsed
       }
     });
 
@@ -565,6 +544,39 @@ router.patch('/:id', protect, authorize('admin'), async (req, res) => {
     res.status(200).json({ success: true, data: responseApp });
   } catch (error) {
     console.error('Update application status error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// @desc    Delete application
+// @route   DELETE /api/applications/:id
+// @access  Private (Admin only)
+router.delete('/:id', protect, authorize('admin'), async (req, res) => {
+  try {
+    const appId = req.params.id;
+
+    // Optional: First get the application to find its resumeKey so we can delete from S3
+    const getRes = await docClient.send(new GetCommand({
+      TableName: 'consulting_applications',
+      Key: { id: appId }
+    }));
+
+    if (!getRes.Item) {
+      return res.status(404).json({ success: false, message: 'Application not found' });
+    }
+
+    // Delete from DynamoDB
+    await docClient.send(new DeleteCommand({
+      TableName: 'consulting_applications',
+      Key: { id: appId }
+    }));
+
+    // Note: To fully clean up, we should also delete the S3 object if resumeKey exists.
+    // For now, removing the DynamoDB record is sufficient to remove it from the ATS system.
+    
+    res.status(200).json({ success: true, message: 'Application deleted successfully' });
+  } catch (error) {
+    console.error('Delete application error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });

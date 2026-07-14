@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import Loader from '../../components/Loader';
 
@@ -13,7 +13,36 @@ const AdminPlacements = () => {
     setShowJobModal,
     getStatusBadgeClass,
     getResumeDownloadUrl,
+    fetchData,
+    setError,
+    setSuccess,
   } = useOutletContext();
+
+  const [deleteModalConfig, setDeleteModalConfig] = useState({ isOpen: false, jobId: null });
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteJob = async () => {
+    const { jobId } = deleteModalConfig;
+    setDeleteModalConfig({ isOpen: false, jobId: null });
+    setIsDeleting(true);
+    
+    try {
+      const { default: api } = await import('../../services/api');
+      const res = await api.delete(`/jobs/${jobId}`);
+      if (res.data.success) {
+        setSuccess && setSuccess('Job deleted successfully');
+        if (selectedJob?._id === jobId) {
+           handleJobSelect(null);
+        }
+        if (fetchData) await fetchData(true);
+      }
+    } catch (err) {
+      console.error(err);
+      setError && setError('Failed to delete job listing.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   useEffect(() => {
     document.title = 'Post Jobs | Apex Console';
@@ -52,10 +81,28 @@ const AdminPlacements = () => {
                   }`}
                   onClick={() => handleJobSelect(job)}
                 >
-                  <h4 className="font-bold text-slate-900 text-sm mb-0.5">{job.title}</h4>
-                  <p className="text-xs text-slate-500">
-                    {job.company} • <span className="text-slate-400">{job.location}</span>
-                  </p>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-bold text-slate-900 text-sm mb-0.5">{job.title}</h4>
+                      <p className="text-xs text-slate-500">
+                        {job.company} • <span className="text-slate-400">{job.location}</span>
+                      </p>
+                    </div>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteModalConfig({ isOpen: true, jobId: job._id });
+                      }}
+                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer border-none bg-transparent"
+                      title="Delete Job"
+                      disabled={isDeleting}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               ))
             )}
@@ -136,8 +183,33 @@ const AdminPlacements = () => {
             </div>
           )}
         </div>
-
       </div>
+
+      {/* DELETE CONFIRMATION MODAL */}
+      {deleteModalConfig.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-bold text-slate-900 mb-2">Delete Job Listing</h3>
+            <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+              Are you sure you want to permanently delete this job post? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => setDeleteModalConfig({ isOpen: false, jobId: null })}
+                className="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer border-none"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleDeleteJob}
+                className="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors cursor-pointer border-none"
+              >
+                Confirm Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

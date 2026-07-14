@@ -16,10 +16,8 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AdminOverview = lazy(() => import('./pages/admin/AdminOverview'));
 const AdminStudents = lazy(() => import('./pages/admin/AdminStudents'));
 const AdminATSResumes = lazy(() => import('./pages/admin/AdminATSResumes'));
-const AdminAccess = lazy(() => import('./pages/admin/AdminAccess'));
 const AdminTeam = lazy(() => import('./pages/admin/AdminTeam'));
 const AdminPlacements = lazy(() => import('./pages/admin/AdminPlacements'));
-const AdminSupportInbox = lazy(() => import('./pages/admin/AdminSupportInbox'));
 
 // Sub-pages for student nested routing
 const StudentJobs = lazy(() => import('./pages/student/StudentJobs'));
@@ -102,9 +100,6 @@ function App() {
               <Route path="students" element={<AdminStudents />} />
               <Route path="ats-resumes" element={<AdminATSResumes />} />
               <Route path="post-jobs" element={<AdminPlacements />} />
-              <Route path="support" element={<AdminSupportInbox />} />
-              <Route path="support/:chatId" element={<AdminSupportInbox />} />
-              <Route path="access" element={<AdminAccess />} />
               <Route path="team" element={<AdminTeam />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />

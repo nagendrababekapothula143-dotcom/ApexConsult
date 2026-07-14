@@ -31,6 +31,7 @@ const getPresignedUrl = async (key) => {
     const command = new GetObjectCommand({
       Bucket: bucketName,
       Key: key,
+      ResponseContentDisposition: 'attachment'
     });
     // Link expires in 1 hour (3600 seconds)
     return await getSignedUrl(s3Client, command, { expiresIn: 3600 });
