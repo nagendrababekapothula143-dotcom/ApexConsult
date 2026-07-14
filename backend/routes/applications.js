@@ -8,6 +8,7 @@ const { ScanCommand, GetCommand, PutCommand, QueryCommand, DeleteCommand } = req
 const { protect, authorize } = require('../middleware/auth');
 const handleUpload = require('../middleware/upload');
 const { getPresignedUrl } = require('../config/s3');
+const { logAuditAction } = require('../utils/auditLogger');
 const router = express.Router();
 
 const uploadTemp = multer({
@@ -391,6 +392,14 @@ router.post('/', protect, authorize('student'), handleUpload, async (req, res) =
       });
     }
 
+    await logAuditAction(
+      req.user.id || req.user._id,
+      req.user.name || 'Student',
+      req.body.requestAssistance === 'true' ? 'STUDENT_REQUESTED_ASSISTANCE' : 'SUBMIT_APPLICATION',
+      newAppId,
+      { jobTitle: job.title, jobId: job.id }
+    );
+
     const responseApp = {
       ...newApp,
       _id: newAppId
@@ -711,6 +720,15 @@ router.patch('/:id/assign-recruiter', protect, authorize('admin'), async (req, r
       Item: application
     }));
 
+    // Log the assignment action
+    await logAuditAction(
+      req.user.id || req.user._id,
+      req.user.name || req.user.email,
+      recruiterId ? 'ASSIGN_RECRUITER' : 'UNASSIGN_RECRUITER',
+      application.id,
+      { recruiterId }
+    );
+
     // Socket.io Real-time Updates
     const io = req.app.get('io');
     const connectedUsers = req.app.get('connectedUsers');
@@ -771,6 +789,15 @@ router.post('/:id/upload-resume', protect, authorize('recruiter'), handleUpload,
       TableName: 'consulting_applications',
       Item: application
     }));
+
+    // Log the upload action
+    await logAuditAction(
+      req.user.id || req.user._id,
+      req.user.name || req.user.email,
+      'RECRUITER_SUBMITTED_APPLICATION',
+      application.id,
+      { status: 'application sent', originalStudent: application.studentName || 'Student' }
+    );
 
     const responseApp = {
       ...application,

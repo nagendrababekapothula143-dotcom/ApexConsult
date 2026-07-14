@@ -2,7 +2,14 @@ import React, { useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 
 const AdminTeam = () => {
-  const { teamMembers } = useOutletContext();
+  const { teamMembers, recruiters } = useOutletContext();
+  
+  // Combine admins and recruiters into a single list, sorting admins first, then by date
+  const allTeamMembers = [...(teamMembers || []), ...(recruiters || [])].sort((a, b) => {
+    if (a.role === 'admin' && b.role !== 'admin') return -1;
+    if (a.role !== 'admin' && b.role === 'admin') return 1;
+    return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+  });
 
   useEffect(() => {
     document.title = 'Team Management | Kryntel Console';
@@ -26,16 +33,22 @@ const AdminTeam = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-sm">
-            {teamMembers.length === 0 ? (
+            {allTeamMembers.length === 0 ? (
               <tr>
-                <td colSpan="4" className="p-8 text-center text-slate-400">No admin members loaded.</td>
+                <td colSpan="4" className="p-8 text-center text-slate-400">No team members loaded.</td>
               </tr>
             ) : (
-              teamMembers.map((tm) => (
+              allTeamMembers.map((tm) => (
                 <tr key={tm._id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="p-4 font-bold text-slate-900">{tm.name}</td>
                   <td className="p-4 text-slate-600">{tm.email}</td>
-                  <td className="p-4 font-medium text-slate-700 capitalize">{tm.role} Access</td>
+                  <td className="p-4">
+                    <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                      tm.role === 'admin' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    }`}>
+                      {tm.role} Access
+                    </span>
+                  </td>
                   <td className="p-4 text-slate-500">
                     {tm.createdAt ? new Date(tm.createdAt).toLocaleDateString() : 'N/A'}
                   </td>

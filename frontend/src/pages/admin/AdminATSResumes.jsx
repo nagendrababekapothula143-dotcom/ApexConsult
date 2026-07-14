@@ -1,9 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import api, { getBaseUrl } from '../../services/api';
+import { useToast } from '../../context/ToastContext';
+
+const SkeletonRow = () => (
+  <tr className="animate-pulse bg-slate-50 border-b border-slate-100">
+    <td className="p-4"><div className="h-4 bg-slate-200 rounded w-3/4 mb-2"></div><div className="h-3 bg-slate-200 rounded w-1/2"></div></td>
+    <td className="p-4"><div className="h-4 bg-slate-200 rounded w-full mb-2"></div></td>
+    <td className="p-4"><div className="h-4 bg-slate-200 rounded w-2/3"></div></td>
+    <td className="p-4"><div className="h-4 bg-slate-200 rounded w-1/2"></div></td>
+    <td className="p-4"><div className="h-6 bg-slate-200 rounded-full w-24"></div></td>
+    <td className="p-4"><div className="h-8 bg-slate-200 rounded w-full"></div></td>
+  </tr>
+);
 
 const AdminATSResumes = () => {
-  const { globalApplications, fetchData, setError, setSuccess } = useOutletContext();
+  const { globalApplications, fetchData } = useOutletContext();
+  const toast = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedStudentPhone, setSelectedStudentPhone] = useState(null);
@@ -12,6 +25,12 @@ const AdminATSResumes = () => {
   const [modalConfig, setModalConfig] = useState({ isOpen: false, applicationId: null });
   const [processingId, setProcessingId] = useState(null);
   const [recruiters, setRecruiters] = useState([]);
+  
+  // Pagination & Sorting
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  const [sortConfig, setSortConfig] = useState({ key: 'appliedAt', direction: 'desc' });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     document.title = 'ATS Resumes | Kryntel Console';
@@ -22,7 +41,9 @@ const AdminATSResumes = () => {
           setRecruiters(res.data.data);
         }
       } catch (error) {
-        console.error('Failed to fetch recruiters');
+        toast.error('Failed to fetch recruiters');
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchRecruiters();
@@ -44,12 +65,12 @@ const AdminATSResumes = () => {
     try {
       const res = await api.delete(`/applications/${applicationId}`);
       if (res.data.success) {
-        setSuccess && setSuccess('Application deleted successfully');
+        toast.success('Application deleted successfully');
         if (fetchData) await fetchData(true);
       }
     } catch (err) {
       console.error(err);
-      setError && setError('Failed to delete application.');
+      toast.error('Failed to delete application.');
     } finally {
       setProcessingId(null);
     }
@@ -60,14 +81,21 @@ const AdminATSResumes = () => {
     setProcessingId(appId);
     try {
       await api.patch(`/applications/${appId}/assign-recruiter`, { recruiterId });
-      setSuccess && setSuccess('Recruiter assigned successfully to this application');
+      toast.success('Recruiter assigned successfully');
       if (fetchData) await fetchData(true);
     } catch (error) {
       console.error(error);
-      setError && setError('Failed to assign recruiter');
+      toast.error('Failed to assign recruiter');
     } finally {
       setProcessingId(null);
     }
+  };
+
+  const handleSort = (key) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
   };
 
   return (
@@ -170,17 +198,29 @@ const AdminATSResumes = () => {
         <table className="w-full table-fixed border-collapse text-left">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
-              <th className="p-4 w-[20%]">Student Name</th>
-              <th className="p-4 w-[20%]">Role Applied For</th>
-              <th className="p-4 w-[15%]">Company Name</th>
-              <th className="p-4 w-[15%]">Applied On</th>
+              <th className="p-4 w-[20%] cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('student.name')}>
+                Student Name {sortConfig.key === 'student.name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+              </th>
+              <th className="p-4 w-[20%] cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('job.title')}>
+                Role Applied For {sortConfig.key === 'job.title' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+              </th>
+              <th className="p-4 w-[15%] cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('job.company')}>
+                Company Name {sortConfig.key === 'job.company' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+              </th>
+              <th className="p-4 w-[15%] cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('appliedAt')}>
+                Applied On {sortConfig.key === 'appliedAt' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+              </th>
               <th className="p-4 w-[15%]">Status / Assignment</th>
               <th className="p-4 w-[15%] text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-sm">
             {(() => {
-              const filteredApps = globalApplications.filter(app => {
+              if (isLoading) {
+                return Array(5).fill(0).map((_, i) => <SkeletonRow key={i} />);
+              }
+
+              let filteredApps = globalApplications.filter(app => {
                 const searchLower = searchQuery.toLowerCase();
                 const studentNameMatch = (app.student?.name || '').toLowerCase().includes(searchLower);
                 const studentPhoneMatch = (app.student?.phone || '').toLowerCase().includes(searchLower);
@@ -194,18 +234,43 @@ const AdminATSResumes = () => {
                 return matchesSearch && matchesRole && matchesCompany;
               });
 
+              filteredApps.sort((a, b) => {
+                let valA, valB;
+                if (sortConfig.key === 'student.name') {
+                  valA = (a.student?.name || '').toLowerCase();
+                  valB = (b.student?.name || '').toLowerCase();
+                } else if (sortConfig.key === 'job.title') {
+                  valA = (a.job?.title || '').toLowerCase();
+                  valB = (b.job?.title || '').toLowerCase();
+                } else if (sortConfig.key === 'job.company') {
+                  valA = (a.job?.company || '').toLowerCase();
+                  valB = (b.job?.company || '').toLowerCase();
+                } else {
+                  valA = new Date(a.appliedAt || 0).getTime();
+                  valB = new Date(b.appliedAt || 0).getTime();
+                }
+                if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+              });
+
+              const totalPages = Math.ceil(filteredApps.length / itemsPerPage);
+              const paginatedApps = filteredApps.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
               if (filteredApps.length === 0) {
                 return (
                   <tr>
-                    <td colSpan="5" className="p-8 text-center text-slate-400">
+                    <td colSpan="6" className="p-8 text-center text-slate-400">
                       {searchQuery ? 'No applications matched your search.' : 'No resume submissions recorded in database.'}
                     </td>
                   </tr>
                 );
               }
 
-              return filteredApps.map((app) => (
-                <tr key={app._id} className="hover:bg-slate-50/50 transition-colors">
+              return (
+                <>
+                  {paginatedApps.map((app) => (
+                    <tr key={app._id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="p-4 max-w-0">
                     <div className="w-full truncate font-bold text-slate-900" title={app.student?.name}>
                       {app.student?.name || 'Unknown Student'}
@@ -316,7 +381,38 @@ const AdminATSResumes = () => {
                     </div>
                   </td>
                 </tr>
-              ));
+                  ))
+                }
+                
+                {totalPages > 1 && (
+                  <tr>
+                    <td colSpan="6" className="p-4 border-t border-slate-200">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-500">
+                          Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredApps.length)} of {filteredApps.length} entries
+                        </span>
+                        <div className="flex gap-2">
+                          <button 
+                            disabled={currentPage === 1}
+                            onClick={() => setCurrentPage(prev => prev - 1)}
+                            className="px-3 py-1 bg-white border border-slate-200 rounded text-xs font-semibold text-slate-600 disabled:opacity-50 cursor-pointer hover:bg-slate-50"
+                          >
+                            Prev
+                          </button>
+                          <button 
+                            disabled={currentPage === totalPages}
+                            onClick={() => setCurrentPage(prev => prev + 1)}
+                            className="px-3 py-1 bg-white border border-slate-200 rounded text-xs font-semibold text-slate-600 disabled:opacity-50 cursor-pointer hover:bg-slate-50"
+                          >
+                            Next
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                </>
+              );
             })()}
           </tbody>
         </table>

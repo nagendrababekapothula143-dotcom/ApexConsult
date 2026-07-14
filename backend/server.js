@@ -83,6 +83,7 @@ app.use('/api/jobs', require('./routes/jobs'));
 app.use('/api/applications', require('./routes/applications'));
 app.use('/api/tickets', require('./routes/tickets'));
 app.use('/api/messages', require('./routes/messages'));
+app.use('/api/audit-logs', require('./routes/audit'));
 
 // Basic Health Check Route
 app.get('/', (req, res) => {

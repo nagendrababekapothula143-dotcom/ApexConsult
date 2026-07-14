@@ -3,11 +3,28 @@ import { useNavigate, Link, NavLink } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { SocketContext } from '../../context/SocketContext';
 import api from '../../services/api';
+import { useToast } from '../../context/ToastContext';
+
+const SkeletonCard = () => (
+  <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm animate-pulse">
+    <div className="flex justify-between items-start mb-4">
+      <div>
+        <div className="h-5 bg-slate-200 rounded w-40 mb-2"></div>
+        <div className="h-4 bg-slate-200 rounded w-24"></div>
+      </div>
+      <div className="h-6 w-16 bg-slate-200 rounded-full"></div>
+    </div>
+    <div className="h-4 bg-slate-200 rounded w-full mb-2"></div>
+    <div className="h-4 bg-slate-200 rounded w-3/4 mb-4"></div>
+    <div className="h-10 bg-slate-200 rounded-xl w-full"></div>
+  </div>
+);
 
 const RecruiterDashboard = () => {
   const { user, logout } = useContext(AuthContext);
   const socket = useContext(SocketContext);
   const navigate = useNavigate();
+  const toast = useToast();
 
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,7 +52,7 @@ const RecruiterDashboard = () => {
       setApplications(res.data.data);
     } catch (err) {
       console.error(err);
-      setError('Failed to fetch assigned applications');
+      toast.error('Failed to fetch assigned applications');
     } finally {
       setLoading(false);
     }
@@ -65,13 +82,11 @@ const RecruiterDashboard = () => {
   const handleUploadResume = async (appId) => {
     const file = resumeFiles[appId];
     if (!file) {
-      setError('Please select a resume file first');
+      toast.error('Please select a resume file first');
       return;
     }
 
     setUploadingId(appId);
-    setError('');
-    setSuccess('');
 
     const formData = new FormData();
     formData.append('resume', file);
@@ -80,7 +95,7 @@ const RecruiterDashboard = () => {
       await api.post(`/applications/${appId}/upload-resume`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      setSuccess('Resume uploaded successfully. The application status is now Application Sent.');
+      toast.success('Resume uploaded successfully.');
       
       // Clear file selection
       setResumeFiles(prev => {
@@ -93,7 +108,7 @@ const RecruiterDashboard = () => {
       fetchApplications();
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || 'Failed to upload resume');
+      toast.error(err.response?.data?.message || 'Failed to upload resume');
     } finally {
       setUploadingId(null);
     }
@@ -228,25 +243,11 @@ const RecruiterDashboard = () => {
       <main className="lg:pl-[280px] min-h-screen pt-[64px] lg:pt-0">
         <div className="p-4 md:p-8">
         
-        {/* Messages */}
-        {error && (
-          <div className="mb-6 bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm font-semibold border border-red-100 flex items-center justify-between">
-            {error}
-            <button onClick={() => setError('')} className="text-red-400 hover:text-red-700">&times;</button>
-          </div>
-        )}
-        {success && (
-          <div className="mb-6 bg-emerald-50 text-emerald-600 px-4 py-3 rounded-xl text-sm font-semibold border border-emerald-100 flex items-center justify-between">
-            {success}
-            <button onClick={() => setSuccess('')} className="text-emerald-400 hover:text-emerald-700">&times;</button>
-          </div>
-        )}
-
-        <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-black text-slate-900">Your Assigned Students</h2>
-            <p className="text-slate-500 text-sm mt-1">Assist students with their applications and upload finalized resumes.</p>
-          </div>
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-black text-slate-900">Your Assigned Students</h2>
+              <p className="text-slate-500 text-sm mt-1">Assist students with their applications and upload finalized resumes.</p>
+            </div>
           
           <div className="flex bg-slate-100 p-1 rounded-xl w-fit">
             <button 

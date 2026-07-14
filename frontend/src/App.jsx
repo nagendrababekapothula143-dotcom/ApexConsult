@@ -4,6 +4,7 @@ import { AuthProvider, AuthContext } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
 import Navbar from './components/Navbar';
 import Loader from './components/Loader';
+import { ToastProvider } from './context/ToastContext';
 
 // Lazy load pages for Code Splitting
 const Home = lazy(() => import('./pages/Home'));
@@ -19,6 +20,7 @@ const AdminStudents = lazy(() => import('./pages/admin/AdminStudents'));
 const AdminATSResumes = lazy(() => import('./pages/admin/AdminATSResumes'));
 const AdminTeam = lazy(() => import('./pages/admin/AdminTeam'));
 const AdminPlacements = lazy(() => import('./pages/admin/AdminPlacements'));
+const AdminAuditLogs = lazy(() => import('./pages/admin/AdminAuditLogs'));
 
 // Sub-pages for student nested routing
 const StudentJobs = lazy(() => import('./pages/student/StudentJobs'));
@@ -86,6 +88,7 @@ function App() {
     <AuthProvider>
       <SocketProvider>
         <Router>
+        <ToastProvider>
         <Navbar />
         <Suspense fallback={<Loader text="Loading Kryntel..." fullScreen={true} />}>
           <Routes>
@@ -120,6 +123,7 @@ function App() {
               <Route path="ats-resumes" element={<AdminATSResumes />} />
               <Route path="post-jobs" element={<AdminPlacements />} />
               <Route path="team" element={<AdminTeam />} />
+              <Route path="audit-logs" element={<AdminAuditLogs />} />
             </Route>
 
             <Route
@@ -134,6 +138,7 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
+        </ToastProvider>
         </Router>
       </SocketProvider>
     </AuthProvider>

@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const { docClient } = require('../config/dynamodb');
 const { ScanCommand, PutCommand } = require('@aws-sdk/lib-dynamodb');
 const { protect, authorize } = require('../middleware/auth');
+const { logAuditAction } = require('../utils/auditLogger');
 const router = express.Router();
 
 
@@ -54,6 +55,14 @@ router.post('/', protect, authorize('admin'), async (req, res) => {
       TableName: 'consulting_tickets',
       Item: newTicket
     }));
+
+    await logAuditAction(
+      req.user.id || req.user._id,
+      req.user.name || 'Admin',
+      'CREATE_TICKET',
+      newId,
+      { subject, studentName, category }
+    );
 
     const responseTicket = {
       ...newTicket,

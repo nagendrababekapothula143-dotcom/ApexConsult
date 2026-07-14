@@ -111,6 +111,23 @@ const initDynamoDB = async () => {
         }
       ],
       ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 }
+    },
+    {
+      TableName: 'consulting_audit_logs',
+      KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+      AttributeDefinitions: [
+        { AttributeName: 'id', AttributeType: 'S' },
+        { AttributeName: 'targetId', AttributeType: 'S' }
+      ],
+      GlobalSecondaryIndexes: [
+        {
+          IndexName: 'target-index',
+          KeySchema: [{ AttributeName: 'targetId', KeyType: 'HASH' }],
+          Projection: { ProjectionType: 'ALL' },
+          ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 }
+        }
+      ],
+      ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 }
     }
   ];
 

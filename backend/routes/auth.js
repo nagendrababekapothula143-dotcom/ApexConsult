@@ -4,9 +4,35 @@ const { docClient } = require('../config/dynamodb');
 const { QueryCommand, PutCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
 const { protect, authorize } = require('../middleware/auth');
 const { auth } = require('../config/firebase');
+const { logAuditAction } = require('../utils/auditLogger');
 const router = express.Router();
 
 
+
+// @desc    Get all recruiters
+// @route   GET /api/auth/recruiters
+// @access  Private
+router.get('/recruiters', protect, async (req, res) => {
+  try {
+    const recruiters = await docClient.send(new ScanCommand({
+      TableName: 'consulting_users',
+      FilterExpression: '#role = :role',
+      ExpressionAttributeNames: { '#role': 'role' },
+      ExpressionAttributeValues: { ':role': 'recruiter' }
+    }));
+    
+    // Map _id for frontend compatibility
+    const mappedRecruiters = (recruiters.Items || []).map(r => ({
+      ...r,
+      _id: r.id
+    }));
+
+    res.status(200).json({ success: true, data: mappedRecruiters });
+  } catch (err) {
+    console.error('Fetch recruiters error:', err);
+    res.status(500).json({ success: false, message: 'Server error fetching recruiters' });
+  }
+});
 
 // @desc    Register a new user (sync from Firebase)
 // @route   POST /api/auth/register
@@ -63,6 +89,14 @@ router.post('/register', protect, async (req, res) => {
     } else {
       usersCache.students.data = null;
     }
+
+    await logAuditAction(
+      firebaseUserId,
+      newUser.name,
+      'REGISTER_ACCOUNT',
+      firebaseUserId,
+      { role: newUser.role, email: newUser.email }
+    );
 
     res.status(201).json({
       success: true,
