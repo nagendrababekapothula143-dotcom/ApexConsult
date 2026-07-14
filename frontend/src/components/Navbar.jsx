@@ -32,7 +32,7 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex justify-between items-center">
         {!isStudent ? (
           <Link to="/" className="text-lg sm:text-2xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent flex items-center gap-1.5 sm:gap-2 no-underline">
-            <img src="/logo.png" alt="Kryntel Logo" className="w-8 h-8 sm:w-10 sm:h-10 object-contain shrink-0" />
+            <img src="/Untitled%20design%20(1).png" alt="Kryntel Logo" className="w-8 h-8 sm:w-10 sm:h-10 object-contain shrink-0" />
             Kryntel <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-emerald-500 rounded-full inline-block"></span>
           </Link>
         ) : (
