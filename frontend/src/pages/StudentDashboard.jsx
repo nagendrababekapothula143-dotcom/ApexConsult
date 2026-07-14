@@ -194,7 +194,7 @@ const StudentDashboard = () => {
           </svg>
         </button>
         <div className="text-lg font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
-          ApexConsulting
+          Kryntel
         </div>
         <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-800 uppercase">
           {(user?.name || "Student").charAt(0).toUpperCase()}
@@ -215,7 +215,7 @@ const StudentDashboard = () => {
           
           <div className="flex justify-between items-center">
             <Link to="/" className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent flex items-center gap-1.5 no-underline hover:opacity-90 transition-opacity">
-              ApexConsulting <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full inline-block"></span>
+              Kryntel <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full inline-block"></span>
             </Link>
             <button
               onClick={() => setIsSidebarOpen(false)}

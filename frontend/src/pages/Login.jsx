@@ -12,7 +12,7 @@ const Login = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = 'Sign In | Apex Consulting';
+    document.title = 'Sign In | Kryntel';
   }, []);
 
   useEffect(() => {

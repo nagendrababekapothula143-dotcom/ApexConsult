@@ -29,7 +29,7 @@ const StudentRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
 
   if (loading) {
-    return <Loader text="Loading ApexConsulting..." fullScreen={true} />;
+    return <Loader text="Loading Kryntel..." fullScreen={true} />;
   }
 
   if (!user) {
@@ -48,7 +48,7 @@ const AdminRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
 
   if (loading) {
-    return <Loader text="Loading ApexConsulting..." fullScreen={true} />;
+    return <Loader text="Loading Kryntel..." fullScreen={true} />;
   }
 
   if (!user) {
@@ -68,7 +68,7 @@ function App() {
       <SocketProvider>
         <Router>
         <Navbar />
-        <Suspense fallback={<Loader text="Loading ApexConsulting..." fullScreen={true} />}>
+        <Suspense fallback={<Loader text="Loading Kryntel..." fullScreen={true} />}>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />

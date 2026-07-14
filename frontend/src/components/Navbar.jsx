@@ -32,7 +32,7 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex justify-between items-center">
         {!isStudent ? (
           <Link to="/" className="text-lg sm:text-2xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent flex items-center gap-1 sm:gap-1.5 no-underline">
-            ApexConsulting <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-emerald-500 rounded-full inline-block"></span>
+            Kryntel <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-emerald-500 rounded-full inline-block"></span>
           </Link>
         ) : (
           <div /> // Spacer to preserve alignment

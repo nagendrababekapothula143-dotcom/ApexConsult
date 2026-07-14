@@ -14,7 +14,7 @@ const Register = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = 'Create Account | Apex Consulting';
+    document.title = 'Create Account | Kryntel';
   }, []);
 
   useEffect(() => {

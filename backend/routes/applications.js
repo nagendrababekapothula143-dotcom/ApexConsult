@@ -392,7 +392,7 @@ router.post('/', protect, authorize('student'), handleUpload, async (req, res) =
     res.status(201).json({ success: true, data: responseApp });
   } catch (error) {
     console.error('Submit application error:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: error.stack || error.message });
   }
 });
 

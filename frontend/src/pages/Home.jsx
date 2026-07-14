@@ -6,7 +6,7 @@ const Home = () => {
   const { user } = useContext(AuthContext);
 
   useEffect(() => {
-    document.title = 'Apex Consulting | Elite Placements Consulting';
+    document.title = 'Kryntel | Elite Placements Consulting';
   }, []);
 
   return (
