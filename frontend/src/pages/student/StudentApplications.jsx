@@ -25,7 +25,7 @@ const StudentApplications = () => {
             <div key={app._id} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex justify-between items-start gap-4 hover:border-slate-300 transition-all">
               <div className="flex flex-col h-full justify-between">
                 <div>
-                  <h4 className="font-bold text-slate-900 text-base mb-1">{app.job?.title || 'Unknown Job'}</h4>
+                  <h2 className="font-bold text-slate-900 text-base mb-1">{app.job?.title || 'Unknown Job'}</h2>
                   <p className="text-xs text-slate-500 font-medium mb-4">
                     {app.job?.company} • <span className="text-slate-400 font-normal">Applied {new Date(app.appliedAt).toLocaleDateString()}</span>
                   </p>
@@ -36,6 +36,7 @@ const StudentApplications = () => {
                     target="_blank"
                     rel="noreferrer"
                     className="text-xs text-indigo-600 hover:text-indigo-700 font-semibold inline-flex items-center gap-1.5 no-underline mt-auto"
+                    aria-label={`View Uploaded Resume for ${app.job?.title || 'Unknown Job'}`}
                   >
                     🗎 View Uploaded Resume
                   </a>

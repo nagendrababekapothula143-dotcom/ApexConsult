@@ -206,6 +206,13 @@ const AdminDashboard = () => {
     }
   }, [user]);
 
+  // Set default document title if not set by children
+  useEffect(() => {
+    if (document.title === 'Kryntel') {
+      document.title = 'Admin Dashboard | Kryntel';
+    }
+  }, []);
+
   useEffect(() => {
     if (socket) {
       const handleNewMessage = (msg) => {
@@ -381,6 +388,7 @@ const AdminDashboard = () => {
           onClick={() => setIsSidebarOpen(true)}
           className="bg-transparent border-none text-slate-600 hover:text-slate-900 cursor-pointer p-1.5 focus:outline-none"
           title="Open Menu"
+          aria-label="Open Menu"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -389,7 +397,7 @@ const AdminDashboard = () => {
           </svg>
         </button>
         <div className="text-lg font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent flex items-center gap-1.5">
-          <img src="/Untitled%20design%20(1).png" alt="Logo" className="w-8 h-8 object-contain shrink-0 -ml-1" />
+          <img src="/Untitled%20design%20(1).png" alt="Kryntel Logo" className="w-8 h-8 object-contain shrink-0 -ml-1" />
           Kryntel
         </div>
         <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-800 uppercase">
@@ -411,13 +419,14 @@ const AdminDashboard = () => {
           
           <div className="flex justify-between items-center">
             <Link to="/" className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent flex items-center gap-1.5 no-underline hover:opacity-90 transition-opacity">
-              <img src="/Untitled%20design%20(1).png" alt="Logo" className="w-8 h-8 object-contain shrink-0 -ml-1" />
+              <img src="/Untitled%20design%20(1).png" alt="Kryntel Logo" className="w-8 h-8 object-contain shrink-0 -ml-1" />
               Kryntel <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full inline-block"></span>
             </Link>
             <button
               onClick={() => setIsSidebarOpen(false)}
               className="lg:hidden bg-transparent border-none text-slate-400 hover:text-slate-800 text-xl font-semibold cursor-pointer p-1"
               title="Close Menu"
+              aria-label="Close Menu"
             >
               &times;
             </button>
@@ -448,10 +457,10 @@ const AdminDashboard = () => {
             </div>
           </div>
           <div className="flex gap-1.5">
-            <button className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="Open Chat">
+            <button className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="Open Chat" aria-label="Open Chat">
               <Icons.Chat />
             </button>
-            <button onClick={handleLogout} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="Sign Out">
+            <button onClick={handleLogout} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="Sign Out" aria-label="Sign Out">
               <Icons.Logout />
             </button>
           </div>
@@ -510,6 +519,7 @@ const AdminDashboard = () => {
                   setShowJobModal(false);
                 }} 
                 className="absolute top-6 right-6 bg-white/10 hover:bg-white/20 text-white w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer border-none z-50"
+                aria-label="Close create job modal"
               >
                 <svg className="w-4 h-4 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
@@ -671,7 +681,7 @@ const AdminDashboard = () => {
         <div className="fixed bottom-4 right-4 bg-indigo-600 text-white px-4 py-3 rounded-xl shadow-lg z-50 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5">
           <svg className="w-5 h-5 text-indigo-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
           <span className="text-sm font-semibold">{notification}</span>
-          <button onClick={() => setNotification(null)} className="ml-2 text-indigo-200 hover:text-white bg-transparent border-none cursor-pointer p-0 text-lg leading-none">
+          <button onClick={() => setNotification(null)} className="ml-2 text-indigo-200 hover:text-white bg-transparent border-none cursor-pointer p-0 text-lg leading-none" aria-label="Dismiss notification">
             &times;
           </button>
         </div>

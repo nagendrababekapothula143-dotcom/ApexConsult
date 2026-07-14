@@ -126,6 +126,7 @@ const AdminAuditLogs = () => {
             type="text"
             className="block w-full pl-10 pr-3 py-2.5 border-transparent bg-slate-50 rounded-xl text-sm placeholder-slate-400 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all font-medium text-slate-900"
             placeholder="Search by action, name, or details..."
+            aria-label="Search audit logs"
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
           />
@@ -133,8 +134,8 @@ const AdminAuditLogs = () => {
       </div>
 
       {/* TABLE */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
-        <table className="w-full table-fixed border-collapse text-left">
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-x-auto">
+        <table className="w-full table-fixed border-collapse text-left min-w-[800px]">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
               <th className="p-4 w-[20%]">Actor</th>
@@ -199,6 +200,7 @@ const AdminAuditLogs = () => {
                               disabled={currentPage === 1}
                               onClick={() => setCurrentPage(prev => prev - 1)}
                               className="px-3 py-1 bg-white border border-slate-200 rounded text-xs font-semibold text-slate-600 disabled:opacity-50 cursor-pointer hover:bg-slate-50"
+                              aria-label="Previous Page"
                             >
                               Prev
                             </button>
@@ -206,6 +208,7 @@ const AdminAuditLogs = () => {
                               disabled={currentPage === totalPages}
                               onClick={() => setCurrentPage(prev => prev + 1)}
                               className="px-3 py-1 bg-white border border-slate-200 rounded text-xs font-semibold text-slate-600 disabled:opacity-50 cursor-pointer hover:bg-slate-50"
+                              aria-label="Next Page"
                             >
                               Next
                             </button>

@@ -18,7 +18,7 @@ const AdminTeam = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-extrabold text-slate-900 mb-0.5">Team Management</h2>
+        <h1 className="text-2xl font-extrabold text-slate-900 mb-0.5">Team Management</h1>
         <p className="text-sm text-slate-500">Mentors and admins active on the program management team.</p>
       </div>
       

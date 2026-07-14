@@ -52,16 +52,15 @@ const StudentJobs = () => {
   useEffect(() => {
     if (jobs.length > 0) {
       if (!jobId) {
-        // Auto-redirect to the first job's route if no specific ID is selected
-        navigate(`/student/jobs/${jobs[0]._id}`, { replace: true });
+        // We are on the master list view, clear selection
+        setSelectedJob(null);
       } else {
+        // We are on a detail view, find and set the job
         const found = jobs.find((j) => j._id === jobId);
-        if (found) {
-          setSelectedJob(found);
-        }
+        setSelectedJob(found || null);
       }
     }
-  }, [jobId, jobs, navigate, setSelectedJob]);
+  }, [jobId, jobs, setSelectedJob]);
 
   const getApplicationForJob = (jobIdToCheck) => {
     return applications.find((app) => app.job?._id === jobIdToCheck);
@@ -479,190 +478,205 @@ const StudentJobs = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="flex flex-col gap-4">
         
-        {/* Left Side: Placements List */}
-        <div className="lg:col-span-5 flex flex-col gap-4">
-          <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+        {/* Accordion List View */}
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
             <span>💼</span> Active Listings ({filteredJobs.length})
-          </h3>
-          
-          <div className="flex flex-col gap-3 max-h-[500px] overflow-y-auto pr-1">
-            {filteredJobs.length === 0 ? (
-              <div className="bg-white border border-slate-200 rounded-xl p-6 text-center">
-                <p className="text-slate-500 text-sm">No jobs match your search parameters.</p>
-              </div>
-            ) : (
-              filteredJobs.map((job) => {
-                const hasApplied = getApplicationForJob(job._id);
-                const isSelected = selectedJob?._id === job._id;
-                return (
-                  <div
-                    key={job._id}
-                    className={`bg-white border rounded-xl p-5 cursor-pointer transition-all ${
-                      isSelected
-                        ? 'border-indigo-500 ring-2 ring-indigo-50 bg-indigo-50/10'
-                        : 'border-slate-200 hover:border-indigo-200'
-                    }`}
+          </h2>
+        </div>
+        
+        {filteredJobs.length === 0 ? (
+          <div className="text-center py-16 border border-slate-100 border-dashed rounded-xl bg-white">
+            <p className="text-slate-500 text-sm">No jobs match your search parameters.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-5">
+            {filteredJobs.map((job) => {
+              const hasApplied = getApplicationForJob(job._id);
+              const isExpanded = selectedJob?._id === job._id;
+              
+              return (
+                <div
+                  key={job._id}
+                  className={`bg-white border rounded-2xl overflow-hidden transition-all duration-300 ${isExpanded ? 'border-indigo-500 ring-4 ring-indigo-50 shadow-md' : 'border-slate-200 hover:border-indigo-300 hover:shadow-sm'}`}
+                >
+                  {/* Job Header Row (Clickable) */}
+                  <div 
+                    className="p-5 sm:p-6 cursor-pointer flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white"
                     onClick={() => {
-                      navigate(`/student/jobs/${job._id}`);
+                      if (isExpanded) {
+                        navigate('/student/jobs');
+                      } else {
+                        navigate(`/student/jobs/${job._id}`);
+                      }
                       setActionError('');
                       setActionSuccess('');
                     }}
                   >
-                    <div className="flex justify-between items-start gap-4">
-                      <div>
-                        <h4 className="font-bold text-slate-900 text-sm mb-0.5">{job.title}</h4>
-                        <p className="text-xs text-slate-500 font-medium">
-                          {job.company} • <span className="text-slate-400 font-normal">{job.location}</span>
-                        </p>
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center gap-3 mb-2">
+                        <h3 className={`font-extrabold text-lg sm:text-xl transition-colors ${isExpanded ? 'text-indigo-700' : 'text-slate-900'}`}>
+                          {job.title}
+                        </h3>
+                        {hasApplied && (
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${getStatusBadgeClass(hasApplied.status)} shrink-0`}>
+                            {hasApplied.status.replace('_', ' ')}
+                          </span>
+                        )}
                       </div>
-                      {hasApplied && (
-                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${getStatusBadgeClass(hasApplied.status)}`}>
-                          {hasApplied.status}
-                        </span>
-                      )}
+                      <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-slate-500">
+                        <span className="flex items-center gap-1.5">🏢 {job.company}</span>
+                        <span className="text-slate-300 hidden sm:inline">•</span>
+                        <span className="flex items-center gap-1.5">📍 {job.location}</span>
+                        {job.salary && (
+                          <>
+                            <span className="text-slate-300 hidden sm:inline">•</span>
+                            <span className="flex items-center gap-1.5 text-emerald-600 font-bold bg-emerald-50 px-2 rounded-full border border-emerald-100">{job.salary}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className={`shrink-0 flex items-center justify-center w-10 h-10 rounded-full border transition-all duration-300 ${isExpanded ? 'bg-indigo-100 border-indigo-200 text-indigo-600' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
+                      <svg className="w-5 h-5 transition-transform duration-300" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
+                      </svg>
                     </div>
                   </div>
-                );
-              })
-            )}
-          </div>
-        </div>
 
-        {/* Right Side: Selected Job and Apply form */}
-        <div className="lg:col-span-7">
-          {selectedJob ? (
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-8 shadow-xs flex flex-col gap-6">
-              
-              <div>
-                <span className="bg-indigo-50 border border-indigo-200 text-indigo-600 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider mb-3 inline-block">
-                  Active Listing
-                </span>
-                <h2 className="text-xl sm:text-2xl font-extrabold text-slate-950 mb-1">{selectedJob.title}</h2>
-                <div className="flex flex-wrap gap-4 text-xs font-semibold text-slate-500">
-                  <span className="flex items-center gap-1">🏢 {selectedJob.company}</span>
-                  <span className="flex items-center gap-1">📍 {selectedJob.location}</span>
-                  {selectedJob.salary && <span className="flex items-center gap-1">💸 {selectedJob.salary}</span>}
-                </div>
-              </div>
-
-              <hr className="border-t border-slate-100" />
-
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 mb-2">Job Description</h3>
-                <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-line">
-                  {selectedJob.description}
-                </p>
-              </div>
-
-              {selectedJob.requirements && selectedJob.requirements.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900 mb-2">Requirements</h3>
-                  <ul className="list-disc pl-5 text-slate-600 text-sm leading-relaxed space-y-1">
-                    {selectedJob.requirements.map((req, i) => (
-                      <li key={i}>{req}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              <hr className="border-t border-slate-100" />
-
-              <div>
-                {(() => {
-                  const existingApp = getApplicationForJob(selectedJob._id);
-                  if (existingApp) {
-                    return (
-                      <div className="bg-indigo-50/30 border border-indigo-100 p-6 rounded-xl text-center">
-                        <h4 className="font-bold text-slate-900 mb-1">Application Submitted</h4>
-                        <p className="text-xs text-slate-500 mb-4">
-                          You applied to this position on {new Date(existingApp.appliedAt).toLocaleDateString()}.
-                        </p>
-                        <div className="flex justify-center items-center gap-2">
-                          <span className="text-xs text-slate-600 font-medium">Status:</span>
-                          <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusBadgeClass(existingApp.status)}`}>
-                            {existingApp.status}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <form className="flex flex-col gap-4">
-                      <h3 className="text-sm font-bold text-slate-900">Apply for this Placement</h3>
-                      <p className="text-xs text-slate-500 leading-relaxed">
-                        Step 1: Click <strong>Apply Now</strong> to apply on the external posting. Once done, come back and click <strong>Submit Application</strong> to confirm and send your resume to the admin.
-                      </p>
-                      
-                      <div className="flex flex-col gap-3">
-                        <input
-                          type="file"
-                          id="resume-file"
-                          accept=".pdf"
-                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-xs text-slate-900 outline-none focus:border-indigo-500 focus:ring-3 focus:ring-indigo-50 transition-all"
-                          onChange={(e) => { setResumeFile(e.target.files[0]); setConfirmFile(e.target.files[0]); }}
-                        />
-                        <div className="flex flex-wrap gap-2.5 mt-1">
-                          {resumeFile && (
-                            <button
-                              type="button"
-                              onClick={handleTailorStart}
-                              className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-bold text-xs px-4 py-2.5 rounded-lg shadow-sm hover:shadow transition-all cursor-pointer border-none flex items-center gap-1.5"
-                            >
-                              ⚡ Optimize &amp; Tailor Resume to JD
-                            </button>
-                          )}
-                          {selectedJob.link && (
-                            <a
-                              href={selectedJob.link}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-lg shadow-sm hover:shadow transition-all cursor-pointer border-none no-underline flex items-center gap-1.5"
-                            >
-                              🔗 Apply Now (External Posting)
-                            </a>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap gap-3 mt-2">
-                        <button
-                          type="button"
-                          onClick={() => { 
-                            setShowConfirmModal(true); 
-                            setConfirmStep('question'); 
-                            setActionError(''); 
-                            setActionSuccess(''); 
-                          }}
-                          className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-5 py-2.5 rounded-lg shadow-sm hover:shadow transition-all self-start cursor-pointer border-none"
-                        >
-                          📋 Submit Application
-                        </button>
+                  {/* Expanded Content Area (Accordion Body) */}
+                  {isExpanded && (
+                    <div className="border-t border-slate-200 bg-slate-50 animate-in slide-in-from-top-2 fade-in duration-300">
+                      <div className="p-6 sm:p-8 flex flex-col gap-8 max-w-4xl">
                         
-                        <button
-                          type="button"
-                          onClick={handleRequestAssistance}
-                          disabled={uploading}
-                          className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-5 py-2.5 rounded-lg shadow-sm hover:shadow transition-all self-start cursor-pointer border-none flex items-center gap-1.5"
-                        >
-                          🤝 Request Recruiter Assistance
-                        </button>
+                        <div>
+                          <h4 className="text-base font-extrabold text-slate-900 mb-3 flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                            Job Description
+                          </h4>
+                          <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-line bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                            {job.description}
+                          </p>
+                        </div>
+
+                        {job.requirements && job.requirements.length > 0 && (
+                          <div>
+                            <h4 className="text-base font-extrabold text-slate-900 mb-3 flex items-center gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                              Requirements
+                            </h4>
+                            <ul className="list-disc pl-5 text-slate-600 text-sm leading-relaxed space-y-2 bg-white border border-slate-200 rounded-xl p-5 pr-8 shadow-sm">
+                              {job.requirements.map((req, i) => (
+                                <li key={i}>{req}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        <hr className="border-t border-slate-200" />
+
+                        <div>
+                          {(() => {
+                            if (hasApplied) {
+                              return (
+                                <div className="bg-indigo-50 border border-indigo-200 p-8 rounded-2xl text-center flex flex-col items-center shadow-sm">
+                                  <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-4 border border-indigo-200 shadow-sm">
+                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                  </div>
+                                  <h4 className="text-xl font-bold text-slate-900 mb-2">Application Submitted</h4>
+                                  <p className="text-sm text-slate-500 mb-5 max-w-md">
+                                    You successfully applied to this position on <strong>{new Date(hasApplied.appliedAt).toLocaleDateString()}</strong>. Your resume packet is under review by the consulting administration team.
+                                  </p>
+                                  <div className="flex justify-center items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-200">
+                                    <span className="text-xs text-slate-600 font-bold uppercase tracking-wider">Current Status:</span>
+                                    <span className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${getStatusBadgeClass(hasApplied.status)}`}>
+                                      {hasApplied.status.replace('_', ' ')}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <form className="flex flex-col gap-6 bg-white border border-slate-200 p-6 sm:p-8 rounded-2xl shadow-sm">
+                                <div>
+                                  <h4 className="text-lg font-bold text-slate-900 mb-1">Apply for this Placement</h4>
+                                  <p className="text-sm text-slate-500 leading-relaxed">
+                                    Click <strong>Apply Now</strong> to submit your resume on the firm's external posting. Once completed, upload your resume packet here and click <strong>Submit Application</strong>.
+                                  </p>
+                                </div>
+                                
+                                <div className="flex flex-col gap-3">
+                                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Upload Resume Packet (.pdf)</label>
+                                  <input
+                                    type="file"
+                                    id="resume-file"
+                                    accept=".pdf"
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all cursor-pointer"
+                                    onChange={(e) => { setResumeFile(e.target.files[0]); setConfirmFile(e.target.files[0]); }}
+                                  />
+                                  <div className="flex flex-wrap gap-3 mt-2">
+                                    {resumeFile && (
+                                      <button
+                                        type="button"
+                                        onClick={handleTailorStart}
+                                        className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-sm shadow-indigo-500/30 hover:shadow-md transition-all cursor-pointer border-none flex items-center gap-1.5"
+                                      >
+                                        ⚡ Optimize &amp; Tailor Resume to JD
+                                      </button>
+                                    )}
+                                    {job.link && (
+                                      <a
+                                        href={job.link}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-sm shadow-emerald-500/30 hover:shadow-md transition-all cursor-pointer border-none no-underline flex items-center gap-1.5"
+                                      >
+                                        🔗 Apply Now (External Posting)
+                                     </a>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="flex flex-wrap gap-3 pt-4 border-t border-slate-100">
+                                  <button
+                                    type="button"
+                                    onClick={() => { 
+                                      setShowConfirmModal(true); 
+                                      setConfirmStep('question'); 
+                                      setActionError(''); 
+                                      setActionSuccess(''); 
+                                    }}
+                                    className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm px-6 py-3 rounded-xl shadow-sm hover:shadow transition-all cursor-pointer border-none"
+                                  >
+                                    📋 Submit Application to Pipeline
+                                  </button>
+                                  
+                                  <button
+                                    type="button"
+                                    onClick={handleRequestAssistance}
+                                    disabled={uploading}
+                                    className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold text-sm px-6 py-3 rounded-xl shadow-sm hover:shadow transition-all cursor-pointer flex items-center gap-2"
+                                  >
+                                    🤝 Request Recruiter Review
+                                  </button>
+                                </div>
+                              </form>
+                            );
+                          })()}
+                        </div>
                       </div>
-                    </form>
-                  );
-                })()}
-              </div>
-
-            </div>
-          ) : (
-            <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center shadow-xs">
-              <p className="text-slate-500 text-sm">Select a job listing on the left to view description and apply.</p>
-            </div>
-          )}
-        </div>
-
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* AI TAILORING MODAL */}
@@ -672,6 +686,7 @@ const StudentJobs = () => {
             <button
               onClick={() => setShowTailorModal(false)}
               className="absolute top-4 right-4 bg-transparent border-none text-slate-400 hover:text-slate-950 text-2xl font-semibold cursor-pointer"
+              aria-label="Close Tailor Resume Modal"
             >
               &times;
             </button>
@@ -679,7 +694,7 @@ const StudentJobs = () => {
             {tailorStep === 'processing' ? (
               <div className="text-center py-8 space-y-4">
                 <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                <h3 className="text-lg font-bold text-slate-900">AI Resume Tailoring Wizard</h3>
+                <h2 className="text-lg font-bold text-slate-900">AI Resume Tailoring Wizard</h2>
                 <p className="text-sm text-slate-500 animate-pulse">{processingStatus}</p>
               </div>
             ) : (
@@ -688,7 +703,7 @@ const StudentJobs = () => {
                   <span className="bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider mb-2 inline-block">
                     Keyword Density Match: 96%
                   </span>
-                  <h3 className="text-lg font-extrabold text-slate-900">Resume Optimized Successfully!</h3>
+                  <h2 className="text-lg font-extrabold text-slate-900">Resume Optimized Successfully!</h2>
                   <p className="text-xs text-slate-500">We have restructured your experiences to highlight the matching skills required for <strong>{selectedJob.title}</strong> at <strong>{selectedJob.company}</strong>.</p>
                 </div>
 
@@ -729,6 +744,7 @@ const StudentJobs = () => {
               type="button"
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 text-xl font-bold bg-transparent border-none cursor-pointer"
               onClick={handleCancelConfirm}
+              aria-label="Close Confirmation Modal"
             >
               ✕
             </button>
@@ -740,7 +756,7 @@ const StudentJobs = () => {
                   📋
                 </div>
                 <div>
-                  <h3 className="text-xl font-extrabold text-slate-900 mb-1">Did you apply externally?</h3>
+                  <h2 className="text-xl font-extrabold text-slate-900 mb-1">Did you apply externally?</h2>
                   <p className="text-sm text-slate-500 leading-relaxed">
                     Have you already submitted your application on <strong>{selectedJob?.company}</strong>'s external posting for <strong>{selectedJob?.title}</strong>?
                   </p>
@@ -782,7 +798,7 @@ const StudentJobs = () => {
                   <div className="w-14 h-14 bg-emerald-50 border-2 border-emerald-200 rounded-full flex items-center justify-center mx-auto text-2xl">
                     ✅
                   </div>
-                  <h3 className="text-lg font-extrabold text-slate-900">Great! Now attach your resume</h3>
+                  <h2 className="text-lg font-extrabold text-slate-900">Great! Now attach your resume</h2>
                   <p className="text-xs text-slate-500">
                     {externallyAppliedState 
                       ? `Upload the resume you submitted to ${selectedJob?.company} so the admin can track it.`

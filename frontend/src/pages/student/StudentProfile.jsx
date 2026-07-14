@@ -62,7 +62,7 @@ const StudentProfile = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-extrabold text-slate-900 mb-0.5">My Profile</h2>
+        <h1 className="text-2xl font-extrabold text-slate-900 mb-0.5">My Profile</h1>
         <p className="text-sm text-slate-500 font-medium">Manage your personal and academic information.</p>
       </div>
 
@@ -87,7 +87,7 @@ const StudentProfile = () => {
               {user.name.charAt(0)}
             </div>
             <div>
-              <h3 className="text-2xl font-extrabold text-slate-900">{user.name}</h3>
+              <h2 className="text-2xl font-extrabold text-slate-900">{user.name}</h2>
               <span className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mt-2 inline-block">
                 {user.role}
               </span>
