@@ -317,9 +317,10 @@ router.post('/', protect, authorize('student'), handleUpload, async (req, res) =
     const matchedKeywords = [];
     const missingKeywords = [];
 
-    if (requirements.length > 0) {
+    if (requirements && requirements.length > 0) {
       for (const reqSkill of requirements) {
-        const cleanSkill = reqSkill.toLowerCase().trim();
+        if (!reqSkill) continue;
+        const cleanSkill = String(reqSkill).toLowerCase().trim();
         if (resumeText.includes(cleanSkill)) {
           matchedKeywords.push(reqSkill);
         } else {
