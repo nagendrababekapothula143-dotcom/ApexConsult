@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { Outlet, NavLink, useNavigate, Link } from 'react-router-dom';
 import api, { getBaseUrl } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
+import KryntelLogo from 'C:/Users/Nagendra Babu/.gemini/antigravity-ide/brain/78aa827a-69d0-4752-bffc-efd8069dfcb5/media__1784060015760.png';
 import FloatingChat from '../components/FloatingChat';
 import Loader from '../components/Loader';
 
@@ -193,7 +194,8 @@ const StudentDashboard = () => {
             <line x1="3" y1="18" x2="21" y2="18"></line>
           </svg>
         </button>
-        <div className="text-lg font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
+        <div className="text-lg font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent flex items-center gap-1.5">
+          <img src={KryntelLogo} alt="Logo" className="w-8 h-8 object-contain shrink-0 -ml-1" />
           Kryntel
         </div>
         <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-800 uppercase">
@@ -215,6 +217,7 @@ const StudentDashboard = () => {
           
           <div className="flex justify-between items-center">
             <Link to="/" className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent flex items-center gap-1.5 no-underline hover:opacity-90 transition-opacity">
+              <img src={KryntelLogo} alt="Logo" className="w-8 h-8 object-contain shrink-0 -ml-1" />
               Kryntel <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full inline-block"></span>
             </Link>
             <button

@@ -161,16 +161,7 @@ const AdminPlacements = () => {
                         >
                           Download Resume
                         </a>
-                        <select
-                          className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-900 outline-none focus:border-indigo-500 transition-all w-auto"
-                          value={app.status}
-                          onChange={(e) => handleStatusChange(app._id, e.target.value)}
-                        >
-                          <option value="pending">Pending</option>
-                          <option value="reviewed">Reviewed</option>
-                          <option value="accepted">Accept</option>
-                          <option value="rejected">Reject</option>
-                        </select>
+                        {/* Status dropdown removed */}
                       </div>
                     </div>
                   ))}

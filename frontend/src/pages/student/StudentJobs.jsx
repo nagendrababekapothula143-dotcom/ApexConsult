@@ -806,7 +806,7 @@ const StudentJobs = () => {
                 </div>
 
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-500">
-                  📁 Files are securely uploaded to <strong>AWS S3</strong> and shared only with the admin.
+                  📁 Files are securely uploaded to <strong>secure cloud storage</strong> and shared only with the admin.
                 </div>
 
                 <div className="flex gap-3 pt-1">

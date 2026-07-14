@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const compression = require('compression');
 const { initDynamoDB } = require('./config/dynamodb');
 
 const http = require('http');
@@ -67,11 +68,14 @@ app.set('connectedUsers', connectedUsers);
 
 // Standard Middlewares
 app.use(cors());
+app.use(compression()); // Compress all JSON responses
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static uploads folder (fallback for local file uploads)
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Serve static uploads folder (fallback for local file uploads) with cache headers
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+  maxAge: '1d', // Cache static files for 1 day
+}));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));

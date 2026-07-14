@@ -80,7 +80,7 @@ const AdminOverview = () => {
       {/* Header */}
       <div>
         <h2 className="text-2xl font-extrabold text-slate-900 mb-0.5">Recruitment Hub</h2>
-        <p className="text-sm text-slate-500">Live monitoring of consulting placement pipeline and S3 resume submissions.</p>
+        <p className="text-sm text-slate-500">Live monitoring of consulting placement pipeline and resume submissions.</p>
       </div>
 
       {/* Stats Cards grid */}
@@ -166,7 +166,7 @@ const AdminOverview = () => {
             
             <div>
               <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
-                <span>S3 Storage Fallback</span>
+                <span>Cloud Storage Fallback</span>
                 <span>100% Secure</span>
               </div>
               <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">

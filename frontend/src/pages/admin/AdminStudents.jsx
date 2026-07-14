@@ -86,7 +86,7 @@ const AdminStudents = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-extrabold text-slate-900 mb-0.5">Registered Students</h2>
-          <p className="text-sm text-slate-500">View registered student profiles and track S3 resume submissions.</p>
+          <p className="text-sm text-slate-500">View registered student profiles and track resume submissions.</p>
         </div>
         <div className="relative">
           <input

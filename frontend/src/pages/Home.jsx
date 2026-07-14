@@ -57,9 +57,9 @@ const Home = () => {
           </div>
           <div className="bg-white border border-slate-200/60 rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-4 text-left">
             <div className="text-3xl">☁️</div>
-            <h3 className="text-xl font-bold text-slate-900">S3 Cloud Storage</h3>
+            <h3 className="text-xl font-bold text-slate-900">Secure Cloud Storage</h3>
             <p className="text-slate-500 text-sm leading-relaxed">
-              Your resumes are processed dynamically and archived safely using secure AWS S3 cloud infrastructure.
+              Your resumes are processed dynamically and archived safely using secure cloud infrastructure.
             </p>
           </div>
           <div className="bg-white border border-slate-200/60 rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-4 text-left">

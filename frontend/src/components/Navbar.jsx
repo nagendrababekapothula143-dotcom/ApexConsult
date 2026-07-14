@@ -1,6 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import KryntelLogo from 'C:/Users/Nagendra Babu/.gemini/antigravity-ide/brain/78aa827a-69d0-4752-bffc-efd8069dfcb5/media__1784060015760.png';
 
 const Navbar = () => {
   const { user, logout } = useContext(AuthContext);
@@ -31,7 +32,8 @@ const Navbar = () => {
     <nav className={`sticky top-0 z-40 bg-white/85 backdrop-blur-md border-b border-slate-200 py-3 sm:py-4 ${isStudent ? 'lg:pl-[280px]' : ''}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex justify-between items-center">
         {!isStudent ? (
-          <Link to="/" className="text-lg sm:text-2xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent flex items-center gap-1 sm:gap-1.5 no-underline">
+          <Link to="/" className="text-lg sm:text-2xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent flex items-center gap-1.5 sm:gap-2 no-underline">
+            <img src={KryntelLogo} alt="Kryntel Logo" className="w-8 h-8 sm:w-10 sm:h-10 object-contain shrink-0" />
             Kryntel <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-emerald-500 rounded-full inline-block"></span>
           </Link>
         ) : (
