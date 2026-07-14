@@ -130,43 +130,46 @@ router.post('/tailor', protect, authorize('student'), uploadTemp, async (req, re
     const studentName = req.user.name || 'Charan Ambiripeta';
     const studentEmail = req.user.email || 'student@apex.com';
 
-    // 3. Call Gemini API to tailor the resume perfectly
-    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-    if (!GEMINI_API_KEY) {
-      throw new Error('GEMINI_API_KEY is not configured in the backend environment.');
-    }
+    // 3. Call Groq API to tailor the resume perfectly
 
     const prompt = `
-You are an expert resume writer. I will provide you with the raw text of a candidate's resume and a job description.
+You are an expert resume writer and technical recruiter. I will provide you with the raw text of a candidate's resume and a target job description.
+
+Your goal is to perform a DEEP TAILORING of the candidate's resume so it perfectly aligns with the target job description, similar to how a professional resume writing service would adapt a "Software Engineer" resume into a "Gen AI/ML Engineer" resume by highlighting overlapping skills.
 
 CRITICAL RULES:
-1. DO NOT invent fake experiences, companies, or degrees.
-2. You must EXTRACT the candidate's actual Name, Email, Phone Number, and Location from the raw text and preserve them EXACTLY. If you cannot find a phone or location, return an empty string.
-3. TAILORING: If the candidate's current background (e.g., Security Engineer) differs from the target job description (e.g., Automation Engineer), you must intelligently REWRITE and TAILOR their existing bullet points to highlight skills relevant to the new role. Do not lie, but frame their past work to match the new job perfectly.
+1. DO NOT invent fake companies, employment dates, or degrees. You must use the candidate's actual work history.
+2. You must EXTRACT the candidate's actual Name, Email, Phone Number, and Location from the raw text and preserve them EXACTLY.
+3. DEEP TAILORING: You must intelligently REWRITE and TAILOR their existing bullet points. If the candidate's background differs from the target job, you must re-frame their past work to highlight the specific skills, tools, and methodologies mentioned in the Job Description (e.g., AWS, Python, scalable microservices, LLMs). 
+4. PROFESSIONAL SUMMARY: Generate a dense, highly tailored Professional Summary (5-8 bullet points) that perfectly fuses the candidate's background with the JD's exact requirements.
+5. TECHNICAL SKILLS: Extract and categorize their skills comprehensively (e.g., "Programming & Scripting", "Cloud Platforms", "DevOps, CI/CD", "Databases & Data Storage"). Inject keywords from the JD where they logically fit the candidate's profile.
+6. EXPERIENCE: For EACH job in their history, rewrite 5-10 bullet points. Use strong action verbs and quantify achievements where possible.
 
-Format your output strictly as a JSON object with the following keys:
+Format your output STRICTLY as a JSON object with the following keys:
 {
   "studentName": "Extracted Name",
   "studentEmail": "Extracted Email",
   "studentPhone": "Extracted Phone",
-  "studentLocation": "Extracted Location (City, State)",
-  "professionalSummary": ["Bullet point 1", "Bullet point 2"],
+  "studentLocation": "Extracted Location",
+  "professionalSummary": ["Tailored summary bullet 1", "Tailored summary bullet 2", "..."],
   "technicalSkills": [
-    { "category": "Programming & Scripting", "skills": "Python, Java" }
+    { "category": "Programming & Scripting", "skills": "Python, Java, SQL" },
+    { "category": "Cloud Platforms & Services", "skills": "AWS (Lambda, S3), GCP" }
   ],
   "professionalExperience": [
     {
-      "company": "Company Name",
-      "dates": "Jan 2025 - Present",
-      "role": "Role Title",
-      "responsibilities": ["Tailored bullet point 1", "Tailored bullet point 2"]
+      "company": "Actual Company Name",
+      "dates": "Actual Dates",
+      "role": "Tailored Role Title (e.g., AI/ML Engineer instead of just Engineer if applicable)",
+      "responsibilities": ["Deeply tailored bullet 1", "Deeply tailored bullet 2", "..."]
     }
   ],
-  "certifications": ["Cert 1", "Cert 2"],
-  "educationalDetails": ["Degree 1", "Degree 2"],
+  "certifications": ["Actual Cert 1", "Actual Cert 2"],
+  "educationalDetails": ["Actual Degree 1", "Actual Degree 2"],
   "interviewPrep": [
-    "•  \"Can you walk me through your background?\"",
-    "•  \"What do you know about our company?\""
+    "\\"Can you walk me through your background?\\"",
+    "\\"What do you know about our company and what we do?\\"",
+    "\\"Why do you think this role aligns well with your skills and experience?\\""
   ]
 }
 
@@ -180,31 +183,44 @@ Requirements: ${(job.requirements || []).join(', ')}
 ${rawText}
 `;
 
-    const apiKey = GEMINI_API_KEY || 'AIzaSyDjxg4Jgsdus3TXzf1l5EDZ8W0ghQ616B8';
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`, {
+    // Always fetch the key directly from environment
+    const apiKey = process.env.GROQ_API_KEY;
+
+    if (!apiKey) {
+      throw new Error("GROQ_API_KEY is not configured in your .env file.");
+    }
+
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json' 
+      },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: "SYSTEM INSTRUCTION: You are an expert resume optimizer. Only output valid JSON matching the schema without any markdown wrapping.\n\n" + prompt }] }],
-        generationConfig: {
-          responseMimeType: 'application/json'
-        }
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          { role: "system", content: "You are an expert resume optimizer. Only output valid JSON matching the schema without any markdown wrapping." },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.2,
+        response_format: { type: "json_object" }
       })
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error('Gemini API Error:', errText);
-      throw new Error('Google Generative AI returned an error. Check quota or billing status.');
+      console.error('Groq API Error:', errText);
+      throw new Error(`Groq API Error: ${errText}`);
     }
 
     const resultData = await response.json();
     let aiParsed;
     try {
-      const aiResponseText = resultData.candidates[0].content.parts[0].text;
+      const aiResponseText = resultData.choices[0].message.content;
       aiParsed = JSON.parse(aiResponseText);
     } catch (e) {
-      throw new Error("Failed to parse JSON response from Gemini.");
+      console.error('Failed to parse Groq response:', e);
+      throw new Error("Failed to parse JSON response from Groq.");
     }
 
     // Send response back
