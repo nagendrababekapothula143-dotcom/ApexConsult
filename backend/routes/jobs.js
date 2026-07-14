@@ -95,7 +95,7 @@ router.get('/:id', async (req, res) => {
 // @route   POST /api/jobs
 // @access  Private (Admin only)
 router.post('/', protect, authorize('admin'), async (req, res) => {
-  const { title, company, location, description, requirements, salary, link } = req.body;
+  const { title, company, location, description, requirements, salary, link, recruiterId } = req.body;
 
   if (!title || !company || !location || !description) {
     return res.status(400).json({ success: false, message: 'Please provide title, company, location, and description' });
@@ -118,6 +118,7 @@ router.post('/', protect, authorize('admin'), async (req, res) => {
       requirements: reqsArray,
       salary: salary || '',
       link: link || '',
+      recruiterId: recruiterId || null,
       createdBy: req.user.id || req.user._id,
       createdAt: new Date().toISOString(),
     };

@@ -21,7 +21,8 @@ const StudentJobs = () => {
     setActionSuccess,
     getStatusBadgeClass,
     getResumeDownloadUrl,
-    setApplications
+    setApplications,
+    handleRequestAssistance
   } = useOutletContext();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -626,18 +627,29 @@ const StudentJobs = () => {
                         </div>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => { 
-                          setShowConfirmModal(true); 
-                          setConfirmStep('question'); 
-                          setActionError(''); 
-                          setActionSuccess(''); 
-                        }}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-5 py-2.5 rounded-lg shadow-sm hover:shadow transition-all self-start cursor-pointer border-none mt-2"
-                      >
-                        📋 Submit Application
-                      </button>
+                      <div className="flex flex-wrap gap-3 mt-2">
+                        <button
+                          type="button"
+                          onClick={() => { 
+                            setShowConfirmModal(true); 
+                            setConfirmStep('question'); 
+                            setActionError(''); 
+                            setActionSuccess(''); 
+                          }}
+                          className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-5 py-2.5 rounded-lg shadow-sm hover:shadow transition-all self-start cursor-pointer border-none"
+                        >
+                          📋 Submit Application
+                        </button>
+                        
+                        <button
+                          type="button"
+                          onClick={handleRequestAssistance}
+                          disabled={uploading}
+                          className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-5 py-2.5 rounded-lg shadow-sm hover:shadow transition-all self-start cursor-pointer border-none flex items-center gap-1.5"
+                        >
+                          🤝 Request Recruiter Assistance
+                        </button>
+                      </div>
                     </form>
                   );
                 })()}

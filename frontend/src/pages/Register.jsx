@@ -22,6 +22,8 @@ const Register = () => {
     if (user) {
       if (user.role === 'admin') {
         navigate('/admin');
+      } else if (user.role === 'recruiter') {
+        navigate('/recruiter');
       } else {
         navigate('/student');
       }
@@ -117,6 +119,7 @@ const Register = () => {
               onChange={(e) => setRole(e.target.value)}
             >
               <option value="student">Student (Apply for Placements)</option>
+              <option value="recruiter">Recruiter (Assist Students)</option>
               <option value="admin">Consulting Administrator (Manage Listings)</option>
             </select>
           </div>

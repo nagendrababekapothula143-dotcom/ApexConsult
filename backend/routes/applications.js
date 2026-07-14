@@ -270,6 +270,7 @@ router.post('/', protect, authorize('student'), handleUpload, async (req, res) =
 
     const studentId = req.user.id || req.user._id;
 
+
     // Check if user already applied using Query on student-index GSI
     const checkRes = await docClient.send(new QueryCommand({
       TableName: 'consulting_applications',
@@ -289,85 +290,87 @@ router.post('/', protect, authorize('student'), handleUpload, async (req, res) =
       return res.status(400).json({ success: false, message: 'You have already applied for this job' });
     }
 
-    // 3. Extract Text from the resume for ATS analysis
     let resumeText = '';
-    try {
-      if (req.file.mimetype === 'application/pdf') {
-        const fileBuf = req.file.buffer || (req.file.path ? fs.readFileSync(req.file.path) : null);
-        if (fileBuf) {
-          const parsed = await pdf(fileBuf);
-          resumeText = parsed.text;
-        }
-      } else {
-        const fileBuf = req.file.buffer || (req.file.path ? fs.readFileSync(req.file.path) : null);
-        if (fileBuf) {
-          resumeText = fileBuf.toString('utf-8');
-        }
-      }
-    } catch (parseErr) {
-      console.warn('ATS PDF parsing failed, falling back to basic metadata:', parseErr.message);
-      resumeText = req.file.originalname;
-    }
+    let atsResult = null;
+    let resumeUrl = null;
+    let resumeKey = null;
 
-    // Clean up text
-    resumeText = (resumeText || '').toLowerCase().replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F]/g, '');
+    if (req.body.requestAssistance !== 'true' && req.file) {
+      resumeUrl = req.file.location;
+      resumeKey = req.file.key;
 
-    // 4. Match requirements keywords
-    const requirements = job.requirements || [];
-    const matchedKeywords = [];
-    const missingKeywords = [];
-
-    if (requirements && requirements.length > 0) {
-      for (const reqSkill of requirements) {
-        if (!reqSkill) continue;
-        const cleanSkill = String(reqSkill).toLowerCase().trim();
-        if (resumeText.includes(cleanSkill)) {
-          matchedKeywords.push(reqSkill);
-        } else {
-          // Check for sub-word matching
-          let matchFound = false;
-          const words = cleanSkill.split(' ');
-          if (words.length > 1) {
-            const importantWords = words.filter(w => w.length > 3);
-            if (importantWords.some(w => resumeText.includes(w))) {
-              matchFound = true;
-            }
+      try {
+        if (req.file.mimetype === 'application/pdf') {
+          const fileBuf = req.file.buffer || (req.file.path ? fs.readFileSync(req.file.path) : null);
+          if (fileBuf) {
+            const parsed = await pdf(fileBuf);
+            resumeText = parsed.text;
           }
-          if (matchFound) {
+        } else {
+          const fileBuf = req.file.buffer || (req.file.path ? fs.readFileSync(req.file.path) : null);
+          if (fileBuf) {
+            resumeText = fileBuf.toString('utf-8');
+          }
+        }
+      } catch (parseErr) {
+        console.warn('ATS PDF parsing failed, falling back to basic metadata:', parseErr.message);
+        resumeText = req.file.originalname;
+      }
+
+      // Clean up text
+      resumeText = (resumeText || '').toLowerCase().replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F]/g, '');
+
+      // Match requirements keywords
+      const requirements = job.requirements || [];
+      const matchedKeywords = [];
+      const missingKeywords = [];
+
+      if (requirements && requirements.length > 0) {
+        for (const reqSkill of requirements) {
+          if (!reqSkill) continue;
+          const cleanSkill = String(reqSkill).toLowerCase().trim();
+          if (resumeText.includes(cleanSkill)) {
             matchedKeywords.push(reqSkill);
           } else {
-            missingKeywords.push(reqSkill);
+            let matchFound = false;
+            const words = cleanSkill.split(' ');
+            if (words.length > 1) {
+              const importantWords = words.filter(w => w.length > 3);
+              if (importantWords.some(w => resumeText.includes(w))) {
+                matchFound = true;
+              }
+            }
+            if (matchFound) {
+              matchedKeywords.push(reqSkill);
+            } else {
+              missingKeywords.push(reqSkill);
+            }
           }
         }
       }
+
+      const totalReqs = requirements.length || 1;
+      const matchScore = Math.min(100, Math.max(45, Math.round((matchedKeywords.length / totalReqs) * 100)));
+
+      atsResult = {
+        score: matchScore,
+        matchedKeywords,
+        missingKeywords,
+        evaluatedAt: new Date().toISOString()
+      };
     }
-
-    const totalReqs = requirements.length || 1;
-    const matchScore = Math.min(
-      100,
-      Math.max(
-        45, // Base score
-        Math.round((matchedKeywords.length / totalReqs) * 100)
-      )
-    );
-
-    const atsResult = {
-      score: matchScore,
-      matchedKeywords,
-      missingKeywords,
-      evaluatedAt: new Date().toISOString()
-    };
 
     const newAppId = crypto.randomUUID();
     const newApp = {
       id: newAppId,
       job: jobId,
       student: studentId,
-      resumeUrl: req.file.location,
-      resumeKey: req.file.key,
-      status: 'pending',
+      resumeUrl: resumeUrl,
+      resumeKey: resumeKey,
+      status: req.body.requestAssistance === 'true' ? 'recruiter_requested' : 'pending',
       externallyApplied: req.body.externallyApplied === 'true',
-      atsResult,
+      atsResult: atsResult,
+      recruiterId: null,
       appliedAt: new Date().toISOString()
     };
 
@@ -376,6 +379,17 @@ router.post('/', protect, authorize('student'), handleUpload, async (req, res) =
       TableName: 'consulting_applications',
       Item: newApp
     }));
+
+    // Notify admins via Socket.io
+    const io = req.app.get('io');
+    if (io) {
+      io.to('admins').emit('new_application', {
+        id: newAppId,
+        studentName: req.user.name || 'A student',
+        jobTitle: job.title,
+        requestAssistance: req.body.requestAssistance === 'true'
+      });
+    }
 
     const responseApp = {
       ...newApp,
@@ -452,6 +466,8 @@ router.get('/student', protect, authorize('student'), async (req, res) => {
   }
 });
 
+
+
 // @desc    Get all applications for a specific job
 // @route   GET /api/applications/job/:jobId
 // @access  Private (Admin only)
@@ -517,6 +533,8 @@ router.get('/job/:jobId', protect, authorize('admin'), async (req, res) => {
   }
 });
 
+
+
 // @desc    Update application status
 // @route   PATCH /api/applications/:id
 // @access  Private (Admin only)
@@ -565,6 +583,8 @@ router.patch('/:id', protect, authorize('admin'), async (req, res) => {
   }
 });
 
+
+
 // @desc    Delete application
 // @route   DELETE /api/applications/:id
 // @access  Private (Admin only)
@@ -594,6 +614,161 @@ router.delete('/:id', protect, authorize('admin'), async (req, res) => {
     res.status(200).json({ success: true, message: 'Application deleted successfully' });
   } catch (error) {
     console.error('Delete application error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// @desc    Get current recruiter's assigned applications
+// @route   GET /api/applications/recruiter
+// @access  Private (Recruiter only)
+router.get('/recruiter', protect, authorize('recruiter'), async (req, res) => {
+  try {
+    const recruiterId = req.user.id || req.user._id;
+
+    const result = await docClient.send(new ScanCommand({
+      TableName: 'consulting_applications',
+      FilterExpression: 'recruiterId = :recruiterId',
+      ExpressionAttributeValues: { ':recruiterId': recruiterId }
+    }));
+
+    const rawApps = result.Items || [];
+    const jobCache = {};
+    const studentCache = {};
+
+    const populatedApps = await Promise.all(
+      rawApps.map(async (app) => {
+        let job = null;
+        if (jobCache[app.job]) {
+          job = jobCache[app.job];
+        } else {
+          const jobRes = await docClient.send(new GetCommand({
+            TableName: 'consulting_jobs',
+            Key: { id: app.job }
+          }));
+          job = jobRes.Item || null;
+          jobCache[app.job] = job;
+        }
+
+        let student = null;
+        if (studentCache[app.student]) {
+          student = studentCache[app.student];
+        } else {
+          const studentRes = await docClient.send(new GetCommand({
+            TableName: 'consulting_users',
+            Key: { id: app.student }
+          }));
+          student = studentRes.Item || null;
+          studentCache[app.student] = student;
+        }
+
+        const appObj = {
+          ...app,
+          _id: app.id,
+          job: job ? { ...job, _id: job.id } : null,
+          student: student ? { ...student, _id: student.id } : null
+        };
+
+        if (appObj.resumeKey) {
+          const signed = await getPresignedUrl(appObj.resumeKey);
+          if (signed) {
+            appObj.resumeUrl = signed;
+          }
+        }
+        return appObj;
+      })
+    );
+
+    populatedApps.sort((a, b) => new Date(b.appliedAt) - new Date(a.appliedAt));
+
+    res.status(200).json({ success: true, count: populatedApps.length, data: populatedApps });
+  } catch (error) {
+    console.error('Fetch recruiter applications error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// @desc    Assign a recruiter to an application
+// @route   PATCH /api/applications/:id/assign-recruiter
+// @access  Private (Admin only)
+router.patch('/:id/assign-recruiter', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { recruiterId } = req.body;
+    
+    const getRes = await docClient.send(new GetCommand({
+      TableName: 'consulting_applications',
+      Key: { id: req.params.id }
+    }));
+
+    if (!getRes.Item) {
+      return res.status(404).json({ success: false, message: 'Application not found' });
+    }
+
+    const application = getRes.Item;
+    application.recruiterId = recruiterId || null;
+
+    await docClient.send(new PutCommand({
+      TableName: 'consulting_applications',
+      Item: application
+    }));
+
+    res.status(200).json({ success: true, message: 'Recruiter assigned successfully', data: application });
+  } catch (error) {
+    console.error('Assign recruiter error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// @desc    Upload resume for an application (Recruiter finalizing)
+// @route   POST /api/applications/:id/upload-resume
+// @access  Private (Recruiter only)
+router.post('/:id/upload-resume', protect, authorize('recruiter'), handleUpload, async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Please upload a resume file' });
+    }
+
+    const appId = req.params.id;
+
+    const getRes = await docClient.send(new GetCommand({
+      TableName: 'consulting_applications',
+      Key: { id: appId }
+    }));
+
+    if (!getRes.Item) {
+      return res.status(404).json({ success: false, message: 'Application not found' });
+    }
+
+    const application = getRes.Item;
+
+    // Verify this recruiter is actually assigned
+    if (application.recruiterId !== (req.user.id || req.user._id)) {
+      return res.status(403).json({ success: false, message: 'Not authorized to update this application' });
+    }
+
+    application.resumeUrl = req.file.location;
+    application.resumeKey = req.file.key;
+    application.status = 'application sent'; // Move out of recruiter_requested state
+
+    await docClient.send(new PutCommand({
+      TableName: 'consulting_applications',
+      Item: application
+    }));
+
+    const responseApp = {
+      ...application,
+      _id: application.id
+    };
+
+    if (responseApp.resumeKey) {
+      const signed = await getPresignedUrl(responseApp.resumeKey);
+      if (signed) {
+        responseApp.resumeUrl = signed;
+      }
+    }
+
+    res.status(200).json({ success: true, message: 'Resume uploaded successfully', data: responseApp });
+  } catch (error) {
+    console.error('Upload resume error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });

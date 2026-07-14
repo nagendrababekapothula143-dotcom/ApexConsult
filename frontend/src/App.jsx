@@ -11,6 +11,7 @@ const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const RecruiterDashboard = lazy(() => import('./pages/recruiter/RecruiterDashboard'));
 
 // Sub-pages for admin nested routing
 const AdminOverview = lazy(() => import('./pages/admin/AdminOverview'));
@@ -62,6 +63,24 @@ const AdminRoute = ({ children }) => {
   return children;
 };
 
+// Helper component for protecting recruiter routes
+const RecruiterRoute = ({ children }) => {
+  const { user, loading } = useContext(AuthContext);
+
+  if (loading) {
+    return <Loader text="Loading Kryntel..." fullScreen={true} />;
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user.role !== 'recruiter') {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+};
 function App() {
   return (
     <AuthProvider>
@@ -102,6 +121,16 @@ function App() {
               <Route path="post-jobs" element={<AdminPlacements />} />
               <Route path="team" element={<AdminTeam />} />
             </Route>
+
+            <Route
+              path="/recruiter/*"
+              element={
+                <RecruiterRoute>
+                  <RecruiterDashboard />
+                </RecruiterRoute>
+              }
+            />
+
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>

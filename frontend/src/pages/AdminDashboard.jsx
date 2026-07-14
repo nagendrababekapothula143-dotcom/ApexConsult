@@ -24,6 +24,7 @@ const AdminDashboard = () => {
   // Status Alerts
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [notification, setNotification] = useState(null);
 
   // Modals & Form states
   const [showJobModal, setShowJobModal] = useState(false);
@@ -53,6 +54,7 @@ const AdminDashboard = () => {
     { id: 'INT-302', student: 'Elena Rostova', job: 'Management Consultant at Bain', date: '2026-07-18', time: '10:30 GMT', interviewer: 'Sarah Connor (Director)', status: 'Scheduled' },
   ]);
   const [teamMembers, setTeamMembers] = useState([]);
+  const [recruiters, setRecruiters] = useState([]);
 
   // Sidebar Icons
   const Icons = {
@@ -157,12 +159,13 @@ const AdminDashboard = () => {
       if (!isSilent) setLoading(true);
       
       const t = isSilent ? `?t=${Date.now()}` : '';
-      const [jobsRes, studentsRes, ticketsRes, adminsRes, globalAppsRes] = await Promise.all([
+      const [jobsRes, studentsRes, ticketsRes, adminsRes, globalAppsRes, recruitersRes] = await Promise.all([
         api.get(`/jobs${t}`),
         api.get(`/auth/students${t}`),
         api.get(`/tickets${t}`),
         api.get(`/auth/admins${t}`),
-        api.get(`/applications${t}`)
+        api.get(`/applications${t}`),
+        api.get(`/auth/recruiters${t}`)
       ]);
 
       setJobs(jobsRes.data.data);
@@ -170,6 +173,7 @@ const AdminDashboard = () => {
       setTickets(ticketsRes.data.data);
       setTeamMembers(adminsRes.data.data);
       setGlobalApplications(globalAppsRes.data.data);
+      setRecruiters(recruitersRes.data.data);
       
       if (!isSilent && jobsRes.data.data.length > 0) {
         setSelectedJob(prev => prev || jobsRes.data.data[0]);
@@ -204,9 +208,20 @@ const AdminDashboard = () => {
         }
       };
 
+      const handleNewApp = (data) => {
+        const text = data.recruiterId 
+          ? `New application from ${data.studentName} for ${data.jobTitle} (Assisted by Recruiter)`
+          : `New application from ${data.studentName} for ${data.jobTitle}`;
+        setNotification(text);
+        setTimeout(() => setNotification(null), 8000);
+        fetchDashboardData(true);
+      };
+
       socket.on('newMessage', handleNewMessage);
+      socket.on('new_application', handleNewApp);
       return () => {
         socket.off('newMessage', handleNewMessage);
+        socket.off('new_application', handleNewApp);
       };
     }
   }, [socket]);
@@ -452,6 +467,7 @@ const AdminDashboard = () => {
               setTickets,
               interviews,
               teamMembers,
+              recruiters,
               globalApplications,
               setGlobalApplications,
               fetchDashboardData,
@@ -568,6 +584,17 @@ const AdminDashboard = () => {
             </form>
 
           </div>
+        </div>
+      )}
+
+      {/* Real-time Notification Toast */}
+      {notification && (
+        <div className="fixed bottom-4 right-4 bg-indigo-600 text-white px-4 py-3 rounded-xl shadow-lg z-50 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5">
+          <svg className="w-5 h-5 text-indigo-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <span className="text-sm font-semibold">{notification}</span>
+          <button onClick={() => setNotification(null)} className="ml-2 text-indigo-200 hover:text-white bg-transparent border-none cursor-pointer p-0 text-lg leading-none">
+            &times;
+          </button>
         </div>
       )}
 

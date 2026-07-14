@@ -8,8 +8,8 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Hide top navigation header in the Admin console to allow full-height sidebar layouts
-  if (location.pathname.startsWith('/admin')) {
+  // Hide top navigation header in the Admin and Recruiter consoles to allow full-height layouts
+  if (location.pathname.startsWith('/admin') || location.pathname.startsWith('/recruiter')) {
     return null;
   }
 

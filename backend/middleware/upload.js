@@ -55,8 +55,12 @@ const handleUpload = (req, res, next) => {
         return res.status(400).json({ success: false, message: err.message });
       }
 
-      if (!req.file) {
+      if (!req.file && req.body.requestAssistance !== 'true') {
         return res.status(400).json({ success: false, message: 'Please upload a resume file' });
+      }
+
+      if (req.body.requestAssistance === 'true' && !req.file) {
+        return next();
       }
 
       const fileName = `${Date.now()}-${req.file.originalname.replace(/\s+/g, '_')}`;
@@ -90,8 +94,12 @@ const handleUpload = (req, res, next) => {
         return res.status(400).json({ success: false, message: err.message });
       }
 
-      if (!req.file) {
+      if (!req.file && req.body.requestAssistance !== 'true') {
         return res.status(400).json({ success: false, message: 'Please upload a resume file' });
+      }
+
+      if (req.body.requestAssistance === 'true' && !req.file) {
+        return next();
       }
 
       // Set locations mimicking S3

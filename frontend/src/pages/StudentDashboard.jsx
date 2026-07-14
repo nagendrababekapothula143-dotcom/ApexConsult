@@ -94,6 +94,37 @@ const StudentDashboard = () => {
     }
   };
 
+
+
+  const handleRequestAssistance = async (e) => {
+    e.preventDefault();
+    setActionError('');
+    setActionSuccess('');
+
+    if (!selectedJob) return;
+
+    const formData = new FormData();
+    formData.append('jobId', selectedJob._id);
+    formData.append('requestAssistance', 'true');
+
+    try {
+      setUploading(true);
+      await api.post('/applications', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      setActionSuccess('Recruiter assistance requested successfully!');
+      
+      const appsRes = await api.get('/applications/student');
+      setApplications(appsRes.data.data);
+    } catch (error) {
+      console.error('Error requesting assistance:', error);
+      setActionError(error.response?.data?.message || 'Error requesting assistance');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/');
@@ -110,6 +141,7 @@ const StudentDashboard = () => {
   };
 
   const getResumeDownloadUrl = (url) => {
+    if (!url) return '#';
     if (url.startsWith('/uploads')) {
       const baseUrl = getBaseUrl().replace('/api', '');
       return `${baseUrl}${url}`;
@@ -273,6 +305,7 @@ const StudentDashboard = () => {
             setResumeFile,
             uploading,
             handleApply,
+            handleRequestAssistance,
             actionError,
             actionSuccess,
             setActionError,

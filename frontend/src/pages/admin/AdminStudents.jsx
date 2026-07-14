@@ -69,7 +69,13 @@ const AdminStudents = () => {
     e.preventDefault();
     setSavingEdit(true);
     try {
-      await api.patch(`/auth/profile/${editModalConfig.student._id}`, editModalConfig.formData);
+      await api.patch(`/auth/profile/${editModalConfig.student._id}`, {
+        name: editModalConfig.formData.name,
+        phone: editModalConfig.formData.phone,
+        university: editModalConfig.formData.university,
+        major: editModalConfig.formData.major
+      });
+
       setSuccess && setSuccess('Student profile updated successfully!');
       setEditModalConfig({ isOpen: false, student: null, formData: { name: '', phone: '', university: '', major: '' } });
       if (fetchData) await fetchData();

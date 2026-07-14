@@ -120,6 +120,7 @@ router.get('/me', protect, async (req, res) => {
 const usersCache = {
   students: { data: null, lastFetch: null },
   admins: { data: null, lastFetch: null },
+  recruiters: { data: null, lastFetch: null },
   ttl: 60000 // 1 minute cache
 };
 
@@ -207,6 +208,38 @@ router.get('/admins', protect, authorize('admin'), async (req, res) => {
     res.status(200).json(responseData);
   } catch (error) {
     console.error('Fetch admins error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// @desc    Get all recruiters
+// @route   GET /api/auth/recruiters
+// @access  Private (Admin only)
+router.get('/recruiters', protect, authorize('admin'), async (req, res) => {
+  try {
+    if (usersCache.recruiters.data && (Date.now() - usersCache.recruiters.lastFetch < usersCache.ttl)) {
+      return res.status(200).json(usersCache.recruiters.data);
+    }
+
+    const result = await docClient.send(new ScanCommand({
+      TableName: 'consulting_users',
+      FilterExpression: '#role = :role',
+      ExpressionAttributeNames: { '#role': 'role' },
+      ExpressionAttributeValues: { ':role': 'recruiter' }
+    }));
+
+    const recruiters = (result.Items || []).map(recruiter => ({
+      ...recruiter,
+      _id: recruiter.id // Maintain compatibility with frontend
+    })).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    const responseData = { success: true, count: recruiters.length, data: recruiters };
+    usersCache.recruiters.data = responseData;
+    usersCache.recruiters.lastFetch = Date.now();
+
+    res.status(200).json(responseData);
+  } catch (error) {
+    console.error('Fetch recruiters error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });

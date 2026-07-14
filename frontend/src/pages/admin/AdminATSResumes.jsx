@@ -11,9 +11,21 @@ const AdminATSResumes = () => {
   const [companyFilter, setCompanyFilter] = useState('All');
   const [modalConfig, setModalConfig] = useState({ isOpen: false, applicationId: null });
   const [processingId, setProcessingId] = useState(null);
+  const [recruiters, setRecruiters] = useState([]);
 
   useEffect(() => {
     document.title = 'ATS Resumes | Kryntel Console';
+    const fetchRecruiters = async () => {
+      try {
+        const res = await api.get('/auth/recruiters');
+        if (res.data.success) {
+          setRecruiters(res.data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch recruiters');
+      }
+    };
+    fetchRecruiters();
   }, []);
 
   const getResumeDownloadUrl = (url) => {
@@ -38,6 +50,21 @@ const AdminATSResumes = () => {
     } catch (err) {
       console.error(err);
       setError && setError('Failed to delete application.');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+
+  const handleAssignRecruiter = async (appId, recruiterId) => {
+    setProcessingId(appId);
+    try {
+      await api.patch(`/applications/${appId}/assign-recruiter`, { recruiterId });
+      setSuccess && setSuccess('Recruiter assigned successfully to this application');
+      if (fetchData) await fetchData(true);
+    } catch (error) {
+      console.error(error);
+      setError && setError('Failed to assign recruiter');
     } finally {
       setProcessingId(null);
     }
@@ -143,10 +170,11 @@ const AdminATSResumes = () => {
         <table className="w-full table-fixed border-collapse text-left">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
-              <th className="p-4 w-[25%]">Student Name</th>
-              <th className="p-4 w-[25%]">Role Applied For</th>
-              <th className="p-4 w-[20%]">Company Name</th>
+              <th className="p-4 w-[20%]">Student Name</th>
+              <th className="p-4 w-[20%]">Role Applied For</th>
+              <th className="p-4 w-[15%]">Company Name</th>
               <th className="p-4 w-[15%]">Applied On</th>
+              <th className="p-4 w-[15%]">Status / Assignment</th>
               <th className="p-4 w-[15%] text-right">Actions</th>
             </tr>
           </thead>
@@ -205,19 +233,69 @@ const AdminATSResumes = () => {
                   </td>
                   
                   <td className="p-4">
+                    <div className="flex flex-col gap-1.5">
+                      {app.status === 'recruiter_requested' ? (
+                        <>
+                          <span className="bg-amber-50 border border-amber-200 text-amber-600 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider self-start inline-block">Needs Recruiter</span>
+                          <select 
+                            disabled={processingId === app._id}
+                            value={app.recruiterId || ''} 
+                            onChange={(e) => handleAssignRecruiter(app._id, e.target.value)}
+                            className="w-full text-xs bg-white border border-slate-200 rounded p-1 outline-none focus:border-indigo-500"
+                          >
+                            <option value="">-- Assign --</option>
+                            {recruiters.map(r => (
+                              <option key={r._id} value={r._id}>{r.name}</option>
+                            ))}
+                          </select>
+                        </>
+                      ) : (
+                        <>
+                          <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider self-start inline-block ${
+                            app.status === 'application sent' ? 'bg-blue-50 text-blue-600 border border-blue-200' :
+                            app.status === 'pending' ? 'bg-blue-50 text-blue-600 border border-blue-200' :
+                            app.status === 'interview' ? 'bg-indigo-50 text-indigo-600 border border-indigo-200' :
+                            app.status === 'offer' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' :
+                            app.status === 'rejected' ? 'bg-red-50 text-red-600 border border-red-200' :
+                            'bg-slate-100 text-slate-600 border border-slate-200'
+                          }`}>
+                            {app.status}
+                          </span>
+                          {app.recruiterId && (
+                            <span className="text-[10px] text-indigo-600 font-bold flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                              {recruiters.find(r => r._id === app.recruiterId)?.name || 'Recruiter'}
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </td>
+                  
+                  <td className="p-4">
                     <div className="flex justify-end gap-2 items-center">
                       
                       {/* Download Action */}
                       <div className="relative group flex justify-center">
                         <a 
-                          href={getResumeDownloadUrl(app.resumeUrl)} 
-                          download={`${app.student?.name || 'Applicant'}_Resume.pdf`}
-                          className="p-2 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer flex items-center justify-center"
+                          href={app.resumeUrl ? getResumeDownloadUrl(app.resumeUrl) : '#'} 
+                          download={app.resumeUrl ? `${app.student?.name || 'Applicant'}_Resume.pdf` : undefined}
+                          onClick={(e) => {
+                            if (!app.resumeUrl) {
+                              e.preventDefault();
+                              alert('No resume uploaded for this request yet.');
+                            }
+                          }}
+                          className={`p-2 rounded-lg flex items-center justify-center transition-colors ${
+                            app.resumeUrl 
+                              ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 cursor-pointer' 
+                              : 'bg-slate-50 text-slate-400 border border-slate-200 cursor-not-allowed opacity-50'
+                          }`}
                         >
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                         </a>
                         <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-emerald-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg whitespace-nowrap pointer-events-none z-10">
-                          Download Resume
+                          {app.resumeUrl ? 'Download Resume' : 'No Resume Yet'}
                         </div>
                       </div>
 

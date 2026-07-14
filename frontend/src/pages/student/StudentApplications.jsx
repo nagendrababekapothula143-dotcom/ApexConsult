@@ -30,14 +30,20 @@ const StudentApplications = () => {
                     {app.job?.company} • <span className="text-slate-400 font-normal">Applied {new Date(app.appliedAt).toLocaleDateString()}</span>
                   </p>
                 </div>
-                <a
-                  href={getResumeDownloadUrl(app.resumeUrl)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs text-indigo-600 hover:text-indigo-700 font-semibold inline-flex items-center gap-1.5 no-underline mt-auto"
-                >
-                  🗎 View Uploaded Resume
-                </a>
+                {app.resumeUrl ? (
+                  <a
+                    href={getResumeDownloadUrl(app.resumeUrl)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-indigo-600 hover:text-indigo-700 font-semibold inline-flex items-center gap-1.5 no-underline mt-auto"
+                  >
+                    🗎 View Uploaded Resume
+                  </a>
+                ) : (
+                  <span className="text-xs text-slate-400 font-medium inline-flex items-center gap-1.5 mt-auto">
+                    No resume uploaded
+                  </span>
+                )}
               </div>
               <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusBadgeClass(app.status)}`}>
                 {app.status}
