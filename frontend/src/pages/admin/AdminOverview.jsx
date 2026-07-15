@@ -1,8 +1,12 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import EmptyState from '../../components/EmptyState';
+import TableSkeleton from '../../components/TableSkeleton';
 
 const AdminOverview = () => {
-  const { jobs, globalApplications: applications, students } = useOutletContext();
+  const { jobs = [], globalApplications = [], students = [] } = useOutletContext() || {};
+  const applications = globalApplications || [];
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,57 +30,58 @@ const AdminOverview = () => {
 
   const avgATSScore = calculateAvgScore();
 
+  // Calculate Total Revenue
+  const totalRevenue = applications
+    .filter((app) => app.status === 'accepted')
+    .reduce((sum, app) => sum + (Number(app.job?.placementFee) || 0), 0);
+
   // Get recent 3 actual submissions
   const recentApps = submittedApps.slice(0, 3);
 
-  // Generate dynamic chart paths based on actual application volume over time
-  const generateChartPaths = () => {
+  // Prepare data for Recharts
+  const generateChartData = () => {
     if (!applications || applications.length === 0) {
-      return { line: "M 0 100 L 500 100", fill: "M 0 100 L 500 100 Z" };
+      return [];
     }
-
     const sorted = [...applications].sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
     const countsByDate = {};
-    
     sorted.forEach(app => {
       const date = new Date(app.createdAt || Date.now()).toISOString().split('T')[0];
       countsByDate[date] = (countsByDate[date] || 0) + 1;
     });
-
-    const dates = Object.keys(countsByDate).sort();
     
-    // If only one day of data exists, create a simple slope
-    if (dates.length === 1) {
-      return { 
-        line: "M 0 100 L 250 50 L 500 50", 
-        fill: "M 0 100 L 250 50 L 500 50 L 500 100 L 0 100 Z" 
-      };
-    }
-
     let cumulative = 0;
-    const dataPoints = dates.map(date => {
+    return Object.keys(countsByDate).sort().map(date => {
       cumulative += countsByDate[date];
-      return cumulative;
+      return {
+        date,
+        applications: cumulative
+      };
     });
-
-    const maxVal = Math.max(...dataPoints, 1);
-    
-    // Start at bottom left
-    let path = `M 0 100`;
-    
-    dataPoints.forEach((val, index) => {
-      const x = (index / (dataPoints.length - 1)) * 500;
-      const y = 100 - ((val / maxVal) * 85); 
-      path += ` L ${x} ${y}`;
-    });
-
-    return {
-      line: path,
-      fill: `${path} L 500 100 L 0 100 Z`
-    };
   };
 
-  const { line: chartLinePath, fill: chartFillPath } = generateChartPaths();
+  const chartData = generateChartData();
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoaded(true), 400); // Simulate network load for skeleton
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!isLoaded) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <div className="h-8 bg-slate-200 rounded w-1/4 animate-pulse mb-2"></div>
+          <div className="h-4 bg-slate-100 rounded w-1/3 animate-pulse"></div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+          {[1,2,3,4,5].map(i => <div key={i} className="h-24 bg-slate-50 rounded-xl animate-pulse"></div>)}
+        </div>
+        <div className="h-64 bg-slate-50 rounded-2xl animate-pulse"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -87,7 +92,7 @@ const AdminOverview = () => {
       </div>
 
       {/* Stats Cards grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
         <div className="bg-white border border-slate-200/60 rounded-xl p-5 shadow-xs">
           <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Active Positions</h4>
           <div className="text-3xl font-extrabold text-slate-900 mb-0.5">{jobs.length}</div>
@@ -110,6 +115,13 @@ const AdminOverview = () => {
           </div>
           <p className="text-[10px] text-slate-400 font-medium">Keyword accuracy score</p>
         </div>
+        <div className="bg-gradient-to-br from-indigo-600 to-violet-700 border border-indigo-700 rounded-xl p-5 shadow-md text-white">
+          <h4 className="text-xs font-semibold text-indigo-200 uppercase tracking-wider mb-2">Total Revenue</h4>
+          <div className="text-3xl font-extrabold mb-0.5">
+            ${totalRevenue.toLocaleString()}
+          </div>
+          <p className="text-[10px] text-indigo-300 font-medium">From {acceptedAppsCount} accepted placements</p>
+        </div>
       </div>
 
       {/* Main Charts & Analytics row */}
@@ -120,29 +132,49 @@ const AdminOverview = () => {
           <h3 className="text-sm font-bold text-slate-900 mb-0.5">Pipeline Activity Traffic</h3>
           <p className="text-xs text-slate-400 mb-6">Visual resume submission volume mapping matching timeline</p>
           
-          <div className="h-[140px] w-full">
-            <svg viewBox="0 0 500 120" className="w-full h-full">
-              <defs>
-                <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#6366f1" stopOpacity="0.15" />
-                  <stop offset="100%" stopColor="#6366f1" stopOpacity="0.0" />
-                </linearGradient>
-              </defs>
-              <line x1="0" y1="100" x2="500" y2="100" stroke="#f1f5f9" strokeWidth="1" />
-              {/* Placement submission growth curve */}
-              <path
-                d={chartFillPath}
-                fill="url(#chartGradient)"
+          <div className="h-[200px] w-full mt-4">
+            {chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorApps" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis 
+                    dataKey="date" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fontSize: 10, fill: '#94a3b8' }} 
+                    dy={10} 
+                  />
+                  <YAxis 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fontSize: 10, fill: '#94a3b8' }} 
+                  />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px -5px rgba(0,0,0,0.1)' }}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="applications" 
+                    stroke="#4f46e5" 
+                    strokeWidth={3}
+                    fillOpacity={1} 
+                    fill="url(#colorApps)" 
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyState 
+                title="No Data" 
+                description="Not enough application data to generate trend charts." 
+                icon="file" 
               />
-              <path
-                d={chartLinePath}
-                fill="none"
-                stroke="#4f46e5"
-                strokeWidth="3.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            )}
           </div>
         </div>
 
@@ -198,7 +230,11 @@ const AdminOverview = () => {
 
         <div className="divide-y divide-slate-100">
           {recentApps.length === 0 ? (
-            <p className="text-slate-400 text-sm py-4">No recent resume uploads in database. Job applications will appear here.</p>
+            <EmptyState 
+              title="Empty Queue" 
+              description="No recent resume uploads in database. Job applications will appear here." 
+              icon="inbox" 
+            />
           ) : (
             recentApps.map((app) => {
               const score = 65 + ((app.student?.name?.length || 5) * 7 % 31);

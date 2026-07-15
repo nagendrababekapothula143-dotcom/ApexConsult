@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useOutletContext, useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import api from '../../services/api';
 import { jsPDF } from 'jspdf';
+import useDebounce from '../../hooks/useDebounce';
 
 const StudentJobs = () => {
   const { user } = useContext(AuthContext);
+  const { toast } = useToast();
   const {
     jobs,
     applications,
@@ -26,6 +29,7 @@ const StudentJobs = () => {
   } = useOutletContext();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const { jobId } = useParams();
   const navigate = useNavigate();
 
@@ -42,6 +46,28 @@ const StudentJobs = () => {
   const [confirmUploading, setConfirmUploading] = useState(false);
   const [confirmFile, setConfirmFile] = useState(null);
   const [externallyAppliedState, setExternallyAppliedState] = useState(false);
+
+  // Bookmarks State
+  const [bookmarkedJobs, setBookmarkedJobs] = useState(user?.bookmarkedJobs || []);
+
+  const toggleBookmark = async (e, jobId) => {
+    e.stopPropagation();
+    
+    // Optimistic update
+    const isBookmarked = bookmarkedJobs.includes(jobId);
+    setBookmarkedJobs(prev => isBookmarked ? prev.filter(id => id !== jobId) : [...prev, jobId]);
+
+    try {
+      const res = await api.post(`/auth/profile/bookmark/${jobId}`);
+      if (res.data.success) {
+        setBookmarkedJobs(res.data.bookmarkedJobs); // sync with server truth
+      }
+    } catch (err) {
+      // Revert on failure
+      setBookmarkedJobs(prev => isBookmarked ? [...prev, jobId] : prev.filter(id => id !== jobId));
+      toast.error(err.response?.data?.message || 'Failed to toggle bookmark');
+    }
+  };
 
   useEffect(() => {
     document.title = selectedJob
@@ -432,20 +458,46 @@ const StudentJobs = () => {
         setActionSuccess('✅ Application recorded! Your resume has been submitted to the admin.');
       }
       setTimeout(() => setActionSuccess(''), 6000);
+      setTimeout(() => setActionSuccess(''), 6000);
     } catch (error) {
       console.error('Confirm submit error:', error);
-      setActionError(error.response?.data?.message || 'Error submitting application. Please try again.');
+      const msg = error.response?.data?.message || 'Error submitting application. Please try again.';
+      setActionError(msg);
+      toast.error(msg);
     } finally {
       setConfirmUploading(false);
     }
   };
 
-  const filteredJobs = jobs.filter(
-    (job) =>
-      job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.location.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredJobs = React.useMemo(() => {
+    return jobs.filter(
+      (job) =>
+        job.title.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+        job.company.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+        job.location.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
+    );
+  }, [jobs, debouncedSearchQuery]);
+
+  const recommendedJobs = React.useMemo(() => {
+    if (!user || !user.major || jobs.length === 0) return [];
+    
+    const majorLower = user.major.toLowerCase();
+    const majorWords = majorLower.split(' ').filter(w => w.length > 3);
+    
+    const matches = jobs.map(job => {
+      let score = 0;
+      const textToSearch = `${job.title} ${job.description} ${job.requirements?.join(' ')}`.toLowerCase();
+      
+      if (textToSearch.includes(majorLower)) score += 10;
+      for (const word of majorWords) {
+        if (textToSearch.includes(word)) score += 5;
+      }
+      
+      return { job, score };
+    }).filter(j => j.score > 0).sort((a, b) => b.score - a.score).map(j => j.job);
+    
+    return matches.slice(0, 3);
+  }, [user, jobs]);
 
   return (
     <div className="space-y-8">
@@ -478,14 +530,50 @@ const StudentJobs = () => {
         </div>
       )}
 
-      <div className="flex flex-col gap-4">
-        
-        {/* Accordion List View */}
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-            <span>💼</span> Active Listings ({filteredJobs.length})
+      {/* Recommended for You Section */}
+      {recommendedJobs.length > 0 && !debouncedSearchQuery && (
+        <div className="mb-8">
+          <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+            Recommended based on your Major
           </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {recommendedJobs.map((job) => (
+              <div 
+                key={`rec-${job._id}`}
+                onClick={() => {
+                  navigate(`/student/jobs/${job._id}`);
+                  setSelectedJob(job);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 p-4 rounded-2xl shadow-sm cursor-pointer hover:shadow-md hover:border-indigo-300 transition-all flex flex-col gap-2"
+              >
+                <div className="flex justify-between items-start">
+                  <h3 className="font-extrabold text-indigo-900 text-sm">{job.title}</h3>
+                  <div className="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">
+                    Top Match
+                  </div>
+                </div>
+                <div className="text-xs text-slate-500 font-medium">{job.company}</div>
+                <div className="text-xs text-slate-400 mt-auto pt-2 flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                  {job.location}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
+      )}
+
+      {/* Main Jobs List */}
+      <div className="flex flex-col gap-8">
+        <div className="w-full">
+          
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <span>💼</span> Active Listings ({filteredJobs.length})
+            </h2>
+          </div>
         
         {filteredJobs.length === 0 ? (
           <div className="text-center py-16 border border-slate-100 border-dashed rounded-xl bg-white">
@@ -538,11 +626,22 @@ const StudentJobs = () => {
                         )}
                       </div>
                     </div>
-                    
-                    <div className={`shrink-0 flex items-center justify-center w-10 h-10 rounded-full border transition-all duration-300 ${isExpanded ? 'bg-indigo-100 border-indigo-200 text-indigo-600' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
-                      <svg className="w-5 h-5 transition-transform duration-300" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
-                      </svg>
+                    <div className="shrink-0 flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={(e) => toggleBookmark(e, job._id)}
+                        className={`p-2 rounded-full border transition-all duration-300 ${bookmarkedJobs.includes(job._id) ? 'bg-amber-100 border-amber-200 text-amber-500' : 'bg-slate-50 border-slate-200 text-slate-400 hover:bg-slate-100 hover:text-slate-600'}`}
+                        title={bookmarkedJobs.includes(job._id) ? "Remove Bookmark" : "Save Job"}
+                      >
+                        <svg className="w-5 h-5" fill={bookmarkedJobs.includes(job._id) ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                        </svg>
+                      </button>
+                      <div className={`flex items-center justify-center w-10 h-10 rounded-full border transition-all duration-300 ${isExpanded ? 'bg-indigo-100 border-indigo-200 text-indigo-600' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
+                        <svg className="w-5 h-5 transition-transform duration-300" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
                     </div>
                   </div>
 
@@ -677,6 +776,7 @@ const StudentJobs = () => {
             })}
           </div>
         )}
+      </div>
       </div>
 
       {/* AI TAILORING MODAL */}

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import ApplicationTracker from '../../components/ApplicationTracker';
 
 const StudentApplications = () => {
   const { applications, getStatusBadgeClass, getResumeDownloadUrl } = useOutletContext();
@@ -23,32 +24,37 @@ const StudentApplications = () => {
         ) : (
           applications.map((app) => (
             <div key={app._id} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex justify-between items-start gap-4 hover:border-slate-300 transition-all">
-              <div className="flex flex-col h-full justify-between">
-                <div>
-                  <h2 className="font-bold text-slate-900 text-base mb-1">{app.job?.title || 'Unknown Job'}</h2>
-                  <p className="text-xs text-slate-500 font-medium mb-4">
-                    {app.job?.company} • <span className="text-slate-400 font-normal">Applied {new Date(app.appliedAt).toLocaleDateString()}</span>
-                  </p>
+              <div className="flex flex-col w-full h-full justify-between">
+                <div className="flex justify-between items-start gap-4">
+                  <div>
+                    <h2 className="font-bold text-slate-900 text-base mb-1">{app.job?.title || 'Unknown Job'}</h2>
+                    <p className="text-xs text-slate-500 font-medium mb-4">
+                      {app.job?.company} • <span className="text-slate-400 font-normal">Applied {new Date(app.appliedAt).toLocaleDateString()}</span>
+                    </p>
+                  </div>
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusBadgeClass(app.status)}`}>
+                    {app.status}
+                  </span>
                 </div>
+                
+                <ApplicationTracker status={app.status} />
+
                 {app.resumeUrl ? (
                   <a
                     href={getResumeDownloadUrl(app.resumeUrl)}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-xs text-indigo-600 hover:text-indigo-700 font-semibold inline-flex items-center gap-1.5 no-underline mt-auto"
+                    className="text-xs text-indigo-600 hover:text-indigo-700 font-semibold inline-flex items-center gap-1.5 no-underline mt-5"
                     aria-label={`View Uploaded Resume for ${app.job?.title || 'Unknown Job'}`}
                   >
                     🗎 View Uploaded Resume
                   </a>
                 ) : (
-                  <span className="text-xs text-slate-400 font-medium inline-flex items-center gap-1.5 mt-auto">
+                  <span className="text-xs text-slate-400 font-medium inline-flex items-center gap-1.5 mt-5">
                     No resume uploaded
                   </span>
                 )}
               </div>
-              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusBadgeClass(app.status)}`}>
-                {app.status}
-              </span>
             </div>
           ))
         )}

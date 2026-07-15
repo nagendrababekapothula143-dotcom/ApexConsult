@@ -85,9 +85,9 @@ router.post('/register', protect, async (req, res) => {
 
     // Invalidate users cache if they are syncing for the first time
     if (role === 'admin') {
-      usersCache.admins.data = null;
+      usersCache.del('admins');
     } else {
-      usersCache.students.data = null;
+      usersCache.del('students');
     }
 
     await logAuditAction(
@@ -123,6 +123,27 @@ router.post('/login', protect, async (req, res) => {
        return res.status(404).json({ success: false, message: 'User record not found in database. Please register.' });
     }
 
+    // Require 2FA for admins and recruiters
+    if (req.user.role === 'admin' || req.user.role === 'recruiter') {
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      twoFactorStore.set(req.user.id, {
+        otp,
+        expires: Date.now() + 5 * 60 * 1000 // 5 minutes
+      });
+
+      // MOCK EMAIL SEND (In a real app, use SendGrid/SES)
+      console.log(`\n=========================================`);
+      console.log(`📧 MOCK EMAIL SENT TO: ${req.user.email}`);
+      console.log(`🔒 Your 2FA Login Code is: ${otp}`);
+      console.log(`=========================================\n`);
+
+      return res.status(200).json({
+        success: true,
+        require2FA: true,
+        message: 'A 6-digit OTP has been sent to your email.'
+      });
+    }
+
     res.status(200).json({
       success: true,
       data: {
@@ -134,6 +155,58 @@ router.post('/login', protect, async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// @desc    Verify 2FA OTP
+// @route   POST /api/auth/verify-2fa
+// @access  Private (Needs Firebase Token)
+router.post('/verify-2fa', protect, async (req, res) => {
+  try {
+    const { otp } = req.body;
+    
+    if (!req.user || !req.user.role) {
+       return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    const stored2FA = twoFactorStore.get(req.user.id);
+
+    if (!stored2FA) {
+      return res.status(400).json({ success: false, message: 'OTP session expired or not found. Please log in again.' });
+    }
+
+    if (Date.now() > stored2FA.expires) {
+      twoFactorStore.delete(req.user.id);
+      return res.status(400).json({ success: false, message: 'OTP has expired.' });
+    }
+
+    if (stored2FA.otp !== otp) {
+      return res.status(400).json({ success: false, message: 'Invalid OTP code.' });
+    }
+
+    // Success! Clear the OTP.
+    twoFactorStore.delete(req.user.id);
+
+    await logAuditAction(
+      req.user.id,
+      req.user.name,
+      '2FA_LOGIN_SUCCESS',
+      req.user.id,
+      { role: req.user.role, email: req.user.email }
+    );
+
+    res.status(200).json({
+      success: true,
+      data: {
+        _id: req.user.id,
+        name: req.user.name,
+        email: req.user.email,
+        role: req.user.role,
+      },
+    });
+  } catch (error) {
+    console.error('Verify 2FA error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -150,21 +223,20 @@ router.get('/me', protect, async (req, res) => {
   }
 });
 
-// Simple memory cache for users
-const usersCache = {
-  students: { data: null, lastFetch: null },
-  admins: { data: null, lastFetch: null },
-  recruiters: { data: null, lastFetch: null },
-  ttl: 60000 // 1 minute cache
-};
+const NodeCache = require('node-cache');
+const usersCache = new NodeCache({ stdTTL: 60, checkperiod: 120 }); // 60 seconds caching
+
+// In-memory 2FA store for mock email delivery
+// Key: userId, Value: { otp: string, expires: number }
+const twoFactorStore = new Map();
 
 // @desc    Get all students
 // @route   GET /api/auth/students
-// @access  Private (Admin only)
-router.get('/students', protect, authorize('admin'), async (req, res) => {
+// @access  Private (Admin & Recruiter)
+router.get('/students', protect, authorize('admin', 'recruiter'), async (req, res) => {
   try {
-    if (usersCache.students.data && (Date.now() - usersCache.students.lastFetch < usersCache.ttl)) {
-      return res.status(200).json(usersCache.students.data);
+    if (usersCache.has('students')) {
+      return res.status(200).json(usersCache.get('students'));
     }
 
     const result = await docClient.send(new ScanCommand({
@@ -204,8 +276,7 @@ router.get('/students', protect, authorize('admin'), async (req, res) => {
     students.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     const responseData = { success: true, count: students.length, data: students };
-    usersCache.students.data = responseData;
-    usersCache.students.lastFetch = Date.now();
+    usersCache.set('students', responseData);
 
     res.status(200).json(responseData);
   } catch (error) {
@@ -216,11 +287,11 @@ router.get('/students', protect, authorize('admin'), async (req, res) => {
 
 // @desc    Get all admins
 // @route   GET /api/auth/admins
-// @access  Private (Admin only)
-router.get('/admins', protect, authorize('admin'), async (req, res) => {
+// @access  Private (Admin & Recruiter)
+router.get('/admins', protect, authorize('admin', 'recruiter'), async (req, res) => {
   try {
-    if (usersCache.admins.data && (Date.now() - usersCache.admins.lastFetch < usersCache.ttl)) {
-      return res.status(200).json(usersCache.admins.data);
+    if (usersCache.has('admins')) {
+      return res.status(200).json(usersCache.get('admins'));
     }
 
     const result = await docClient.send(new ScanCommand({
@@ -236,8 +307,7 @@ router.get('/admins', protect, authorize('admin'), async (req, res) => {
     })).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     const responseData = { success: true, count: admins.length, data: admins };
-    usersCache.admins.data = responseData;
-    usersCache.admins.lastFetch = Date.now();
+    usersCache.set('admins', responseData);
 
     res.status(200).json(responseData);
   } catch (error) {
@@ -248,11 +318,11 @@ router.get('/admins', protect, authorize('admin'), async (req, res) => {
 
 // @desc    Get all recruiters
 // @route   GET /api/auth/recruiters
-// @access  Private (Admin only)
-router.get('/recruiters', protect, authorize('admin'), async (req, res) => {
+// @access  Private (Admin & Recruiter)
+router.get('/recruiters', protect, authorize('admin', 'recruiter'), async (req, res) => {
   try {
-    if (usersCache.recruiters.data && (Date.now() - usersCache.recruiters.lastFetch < usersCache.ttl)) {
-      return res.status(200).json(usersCache.recruiters.data);
+    if (usersCache.has('recruiters')) {
+      return res.status(200).json(usersCache.get('recruiters'));
     }
 
     const result = await docClient.send(new ScanCommand({
@@ -268,8 +338,7 @@ router.get('/recruiters', protect, authorize('admin'), async (req, res) => {
     })).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     const responseData = { success: true, count: recruiters.length, data: recruiters };
-    usersCache.recruiters.data = responseData;
-    usersCache.recruiters.lastFetch = Date.now();
+    usersCache.set('recruiters', responseData);
 
     res.status(200).json(responseData);
   } catch (error) {
@@ -285,7 +354,8 @@ router.delete('/students/:id', protect, authorize('admin'), async (req, res) => 
   try {
     const studentId = req.params.id;
     
-    const { DeleteCommand } = require('@aws-sdk/lib-dynamodb');
+    const { DeleteCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
+    const { deleteS3Object } = require('../config/s3');
     
     // 1. Delete from Firebase Auth
     try {
@@ -300,8 +370,27 @@ router.delete('/students/:id', protect, authorize('admin'), async (req, res) => 
       Key: { id: studentId }
     }));
 
+    // 3. Delete all applications & S3 resumes for this student
+    const appsResult = await docClient.send(new ScanCommand({
+      TableName: 'consulting_applications',
+      FilterExpression: 'student = :studentId OR studentId = :studentId',
+      ExpressionAttributeValues: { ':studentId': studentId }
+    }));
+
+    if (appsResult.Items && appsResult.Items.length > 0) {
+      for (const app of appsResult.Items) {
+        if (app.resumeKey) {
+          await deleteS3Object(app.resumeKey);
+        }
+        await docClient.send(new DeleteCommand({
+          TableName: 'consulting_applications',
+          Key: { id: app.id }
+        }));
+      }
+    }
+
     // Clear cache
-    usersCache.students.data = null;
+    usersCache.del('students');
 
     res.status(200).json({ success: true, message: 'Student deleted successfully' });
   } catch (error) {
@@ -328,7 +417,7 @@ router.patch('/students/:id/status', protect, authorize('admin'), async (req, re
     }));
 
     // Clear cache
-    usersCache.students.data = null;
+    usersCache.del('students');
 
     res.status(200).json({ success: true, message: 'Student status updated' });
   } catch (error) {
@@ -398,12 +487,103 @@ router.patch('/profile/:id', protect, async (req, res) => {
     }));
 
     // Clear caches
-    usersCache.students.data = null;
-    usersCache.admins.data = null;
+    usersCache.del('students');
+    usersCache.del('admins');
 
     res.status(200).json({ success: true, message: 'Profile updated successfully', data: result.Attributes });
   } catch (error) {
     console.error('Update profile error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// @desc    Update a user's role (Admin only)
+// @route   PATCH /api/auth/profile/:id/role
+// @access  Private (Admin only)
+router.patch('/profile/:id/role', protect, authorize('admin'), async (req, res) => {
+  try {
+    const userIdToUpdate = req.params.id;
+    const { role } = req.body;
+
+    if (!role || !['admin', 'recruiter', 'student'].includes(role)) {
+      return res.status(400).json({ success: false, message: 'Invalid role provided' });
+    }
+
+    const { UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+    
+    await docClient.send(new UpdateCommand({
+      TableName: 'consulting_users',
+      Key: { id: userIdToUpdate },
+      UpdateExpression: 'set #role = :role',
+      ExpressionAttributeNames: { '#role': 'role' },
+      ExpressionAttributeValues: { ':role': role }
+    }));
+
+    // Clear caches
+    usersCache.del('students');
+    usersCache.del('admins');
+    usersCache.del('recruiters');
+
+    res.status(200).json({ success: true, message: 'Role updated successfully' });
+  } catch (error) {
+    console.error('Update role error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// @desc    Toggle job bookmark
+// @route   POST /api/auth/profile/bookmark/:jobId
+// @access  Private (Student only)
+router.post('/profile/bookmark/:jobId', protect, authorize('student'), async (req, res) => {
+  try {
+    const jobId = req.params.jobId;
+    const userId = req.user.id || req.user._id;
+
+    // Get current user to check bookmarks array
+    const userRes = await docClient.send(new GetCommand({
+      TableName: 'consulting_users',
+      Key: { id: userId }
+    }));
+
+    if (!userRes.Item) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const currentBookmarks = userRes.Item.bookmarkedJobs || [];
+    let newBookmarks;
+    let isBookmarked = false;
+
+    if (currentBookmarks.includes(jobId)) {
+      // Remove bookmark
+      newBookmarks = currentBookmarks.filter(id => id !== jobId);
+    } else {
+      // Add bookmark
+      newBookmarks = [...currentBookmarks, jobId];
+      isBookmarked = true;
+    }
+
+    const { UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+    
+    await docClient.send(new UpdateCommand({
+      TableName: 'consulting_users',
+      Key: { id: userId },
+      UpdateExpression: 'set bookmarkedJobs = :bookmarkedJobs',
+      ExpressionAttributeValues: { ':bookmarkedJobs': newBookmarks }
+    }));
+
+    // Update req.user in memory for this request if needed
+    req.user.bookmarkedJobs = newBookmarks;
+
+    // Clear caches
+    usersCache.del('students');
+
+    res.status(200).json({ 
+      success: true, 
+      message: isBookmarked ? 'Job bookmarked' : 'Bookmark removed', 
+      bookmarkedJobs: newBookmarks 
+    });
+  } catch (error) {
+    console.error('Toggle bookmark error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });

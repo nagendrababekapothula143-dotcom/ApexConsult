@@ -1,13 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { AuthContext } from '../../context/AuthContext';
 import api from '../../services/api';
+import { useToast } from '../../context/ToastContext';
+import { LineChart, Line, ResponsiveContainer } from 'recharts';
+import { exportToCSV } from '../../utils/csvExport';
+import EmptyState from '../../components/EmptyState';
+import TableSkeleton from '../../components/TableSkeleton';
+import useDebounce from '../../hooks/useDebounce';
 
 const AdminStudents = () => {
-  const { students, globalApplications, fetchData, setError, setSuccess } = useOutletContext();
+  const { students = [], globalApplications = [], fetchData } = useOutletContext() || {};
+  const { user } = useContext(AuthContext);
+  const toast = useToast();
   const [processingId, setProcessingId] = useState(null);
   const [modalConfig, setModalConfig] = useState({ isOpen: false, type: '', studentId: null, currentStatus: '' });
   const [editModalConfig, setEditModalConfig] = useState({ isOpen: false, student: null, formData: { name: '', phone: '', university: '', major: '' } });
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
@@ -21,10 +31,10 @@ const AdminStudents = () => {
     try {
       const newStatus = currentStatus === 'inactive' ? 'active' : 'inactive';
       await api.patch(`/auth/students/${studentId}/status`, { status: newStatus });
-      setSuccess && setSuccess(`Student marked as ${newStatus}`);
+      toast.success(`Student marked as ${newStatus}`);
       if (fetchData) await fetchData();
     } catch (err) {
-      setError && setError('Failed to update student status');
+      toast.error('Failed to update student status');
     } finally {
       setProcessingId(null);
     }
@@ -36,10 +46,10 @@ const AdminStudents = () => {
     setProcessingId(studentId);
     try {
       await api.delete(`/auth/students/${studentId}`);
-      setSuccess && setSuccess('Student deleted successfully');
+      toast.success('Student deleted successfully');
       if (fetchData) await fetchData();
     } catch (err) {
-      setError && setError('Failed to delete student');
+      toast.error('Failed to delete student');
     } finally {
       setProcessingId(null);
     }
@@ -76,16 +86,44 @@ const AdminStudents = () => {
         major: editModalConfig.formData.major
       });
 
-      setSuccess && setSuccess('Student profile updated successfully!');
+      toast.success('Student profile updated successfully!');
       setEditModalConfig({ isOpen: false, student: null, formData: { name: '', phone: '', university: '', major: '' } });
       if (fetchData) await fetchData();
     } catch (err) {
       console.error(err);
-      setError && setError('Failed to update student profile.');
+      toast.error('Failed to update student profile.');
     } finally {
       setSavingEdit(false);
     }
   };
+
+  const handleExportCSV = () => {
+    // Format data for CSV
+    const csvData = students.map(s => ({
+      ID: s._id,
+      Name: s.name,
+      Email: s.email,
+      Phone: s.phone || 'N/A',
+      University: s.university || 'N/A',
+      Degree: s.degree || 'N/A',
+      GraduationYear: s.graduationYear || 'N/A',
+      Status: s.status || 'Active',
+      TotalApplications: s.applications?.length || 0,
+      RegisteredAt: new Date(s.createdAt).toLocaleString(),
+    }));
+    exportToCSV(csvData, `Kryntel_Students_${new Date().toISOString().split('T')[0]}.csv`);
+    toast.success('CSV Export downloaded successfully');
+  };
+
+  const filteredStudents = useMemo(() => {
+    return students.filter(s => {
+      const searchLower = debouncedSearchQuery.toLowerCase();
+      const nameMatch = (s.name || '').toLowerCase().includes(searchLower);
+      const emailMatch = (s.email || '').toLowerCase().includes(searchLower);
+      const idMatch = (s.apexId || '').toLowerCase().includes(searchLower);
+      return nameMatch || emailMatch || idMatch;
+    });
+  }, [students, debouncedSearchQuery]);
 
   return (
     <div className="space-y-6">
@@ -94,7 +132,19 @@ const AdminStudents = () => {
           <h1 className="text-2xl font-extrabold text-slate-900 mb-0.5">Registered Students</h1>
           <p className="text-sm text-slate-500">View registered student profiles and track resume submissions.</p>
         </div>
-        <div className="relative">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <button 
+            onClick={handleExportCSV}
+            className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-2 cursor-pointer"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Export
+          </button>
+          <div className="relative">
           <input
             type="text"
             placeholder="Search by name, email, or APX ID..."
@@ -107,11 +157,13 @@ const AdminStudents = () => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </div>
+        </div>
       </div>
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-x-auto">
-        <table className="w-full table-fixed border-collapse text-left">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
+      
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-x-auto max-h-[70vh] custom-scrollbar">
+        <table className="w-full table-fixed border-collapse text-left relative">
+          <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-sm border-b border-slate-200 shadow-sm">
+            <tr className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               <th className="p-4 w-[12%]">Student ID</th>
               <th className="p-4 w-[20%]">Full Name</th>
               <th className="p-4 w-[20%]">Email Address</th>
@@ -121,34 +173,18 @@ const AdminStudents = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-sm">
-            {(() => {
-              const filteredStudents = students.filter(s => {
-                const searchLower = searchQuery.toLowerCase();
-                const nameMatch = (s.name || '').toLowerCase().includes(searchLower);
-                const emailMatch = (s.email || '').toLowerCase().includes(searchLower);
-                const idMatch = (s.apexId || '').toLowerCase().includes(searchLower);
-                return nameMatch || emailMatch || idMatch;
-              });
-
-              if (filteredStudents.length === 0) {
-                return (
-                  <tr>
-                    <td colSpan="6" className="p-8 text-center text-slate-400">
-                      {searchQuery ? 'No students matched your search.' : 'No student profiles found.'}
-                    </td>
-                  </tr>
-                );
-              }
-
-              return filteredStudents.map((student) => {
-                // Check if student has applied to any jobs globally
-                const hasApplied = globalApplications && globalApplications.some(
-                  (app) => {
-                    const studentId = app.student?._id || app.student;
-                    return studentId === student._id;
-                  }
-                );
-
+            {filteredStudents.length === 0 ? (
+              <tr>
+                <td colSpan="6" className="p-8">
+                  <EmptyState 
+                    title="No students found" 
+                    description={searchQuery ? 'No students matched your search criteria.' : 'No student profiles found in the database.'} 
+                    icon="search" 
+                  />
+                </td>
+              </tr>
+            ) : (
+              filteredStudents.map((student) => {
                 return (
                   <tr key={student._id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="p-4">
@@ -179,7 +215,7 @@ const AdminStudents = () => {
                     </td>
 
                     <td className="p-4 text-slate-500 whitespace-nowrap">
-                      {new Date(student.createdAt).toLocaleDateString()}
+                      {new Date(student.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                     </td>
                     <td className="p-4">
                       <div className="flex justify-center gap-2 items-center flex-nowrap whitespace-nowrap">
@@ -213,6 +249,7 @@ const AdminStudents = () => {
                             Edit Student
                           </div>
                         </div>
+                        {user?.role === 'admin' && (
                         <div className="relative group flex justify-center">
                           <button 
                             disabled={processingId === student._id}
@@ -226,12 +263,13 @@ const AdminStudents = () => {
                             Delete Student
                           </div>
                         </div>
+                        )}
                       </div>
                     </td>
                   </tr>
                 );
-              });
-            })()}
+              })
+            )}
           </tbody>
         </table>
       </div>

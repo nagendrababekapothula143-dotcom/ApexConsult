@@ -3,6 +3,7 @@ import { Outlet, NavLink, useNavigate, Link } from 'react-router-dom';
 import api, { getBaseUrl } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import { SocketContext } from '../context/SocketContext';
+import { useToast } from '../context/ToastContext';
 import FloatingChat from '../components/FloatingChat';
 import Loader from '../components/Loader';
 
@@ -10,6 +11,7 @@ const StudentDashboard = () => {
   const { user, logout } = useContext(AuthContext);
   const socket = useContext(SocketContext);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   // Dynamic States
   const [jobs, setJobs] = useState([]);
@@ -96,7 +98,9 @@ const StudentDashboard = () => {
       setApplications(appsRes.data.data);
     } catch (error) {
       console.error('Error submitting application:', error);
-      setActionError(error.response?.data?.message || 'Error uploading resume');
+      const msg = error.response?.data?.message || 'Error uploading resume';
+      setActionError(msg);
+      toast.error(msg);
     } finally {
       setUploading(false);
     }
@@ -127,7 +131,9 @@ const StudentDashboard = () => {
       setApplications(appsRes.data.data);
     } catch (error) {
       console.error('Error requesting assistance:', error);
-      setActionError(error.response?.data?.message || 'Error requesting assistance');
+      const msg = error.response?.data?.message || 'Error requesting assistance';
+      setActionError(msg);
+      toast.error(msg);
     } finally {
       setUploading(false);
     }

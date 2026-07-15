@@ -3,7 +3,7 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'Inter', sans-serif;
+  --font-sans: 'Outfit', sans-serif;
   --font-display: 'Outfit', sans-serif;
 }
 
@@ -15,4 +15,19 @@ body {
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
+}
+
+/* Global Dark Mode via CSS Filters */
+html.dark {
+  filter: invert(1) hue-rotate(180deg);
+  background-color: #121212; /* Fallback */
+}
+
+/* Reverse the filter for media and specific elements so they look normal */
+html.dark img,
+html.dark video,
+html.dark iframe,
+html.dark [style*="background-image"],
+html.dark .no-invert {
+  filter: invert(1) hue-rotate(180deg);
 }

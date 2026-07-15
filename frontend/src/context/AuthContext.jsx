@@ -3,7 +3,9 @@ import {
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
   signOut, 
-  onAuthStateChanged 
+  onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup
 } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import api from '../services/api';
@@ -48,6 +50,11 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post('/auth/login', {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      
+      if (response.data.require2FA) {
+        return { success: true, require2FA: true, message: response.data.message };
+      }
+
       setUser(response.data.data);
       return { success: true };
     } catch (error) {
@@ -79,13 +86,76 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const loginWithGoogle = async (role = 'student', customName = null) => {
+    try {
+      const provider = new GoogleAuthProvider();
+      const userCredential = await signInWithPopup(auth, provider);
+      const token = await userCredential.user.getIdToken();
+      
+      // Try to login
+      try {
+        const response = await api.post('/auth/login', {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (response.data.require2FA) {
+          return { success: true, require2FA: true, message: response.data.message };
+        }
+
+        setUser(response.data.data);
+        return { success: true, isNewUser: false };
+      } catch (loginError) {
+        // If 404, user is new, so register them
+        if (loginError.response?.status === 404) {
+          const nameToUse = customName || userCredential.user.displayName || 'Google User';
+          
+          const registerResponse = await api.post('/auth/register', { 
+            name: nameToUse, 
+            email: userCredential.user.email, 
+            role 
+          }, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          
+          setUser(registerResponse.data.data);
+          return { success: true, isNewUser: true };
+        }
+        throw loginError;
+      }
+    } catch (error) {
+      console.error("Google auth error:", error);
+      return {
+        success: false,
+        message: error.message || 'Google authentication failed.',
+      };
+    }
+  };
+
   const logout = async () => {
     await signOut(auth);
     setUser(null);
   };
 
+  const verify2FA = async (otp) => {
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) throw new Error("Not authenticated with Firebase.");
+
+      const response = await api.post('/auth/verify-2fa', { otp }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setUser(response.data.data);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Invalid OTP code.',
+      };
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, setUser, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, loginWithGoogle, logout, verify2FA }}>
       {children}
     </AuthContext.Provider>
   );

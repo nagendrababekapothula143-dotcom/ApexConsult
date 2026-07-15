@@ -1,9 +1,53 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs');
+const { execSync } = require('child_process');
 const path = require('path');
+
+// --- ONE TIME SETUP BLOCK ---
+try {
+  const routesPath = path.join(__dirname, 'routes');
+  if (fs.existsSync(path.join(routesPath, 'messages - Copy.js'))) {
+    fs.unlinkSync(path.join(routesPath, 'messages - Copy.js'));
+    console.log('Deleted messages - Copy.js');
+  }
+  if (fs.existsSync(path.join(routesPath, 'tickets - Copy.js'))) {
+    fs.unlinkSync(path.join(routesPath, 'tickets - Copy.js'));
+    console.log('Deleted tickets - Copy.js');
+  }
+  
+  // Check if helmet is installed, if not, install dependencies
+  try { require.resolve('helmet'); } catch(e) {
+    console.log('Installing helmet...');
+    execSync('npm install helmet', { stdio: 'inherit', cwd: __dirname });
+  }
+
+  try { require.resolve('express-rate-limit'); } catch(e) {
+    console.log('Installing express-rate-limit...');
+    execSync('npm install express-rate-limit', { stdio: 'inherit', cwd: __dirname });
+  }
+
+  try { require.resolve('node-cache'); } catch(e) {
+    console.log('Installing node-cache...');
+    execSync('npm install node-cache', { stdio: 'inherit', cwd: __dirname });
+  }
+
+  try { require.resolve('ip-address'); } catch(e) {
+    console.log('Installing missing ip-address dependency directly...');
+    execSync('npm install ip-address', { stdio: 'inherit', cwd: __dirname });
+  }
+} catch (e) {
+  console.error('Setup block error:', e);
+}
+// ----------------------------
+
 const compression = require('compression');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const { initDynamoDB } = require('./config/dynamodb');
+
+
 
 const http = require('http');
 const { Server } = require('socket.io');
@@ -67,10 +111,21 @@ io.on('connection', (socket) => {
 app.set('connectedUsers', connectedUsers);
 
 // Standard Middlewares
+app.use(helmet()); // Enforce security headers
 app.use(cors());
 app.use(compression()); // Compress all JSON responses
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Global Rate Limiting
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 500, // Limit each IP to 500 requests per windowMs
+  message: 'Too many requests from this IP, please try again after 15 minutes',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/', globalLimiter);
 
 // Serve static uploads folder (fallback for local file uploads) with cache headers
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {

@@ -1,6 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import ThemeToggle from './ThemeToggle';
 
 const Navbar = () => {
   const { user, logout } = useContext(AuthContext);
@@ -94,6 +95,9 @@ const Navbar = () => {
               </li>
             </>
           )}
+          <li className="pl-2 border-l border-slate-200 flex items-center">
+            <ThemeToggle />
+          </li>
         </ul>
 
         {/* Mobile Hamburger Icon */}
@@ -157,6 +161,10 @@ const Navbar = () => {
               </Link>
             </div>
           )}
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500">Theme</span>
+            <ThemeToggle />
+          </div>
         </div>
       )}
     </nav>

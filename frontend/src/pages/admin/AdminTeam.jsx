@@ -1,8 +1,14 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useContext, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { AuthContext } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
+import api from '../../services/api';
 
 const AdminTeam = () => {
-  const { teamMembers, recruiters } = useOutletContext();
+  const { teamMembers, recruiters, fetchData } = useOutletContext();
+  const { user } = useContext(AuthContext);
+  const toast = useToast();
+  const [updatingId, setUpdatingId] = useState(null);
   
   // Combine admins and recruiters into a single list, sorting admins first, then by date
   const allTeamMembers = [...(teamMembers || []), ...(recruiters || [])].sort((a, b) => {
@@ -14,6 +20,20 @@ const AdminTeam = () => {
   useEffect(() => {
     document.title = 'Team Management | Kryntel Console';
   }, []);
+
+  const handleRoleChange = async (memberId, newRole) => {
+    try {
+      setUpdatingId(memberId);
+      await api.patch(`/auth/profile/${memberId}/role`, { role: newRole });
+      toast.success(`Role successfully updated to ${newRole}`);
+      if (fetchData) await fetchData(true);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to update role. Ensure you have permission.');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -43,11 +63,25 @@ const AdminTeam = () => {
                   <td className="p-4 font-bold text-slate-900">{tm.name}</td>
                   <td className="p-4 text-slate-600">{tm.email}</td>
                   <td className="p-4">
-                    <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                      tm.role === 'admin' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                    }`}>
-                      {tm.role} Access
-                    </span>
+                    {user?.role === 'admin' && user?._id !== tm._id ? (
+                      <select 
+                        value={tm.role}
+                        onChange={(e) => handleRoleChange(tm._id, e.target.value)}
+                        disabled={updatingId === tm._id}
+                        className={`text-xs font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-md border outline-none cursor-pointer ${
+                          tm.role === 'admin' ? 'bg-indigo-50 text-indigo-700 border-indigo-200 focus:border-indigo-400' : 'bg-emerald-50 text-emerald-700 border-emerald-200 focus:border-emerald-400'
+                        } ${updatingId === tm._id ? 'opacity-50' : ''}`}
+                      >
+                        <option value="admin">Admin Access</option>
+                        <option value="recruiter">Recruiter Access</option>
+                      </select>
+                    ) : (
+                      <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                        tm.role === 'admin' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      }`}>
+                        {tm.role} Access
+                      </span>
+                    )}
                   </td>
                   <td className="p-4 text-slate-500">
                     {tm.createdAt ? new Date(tm.createdAt).toLocaleDateString() : 'N/A'}

@@ -4,6 +4,8 @@ import api, { getBaseUrl } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import { SocketContext } from '../context/SocketContext';
 import Loader from '../components/Loader';
+import Breadcrumbs from '../components/Breadcrumbs';
+import ThemeToggle from '../components/ThemeToggle';
 
 const AdminDashboard = () => {
   const { user, logout } = useContext(AuthContext);
@@ -20,6 +22,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [loadingApps, setLoadingApps] = useState(false);
   const [hasUnreadSupport, setHasUnreadSupport] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   // Status Alerts
   const [error, setError] = useState('');
@@ -34,7 +37,9 @@ const AdminDashboard = () => {
   const [description, setDescription] = useState('');
   const [requirements, setRequirements] = useState('');
   const [salary, setSalary] = useState('');
+  const [placementFee, setPlacementFee] = useState('');
   const [link, setLink] = useState('');
+  const [expiresAt, setExpiresAt] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [submittingJob, setSubmittingJob] = useState(false);
 
@@ -166,7 +171,7 @@ const AdminDashboard = () => {
       
       const t = isSilent ? `?t=${Date.now()}` : '';
       const [jobsRes, studentsRes, ticketsRes, adminsRes, globalAppsRes, recruitersRes] = await Promise.all([
-        api.get(`/jobs${t}`),
+        api.get(`/jobs?includeExpired=true${isSilent ? '&' : '?'}${t.replace('?', '')}`),
         api.get(`/auth/students${t}`),
         api.get(`/tickets${t}`),
         api.get(`/auth/admins${t}`),
@@ -211,6 +216,14 @@ const AdminDashboard = () => {
     if (document.title === 'Kryntel') {
       document.title = 'Admin Dashboard | Kryntel';
     }
+  }, []);
+
+  // Real-time Clock
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -288,18 +301,22 @@ const AdminDashboard = () => {
         description,
         requirements,
         salary,
+        placementFee: Number(placementFee) || 0,
         link,
+        expiresAt: expiresAt ? new Date(expiresAt).toISOString() : undefined,
       });
 
       setSuccess('Job posting published successfully!');
       setTitle('');
       setRequirements('');
       setSalary('');
+      setPlacementFee('');
       setLink('');
+      setExpiresAt('');
       setShowJobModal(false);
 
       // Refresh list
-      const updatedJobsRes = await api.get('/jobs');
+      const updatedJobsRes = await api.get('/jobs?includeExpired=true');
       setJobs(updatedJobsRes.data.data);
       if (res.data.data) {
         handleJobSelect(res.data.data);
@@ -360,9 +377,9 @@ const AdminDashboard = () => {
         end={end}
         onClick={() => setIsSidebarOpen(false)}
         className={({ isActive }) =>
-          `flex items-center gap-3 px-4 py-2.5 text-sm font-semibold rounded-xl w-full text-left transition-all cursor-pointer no-underline ${
+          `flex items-center gap-4 px-4 py-2.5 text-[14px] font-medium rounded-full w-full text-left transition-all cursor-pointer no-underline ${
             isActive
-              ? 'bg-slate-100 text-indigo-600'
+              ? 'bg-slate-100 text-slate-900 font-semibold'
               : 'bg-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900'
           }`
         }
@@ -380,7 +397,7 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-white">
       
       {/* Mobile Top Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 h-[64px] bg-white border-b border-slate-200 flex items-center justify-between px-6 z-40">
@@ -400,8 +417,11 @@ const AdminDashboard = () => {
           <img src="/Untitled%20design%20(1).png" alt="Kryntel Logo" className="w-8 h-8 object-contain shrink-0 -ml-1" />
           Kryntel
         </div>
-        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-800 uppercase">
-          {(user?.name || "Admin").charAt(0).toUpperCase()}
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
+          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-800 uppercase">
+            {(user?.name || "Admin").charAt(0).toUpperCase()}
+          </div>
         </div>
       </header>
 
@@ -414,13 +434,13 @@ const AdminDashboard = () => {
       )}
 
       {/* LEFT SIDEBAR SECTION */}
-      <aside className={`w-[280px] bg-white border-r border-slate-200 flex flex-col justify-between h-screen fixed left-0 top-0 z-50 p-6 transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`w-[260px] bg-white border-r border-slate-100 flex flex-col justify-between h-screen fixed left-0 top-0 z-50 p-4 transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex flex-col gap-6 overflow-y-auto pr-1">
           
-          <div className="flex justify-between items-center">
-            <Link to="/" className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent flex items-center gap-1.5 no-underline hover:opacity-90 transition-opacity">
-              <img src="/Untitled%20design%20(1).png" alt="Kryntel Logo" className="w-8 h-8 object-contain shrink-0 -ml-1" />
-              Kryntel <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full inline-block"></span>
+          <div className="flex justify-between items-center pl-2">
+            <Link to="/" className="text-[22px] font-medium tracking-tight text-slate-800 flex items-center gap-2.5 no-underline hover:opacity-80 transition-opacity">
+              <img src="/Untitled%20design%20(1).png" alt="Kryntel Logo" className="w-7 h-7 object-contain shrink-0" />
+              Kryntel
             </Link>
             <button
               onClick={() => setIsSidebarOpen(false)}
@@ -432,7 +452,7 @@ const AdminDashboard = () => {
             </button>
           </div>
 
-          <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 px-4">Navigation</span>
+          <div className="mt-2">
 
           <ul className="flex flex-col gap-1 list-none m-0 p-0">
             <li>{renderNavLink('/admin/overview', <Icons.Dashboard />, 'Dashboard')}</li>
@@ -443,21 +463,22 @@ const AdminDashboard = () => {
             <li>{renderNavLink('/admin/audit-logs', <Icons.AuditLogs />, 'Audit Logs')}</li>
           </ul>
 
+          </div>
         </div>
 
         {/* PROFILE CARD AT BOTTOM */}
-        <div className="flex items-center justify-between pt-4 border-t border-slate-200 mt-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-slate-100 border border-slate-200 rounded-full flex items-center justify-center font-bold text-slate-800">
+        <div className="flex items-center justify-between pt-4 mt-auto">
+          <div className="flex items-center gap-3 pl-2">
+            <div className="w-10 h-10 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center font-medium text-sm">
               {(user?.name || "Sowmyarupa").charAt(0).toUpperCase()}
             </div>
             <div>
-              <h4 className="text-xs font-bold text-slate-900 leading-none mb-1">{user?.name || "Sowmyarupa"}</h4>
-              <p className="text-[10px] text-slate-400 font-medium">{user?.role === 'admin' ? "Mentor Team" : "Admin Staff"}</p>
+              <h4 className="text-sm font-medium text-slate-800 leading-none mb-1">{user?.name || "Sowmyarupa"}</h4>
+              <p className="text-[12px] text-slate-500 font-normal">{user?.role === 'admin' ? "Mentor Team" : "Admin Staff"}</p>
             </div>
           </div>
-          <div className="flex gap-1.5">
-            <button className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="Open Chat" aria-label="Open Chat">
+          <div className="flex gap-1">
+            <button className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 rounded-full transition-colors cursor-pointer border-none bg-transparent" title="Open Chat" aria-label="Open Chat">
               <Icons.Chat />
             </button>
             <button onClick={handleLogout} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="Sign Out" aria-label="Sign Out">
@@ -469,9 +490,28 @@ const AdminDashboard = () => {
       </aside>
 
       {/* DYNAMIC CHILD WORKSPACE CONTENT */}
-      <main className="lg:pl-[280px] min-h-screen pt-[64px] lg:pt-0">
-        <div className="p-4 md:p-8">
-          <Outlet context={{
+      <main className="lg:pl-[260px] min-h-screen pt-[64px] lg:pt-0 bg-slate-50 flex flex-col">
+        {/* Desktop Top Navbar / Header area */}
+        <div className="hidden lg:flex h-16 bg-white border-b border-slate-200 items-center justify-between px-8 z-30 sticky top-0">
+          <div className="flex-1"></div>
+          <div className="flex items-center gap-4">
+            <ThemeToggle />
+            <div className="text-sm font-semibold text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg flex items-center justify-center gap-2 border border-slate-200 min-w-[220px] tabular-nums">
+              <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {currentTime.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })}
+            </div>
+            <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs uppercase cursor-default border border-indigo-200" title={user?.email}>
+              {(user?.name || "A").charAt(0)}
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 md:p-8 flex-1 flex flex-col max-w-7xl mx-auto w-full">
+            <Breadcrumbs />
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 flex-1 flex flex-col">
+              <Outlet context={{
               jobs,
               selectedJob,
               handleJobSelect,
@@ -501,6 +541,7 @@ const AdminDashboard = () => {
               fetchData: fetchDashboardData,
               setApplications: setGlobalApplications
             }} />
+            </div>
         </div>
       </main>
 
@@ -607,8 +648,19 @@ const AdminDashboard = () => {
                       onChange={(e) => setLink(e.target.value)}
                     />
                   </div>
-
+                  
                   <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Expiration Date <span className="text-slate-400 normal-case tracking-normal">(Optional)</span></label>
+                    <input
+                      type="date"
+                      className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium"
+                      value={expiresAt}
+                      onChange={(e) => setExpiresAt(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
                     <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Requirements</label>
                     <input
                       type="text"
@@ -618,7 +670,6 @@ const AdminDashboard = () => {
                       onChange={(e) => setRequirements(e.target.value)}
                     />
                   </div>
-                </div>
 
                 {/* Row 4: Description */}
                 <div className="flex flex-col gap-2">

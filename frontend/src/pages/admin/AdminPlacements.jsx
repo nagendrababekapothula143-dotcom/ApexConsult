@@ -1,44 +1,46 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { AuthContext } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
+import { exportToCSV } from '../../utils/csvExport';
 import Loader from '../../components/Loader';
+import EmptyState from '../../components/EmptyState';
+import api from '../../services/api';
 
 const AdminPlacements = () => {
   const {
-    jobs,
+    jobs = [],
     selectedJob,
     handleJobSelect,
     loadingApps,
-    applications,
+    applications = [],
     handleStatusChange,
     setShowJobModal,
     getStatusBadgeClass,
     getResumeDownloadUrl,
     fetchData,
-    setError,
-    setSuccess,
-  } = useOutletContext();
+  } = useOutletContext() || {};
+  const { user } = useContext(AuthContext);
+  const toast = useToast();
 
   const [deleteModalConfig, setDeleteModalConfig] = useState({ isOpen: false, jobId: null });
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDeleteJob = async () => {
     const { jobId } = deleteModalConfig;
-    setDeleteModalConfig({ isOpen: false, jobId: null });
     setIsDeleting(true);
     
     try {
-      const { default: api } = await import('../../services/api');
-      const res = await api.delete(`/jobs/${jobId}`);
-      if (res.data.success) {
-        setSuccess && setSuccess('Job deleted successfully');
-        if (selectedJob?._id === jobId) {
-           handleJobSelect(null);
-        }
-        if (fetchData) await fetchData(true);
+      await api.delete(`/jobs/${jobId}`);
+      toast.success('Job listing successfully deleted.');
+      setDeleteModalConfig({ isOpen: false, jobId: null });
+      if (selectedJob?._id === jobId) {
+          handleJobSelect(null);
       }
+      if (fetchData) await fetchData(true);
     } catch (err) {
       console.error(err);
-      setError && setError('Failed to delete job listing.');
+      toast.error('Failed to delete job listing.');
     } finally {
       setIsDeleting(false);
     }
@@ -48,6 +50,21 @@ const AdminPlacements = () => {
     document.title = 'Post Jobs | Kryntel Console';
   }, []);
 
+  const handleExportCSV = () => {
+    const csvData = jobs.map(j => ({
+      ID: j._id,
+      Title: j.title,
+      Company: j.company,
+      Location: j.location,
+      Salary: j.salary || 'N/A',
+      Status: j.status || 'Active',
+      TotalApplications: applications.filter(a => a.job?._id === j._id).length || 0,
+      PostedAt: new Date(j.createdAt).toLocaleString(),
+    }));
+    exportToCSV(csvData, `Kryntel_Jobs_${new Date().toISOString().split('T')[0]}.csv`);
+    toast.success('CSV Export downloaded successfully');
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center gap-4">
@@ -55,9 +72,24 @@ const AdminPlacements = () => {
           <h1 className="text-2xl font-extrabold text-slate-900 mb-0.5">Job Placements Listings</h1>
           <p className="text-sm text-slate-500 font-medium">Publish consulting positions, track applicant submissions and resume packets.</p>
         </div>
-        <button onClick={() => setShowJobModal(true)} aria-label="Create new job listing" className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-4 py-2 rounded-lg transition-all shadow-sm hover:shadow cursor-pointer border-none">
-          + Create Job Listing
-        </button>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={handleExportCSV}
+            className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-2 cursor-pointer"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Export
+          </button>
+          {user?.role === 'admin' && (
+            <button onClick={() => setShowJobModal(true)} aria-label="Create new job listing" className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-4 py-2 rounded-lg transition-all shadow-sm hover:shadow cursor-pointer border-none">
+              + Create Job Listing
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
@@ -67,9 +99,11 @@ const AdminPlacements = () => {
         </div>
         
         {jobs.length === 0 ? (
-          <div className="text-center py-16 border-t border-slate-100">
-            <p className="text-slate-500 text-sm">No consulting jobs posted yet.</p>
-          </div>
+          <EmptyState 
+            title="No Active Listings" 
+            description="No consulting jobs posted yet. Create your first job listing to get started." 
+            icon="folder" 
+          />
         ) : (
           <div className="flex flex-col gap-4">
             {jobs.map((job) => {
@@ -105,21 +139,28 @@ const AdminPlacements = () => {
                       </div>
                     </div>
                     
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteModalConfig({ isOpen: true, jobId: job._id });
-                      }}
-                      className={`p-2 rounded-lg transition-colors cursor-pointer border-none bg-transparent ${isExpanded ? 'text-red-500 hover:bg-red-50' : 'text-slate-300 hover:text-red-600 hover:bg-red-50'}`}
-                      title="Delete Job"
-                      aria-label="Delete Job"
-                      disabled={isDeleting}
-                    >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                      </svg>
-                    </button>
+                    <div className="flex flex-col items-end">
+                      <span className="text-sm font-bold text-slate-900">{job.salary}</span>
+                      <span className="text-xs text-slate-500">Compensation</span>
+                    </div>
+
+                    {user?.role === 'admin' && (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteModalConfig({ isOpen: true, jobId: job._id });
+                        }}
+                        className={`p-2 rounded-lg transition-colors cursor-pointer border-none bg-transparent ${isExpanded ? 'text-red-500 hover:bg-red-50' : 'text-slate-300 hover:text-red-600 hover:bg-red-50'}`}
+                        title="Delete Job"
+                        aria-label="Delete Job"
+                        disabled={isDeleting}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                      </button>
+                    )}
                   </div>
 
                   {/* Accordion Body (Expanded Submissions) */}
@@ -137,8 +178,12 @@ const AdminPlacements = () => {
                           <Loader text="Loading submissions..." />
                         </div>
                       ) : applications.length === 0 ? (
-                        <div className="bg-white border border-slate-200 border-dashed rounded-lg py-12 text-center">
-                          <p className="text-slate-400 text-sm font-medium">No submissions recorded for this post yet.</p>
+                        <div className="py-6">
+                          <EmptyState 
+                            title="No Submissions" 
+                            description="No applications recorded for this post yet." 
+                            icon="inbox" 
+                          />
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">

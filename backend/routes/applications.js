@@ -7,7 +7,8 @@ const { docClient } = require('../config/dynamodb');
 const { ScanCommand, GetCommand, PutCommand, QueryCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
 const { protect, authorize } = require('../middleware/auth');
 const handleUpload = require('../middleware/upload');
-const { getPresignedUrl } = require('../config/s3');
+const { v4: uuidv4 } = require('uuid');
+const { getPresignedUrl, deleteS3Object } = require('../config/s3');
 const { logAuditAction } = require('../utils/auditLogger');
 const router = express.Router();
 
@@ -16,10 +17,10 @@ const uploadTemp = multer({
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 }).single('resume');
 
-// @desc    Get all applications (Admin only)
+// @desc    Get all applications (Admin & Recruiter)
 // @route   GET /api/applications
-// @access  Private (Admin only)
-router.get('/', protect, authorize('admin'), async (req, res) => {
+// @access  Private (Admin & Recruiter)
+router.get('/', protect, authorize('admin', 'recruiter'), async (req, res) => {
   try {
     const appsResult = await docClient.send(new ScanCommand({
       TableName: 'consulting_applications'
@@ -372,7 +373,8 @@ router.post('/', protect, authorize('student'), handleUpload, async (req, res) =
       externallyApplied: req.body.externallyApplied === 'true',
       atsResult: atsResult,
       recruiterId: null,
-      appliedAt: new Date().toISOString()
+      appliedAt: new Date().toISOString(),
+      expire_at: Math.floor(Date.now() / 1000) + 94608000, // 3 years TTL
     };
 
     // Save to DynamoDB
@@ -479,8 +481,8 @@ router.get('/student', protect, authorize('student'), async (req, res) => {
 
 // @desc    Get all applications for a specific job
 // @route   GET /api/applications/job/:jobId
-// @access  Private (Admin only)
-router.get('/job/:jobId', protect, authorize('admin'), async (req, res) => {
+// @access  Private (Admin & Recruiter)
+router.get('/job/:jobId', protect, authorize('admin', 'recruiter'), async (req, res) => {
   try {
     // Check if job exists
     const jobRes = await docClient.send(new GetCommand({
@@ -546,8 +548,8 @@ router.get('/job/:jobId', protect, authorize('admin'), async (req, res) => {
 
 // @desc    Update application status
 // @route   PATCH /api/applications/:id
-// @access  Private (Admin only)
-router.patch('/:id', protect, authorize('admin'), async (req, res) => {
+// @access  Private (Admin & Recruiter)
+router.patch('/:id', protect, authorize('admin', 'recruiter'), async (req, res) => {
   const { status } = req.body;
 
   if (!status || !['pending', 'reviewed', 'accepted', 'rejected'].includes(status)) {
@@ -617,8 +619,10 @@ router.delete('/:id', protect, authorize('admin'), async (req, res) => {
       Key: { id: appId }
     }));
 
-    // Note: To fully clean up, we should also delete the S3 object if resumeKey exists.
-    // For now, removing the DynamoDB record is sufficient to remove it from the ATS system.
+    // Delete the S3 object if resumeKey exists
+    if (getRes.Item.resumeKey) {
+      await deleteS3Object(getRes.Item.resumeKey);
+    }
     
     res.status(200).json({ success: true, message: 'Application deleted successfully' });
   } catch (error) {

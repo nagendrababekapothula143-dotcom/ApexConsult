@@ -5,12 +5,8 @@ const { ScanCommand, GetCommand, PutCommand, DeleteCommand } = require('@aws-sdk
 const { protect, authorize } = require('../middleware/auth');
 const router = express.Router();
 
-// Simple memory cache
-const jobsCache = {
-  data: null,
-  lastFetch: null,
-  ttl: 60000 // 1 minute cache
-};
+const NodeCache = require('node-cache');
+const jobsCache = new NodeCache({ stdTTL: 60, checkperiod: 120 }); // 60 seconds cache
 
 // @desc    Get all jobs (with pagination and caching)
 // @route   GET /api/jobs
@@ -21,8 +17,8 @@ router.get('/', async (req, res) => {
     const lastKey = req.query.lastEvaluatedKey ? JSON.parse(decodeURIComponent(req.query.lastEvaluatedKey)) : undefined;
 
     // Use cache if we are just fetching the default first page
-    if (!lastKey && limit === 20 && jobsCache.data && (Date.now() - jobsCache.lastFetch < jobsCache.ttl)) {
-      return res.status(200).json(jobsCache.data);
+    if (!lastKey && limit === 20 && jobsCache.has('defaultPage')) {
+      return res.status(200).json(jobsCache.get('defaultPage'));
     }
 
     const params = {
@@ -40,6 +36,12 @@ router.get('/', async (req, res) => {
       ...job,
       _id: job.id // Map id to _id for frontend compatibility
     }));
+
+    // Filter out expired jobs unless includeExpired=true is passed
+    if (req.query.includeExpired !== 'true') {
+      const now = new Date().toISOString();
+      jobs = jobs.filter(job => !job.expiresAt || job.expiresAt > now);
+    }
     
     // Note: DynamoDB Scan sorts by arbitrary partition key order unless we sort in memory.
     // In production with pagination, a GSI with a sort key on createdAt should be used.
@@ -54,8 +56,7 @@ router.get('/', async (req, res) => {
 
     // Cache the first page
     if (!lastKey && limit === 20) {
-      jobsCache.data = responseData;
-      jobsCache.lastFetch = Date.now();
+      jobsCache.set('defaultPage', responseData);
     }
 
     res.status(200).json(responseData);
@@ -95,7 +96,7 @@ router.get('/:id', async (req, res) => {
 // @route   POST /api/jobs
 // @access  Private (Admin only)
 router.post('/', protect, authorize('admin'), async (req, res) => {
-  const { title, company, location, description, requirements, salary, link, recruiterId } = req.body;
+  const { title, company, location, description, requirements, salary, link, recruiterId, expiresAt, placementFee } = req.body;
 
   if (!title || !company || !location || !description) {
     return res.status(400).json({ success: false, message: 'Please provide title, company, location, and description' });
@@ -121,6 +122,8 @@ router.post('/', protect, authorize('admin'), async (req, res) => {
       recruiterId: recruiterId || null,
       createdBy: req.user.id || req.user._id,
       createdAt: new Date().toISOString(),
+      expiresAt: expiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // Default 30 days
+      placementFee: Number(placementFee) || 0,
     };
 
     await docClient.send(new PutCommand({
@@ -129,7 +132,7 @@ router.post('/', protect, authorize('admin'), async (req, res) => {
     }));
 
     // Invalidate cache
-    jobsCache.data = null;
+    jobsCache.del('defaultPage');
 
     const responseJob = {
       ...newJob,
@@ -180,7 +183,7 @@ router.put('/:id', protect, authorize('admin'), async (req, res) => {
     }));
 
     // Invalidate cache
-    jobsCache.data = null;
+    jobsCache.del('defaultPage');
 
     const responseJob = {
       ...updatedJob,
@@ -221,7 +224,7 @@ router.delete('/:id', protect, authorize('admin'), async (req, res) => {
     }));
 
     // Invalidate cache
-    jobsCache.data = null;
+    jobsCache.del('defaultPage');
 
     res.status(200).json({ success: true, message: 'Job listing deleted successfully' });
   } catch (error) {

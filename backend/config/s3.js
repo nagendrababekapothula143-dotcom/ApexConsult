@@ -1,4 +1,4 @@
-const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 
 let s3Client = null;
@@ -41,8 +41,25 @@ const getPresignedUrl = async (key) => {
   }
 };
 
+const deleteS3Object = async (key) => {
+  if (!s3Client || !key) return false;
+  try {
+    const command = new DeleteObjectCommand({
+      Bucket: bucketName,
+      Key: key,
+    });
+    await s3Client.send(command);
+    console.log(`Successfully deleted S3 object with key: ${key}`);
+    return true;
+  } catch (error) {
+    console.error(`Error deleting S3 object with key ${key}:`, error.message);
+    return false;
+  }
+};
+
 module.exports = {
   s3Client,
   bucketName,
   getPresignedUrl,
+  deleteS3Object,
 };

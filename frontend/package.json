@@ -21,7 +21,8 @@
     "react-router-dom": "^7.18.1",
     "socket.io-client": "^4.8.3",
     "tailwindcss": "^4.3.2",
-    "react-hot-toast": "^2.4.1"
+    "lucide-react": "^0.474.0",
+    "recharts": "^2.15.1"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.4.1",

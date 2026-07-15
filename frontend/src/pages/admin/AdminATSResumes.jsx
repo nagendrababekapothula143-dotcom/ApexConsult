@@ -1,7 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { AuthContext } from '../../context/AuthContext';
 import api, { getBaseUrl } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
+import EmptyState from '../../components/EmptyState';
+import { exportToCSV } from '../../utils/csvExport';
 
 const SkeletonRow = () => (
   <tr className="animate-pulse bg-slate-50 border-b border-slate-100">
@@ -15,7 +18,8 @@ const SkeletonRow = () => (
 );
 
 const AdminATSResumes = () => {
-  const { globalApplications, fetchData } = useOutletContext();
+  const { globalApplications = [], fetchData } = useOutletContext() || {};
+  const { user } = useContext(AuthContext);
   const toast = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
@@ -98,6 +102,21 @@ const AdminATSResumes = () => {
     }));
   };
 
+  const handleExportCSV = () => {
+    const csvData = globalApplications.map(a => ({
+      ID: a._id,
+      StudentName: a.student?.name || 'N/A',
+      StudentEmail: a.student?.email || 'N/A',
+      StudentPhone: a.student?.phone || 'N/A',
+      JobAppliedFor: a.job?.title || 'N/A',
+      Company: a.job?.company || 'N/A',
+      Status: a.status || 'Pending',
+      AppliedAt: new Date(a.appliedAt).toLocaleString(),
+    }));
+    exportToCSV(csvData, `Kryntel_Applications_${new Date().toISOString().split('T')[0]}.csv`);
+    toast.success('CSV Export downloaded successfully');
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -168,6 +187,18 @@ const AdminATSResumes = () => {
               aria-label="Selected student phone"
             />
           )}
+
+          <button 
+            onClick={handleExportCSV}
+            className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-2 cursor-pointer h-[42px]"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Export
+          </button>
         </div>
       </div>
 
@@ -198,10 +229,10 @@ const AdminATSResumes = () => {
         </select>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-x-auto">
-        <table className="w-full table-fixed border-collapse text-left">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-x-auto max-h-[70vh] custom-scrollbar">
+        <table className="w-full table-fixed border-collapse text-left relative">
+          <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-sm border-b border-slate-200 shadow-sm">
+            <tr className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               <th className="p-4 w-[25%] cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('student.name')}>
                 Student Name {sortConfig.key === 'student.name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
               </th>
@@ -264,8 +295,12 @@ const AdminATSResumes = () => {
               if (filteredApps.length === 0) {
                 return (
                   <tr>
-                    <td colSpan="6" className="p-8 text-center text-slate-400">
-                      {searchQuery ? 'No applications matched your search.' : 'No resume submissions recorded in database.'}
+                    <td colSpan="6" className="p-8">
+                      <EmptyState 
+                        title="No Resumes Found" 
+                        description={searchQuery ? 'No applications matched your search filters.' : 'No resume submissions recorded in database.'} 
+                        icon="file" 
+                      />
                     </td>
                   </tr>
                 );
@@ -371,19 +406,21 @@ const AdminATSResumes = () => {
                       </div>
 
                       {/* Delete Action */}
-                      <div className="relative group flex justify-center">
-                        <button 
-                          disabled={processingId === app._id}
-                          onClick={() => setModalConfig({ isOpen: true, applicationId: app._id })}
-                          className="p-2 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors cursor-pointer flex items-center justify-center disabled:opacity-50"
-                          aria-label="Delete Submission"
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                        </button>
-                        <div className="absolute bottom-full right-0 mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg whitespace-nowrap pointer-events-none z-10">
-                          Delete Submission
+                      {user?.role === 'admin' && (
+                        <div className="relative group flex justify-center">
+                          <button 
+                            disabled={processingId === app._id}
+                            onClick={() => setModalConfig({ isOpen: true, applicationId: app._id })}
+                            className="p-2 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors cursor-pointer flex items-center justify-center disabled:opacity-50"
+                            aria-label="Delete Submission"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                          </button>
+                          <div className="absolute bottom-full right-0 mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg whitespace-nowrap pointer-events-none z-10">
+                            Delete Submission
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                     </div>
                   </td>
