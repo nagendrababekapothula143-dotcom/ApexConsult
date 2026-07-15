@@ -1,46 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const fs = require('fs');
-const { execSync } = require('child_process');
 const path = require('path');
-
-// --- ONE TIME SETUP BLOCK ---
-try {
-  const routesPath = path.join(__dirname, 'routes');
-  if (fs.existsSync(path.join(routesPath, 'messages - Copy.js'))) {
-    fs.unlinkSync(path.join(routesPath, 'messages - Copy.js'));
-    console.log('Deleted messages - Copy.js');
-  }
-  if (fs.existsSync(path.join(routesPath, 'tickets - Copy.js'))) {
-    fs.unlinkSync(path.join(routesPath, 'tickets - Copy.js'));
-    console.log('Deleted tickets - Copy.js');
-  }
-  
-  // Check if helmet is installed, if not, install dependencies
-  try { require.resolve('helmet'); } catch(e) {
-    console.log('Installing helmet...');
-    execSync('npm install helmet', { stdio: 'inherit', cwd: __dirname });
-  }
-
-  try { require.resolve('express-rate-limit'); } catch(e) {
-    console.log('Installing express-rate-limit...');
-    execSync('npm install express-rate-limit', { stdio: 'inherit', cwd: __dirname });
-  }
-
-  try { require.resolve('node-cache'); } catch(e) {
-    console.log('Installing node-cache...');
-    execSync('npm install node-cache', { stdio: 'inherit', cwd: __dirname });
-  }
-
-  try { require.resolve('ip-address'); } catch(e) {
-    console.log('Installing missing ip-address dependency directly...');
-    execSync('npm install ip-address', { stdio: 'inherit', cwd: __dirname });
-  }
-} catch (e) {
-  console.error('Setup block error:', e);
-}
-// ----------------------------
 
 const compression = require('compression');
 const helmet = require('helmet');
@@ -155,6 +116,10 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
+
+try {
+  require('child_process').execSync(`npx kill-port ${PORT}`, { stdio: 'ignore' });
+} catch (e) {}
 
 initDynamoDB().then(() => {
   // IMPORTANT: Use server.listen instead of app.listen for Socket.io
