@@ -194,33 +194,6 @@ const StudentProfile = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                  University / College
-                </label>
-                <input
-                  type="text"
-                  name="university"
-                  value={formData.university}
-                  onChange={handleChange}
-                  placeholder="E.g., Stanford University"
-                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 font-semibold focus:border-indigo-500 outline-none transition-all"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                  Major / Area of Study
-                </label>
-                <input
-                  type="text"
-                  name="major"
-                  value={formData.major}
-                  onChange={handleChange}
-                  placeholder="E.g., B.S. Computer Science & Economics"
-                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 font-semibold focus:border-indigo-500 outline-none transition-all"
-                />
-              </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
@@ -541,23 +514,6 @@ const StudentProfile = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                  University / College
-                </label>
-                <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 font-semibold">
-                  {user.university || <span className="text-slate-400 italic">Not provided</span>}
-                </div>
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                  Major / Area of Study
-                </label>
-                <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 font-semibold">
-                  {user.major || <span className="text-slate-400 italic">Not provided</span>}
-                </div>
-              </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
