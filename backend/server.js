@@ -71,6 +71,9 @@ io.on('connection', (socket) => {
 // Expose connectedUsers mapping if needed
 app.set('connectedUsers', connectedUsers);
 
+// Trust proxy for rate limiter when hosted on platforms like Render/Heroku
+app.set('trust proxy', 1);
+
 // Standard Middlewares
 app.use(helmet()); // Enforce security headers
 app.use(cors());
