@@ -22,16 +22,51 @@ const ResumeGenerator = ({ user }) => {
       return cursorY + yOffset;
     };
 
+    // Helper: Parse date for sorting
+    const parseDate = (dateStr) => {
+      if (!dateStr || dateStr.toLowerCase().trim() === 'present') return Infinity;
+      const parsed = Date.parse(dateStr);
+      return isNaN(parsed) ? 0 : parsed;
+    };
+
+    // Helper: Check for page break
+    const checkPageBreak = (currentY, neededSpace) => {
+      if (currentY + neededSpace > doc.internal.pageSize.getHeight() - marginX) {
+        doc.addPage();
+        return marginX;
+      }
+      return currentY;
+    };
+
     // Helper: Add section header with background
     const addSectionHeader = (title) => {
+      cursorY = checkPageBreak(cursorY, 20);
       cursorY += 15;
       doc.setFillColor(230, 230, 230);
-      doc.rect(marginX, cursorY - 12, 545 - marginX, 18, 'F');
-      
-      doc.setFontSize(11);
+      doc.rect(marginX, cursorY - 12, 545 - marginX, 16, 'F');
+      doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
+      doc.setTextColor(50, 50, 50);
       doc.text(title.toUpperCase(), marginX + 5, cursorY);
+      doc.setTextColor(0, 0, 0); // reset
       cursorY += 15;
+    };
+
+    // Helper: Draw a wrapping table row
+    const drawTableRow = (cols, startX, y) => {
+      let maxLines = 1;
+      const parsedCols = cols.map(col => {
+        const text = String(col.text || '');
+        const lines = doc.splitTextToSize(text, col.width);
+        if (lines.length > maxLines) maxLines = lines.length;
+        return { lines, x: col.x };
+      });
+      
+      parsedCols.forEach(col => {
+        doc.text(col.lines, startX + col.x, y);
+      });
+      
+      return maxLines * 15; // Returns the vertical height taken by this row
     };
 
     // --- TITLE ---
@@ -77,38 +112,37 @@ const ResumeGenerator = ({ user }) => {
     cursorY += (splitObjective.length * 12) + 10;
 
     // --- 2. ACADEMIC QUALIFICATIONS ---
-    if (user.university || user.major || (user.education && user.education.length > 0)) {
+    if (user.education && user.education.length > 0) {
       addSectionHeader('Academic Qualifications');
       
       // Draw a simple table header
       doc.setFont('helvetica', 'bold');
-      doc.text('Degree / Course', marginX + 5, cursorY);
-      doc.text('University / Board', marginX + 150, cursorY);
-      doc.text('Year of Passing', marginX + 330, cursorY);
-      doc.text('Percentage / GPA', marginX + 430, cursorY);
+      doc.setFontSize(10);
+      const headerCols = [
+        { text: 'Degree / Course', x: 5, width: 140 },
+        { text: 'University / Board', x: 150, width: 170 },
+        { text: 'Year of Passing', x: 330, width: 90 },
+        { text: 'Percentage / GPA', x: 430, width: 90 }
+      ];
       
-      doc.line(marginX, cursorY + 5, 545, cursorY + 5);
-      cursorY += 20;
+      let rowHeight = drawTableRow(headerCols, marginX, cursorY);
+      doc.line(marginX, cursorY + rowHeight - 10, 545, cursorY + rowHeight - 10);
+      cursorY += rowHeight;
       
       doc.setFont('helvetica', 'normal');
+      const sortedEducation = [...user.education].sort((a, b) => parseDate(b.endDate) - parseDate(a.endDate));
       
-      if (user.university || user.major) {
-        doc.text(user.major || 'B.Tech', marginX + 5, cursorY);
-        doc.text(user.university || 'University Name', marginX + 150, cursorY);
-        doc.text('Present', marginX + 330, cursorY);
-        doc.text('N/A', marginX + 430, cursorY);
-        cursorY += 20;
-      }
-      
-      if (user.education && user.education.length > 0) {
-        user.education.forEach(edu => {
-          doc.text(edu.degree || 'Degree', marginX + 5, cursorY);
-          doc.text(edu.university || 'University', marginX + 150, cursorY);
-          doc.text(edu.endDate || 'Present', marginX + 330, cursorY);
-          doc.text(edu.gpa ? edu.gpa.toString() : 'N/A', marginX + 430, cursorY);
-          cursorY += 20;
-        });
-      }
+      sortedEducation.forEach(edu => {
+        cursorY = checkPageBreak(cursorY, 15);
+        const eduCols = [
+          { text: edu.degree || 'Degree', x: 5, width: 140 },
+          { text: edu.university || 'University', x: 150, width: 170 },
+          { text: edu.endDate || 'Present', x: 330, width: 90 },
+          { text: edu.gpa ? edu.gpa.toString() : 'N/A', x: 430, width: 90 }
+        ];
+        let h = drawTableRow(eduCols, marginX, cursorY);
+        cursorY += h;
+      });
     }
 
     // --- 3. TECHNICAL SKILLS ---
@@ -150,7 +184,8 @@ const ResumeGenerator = ({ user }) => {
     if (user.experience && user.experience.length > 0) {
       addSectionHeader('Experience');
       
-      user.experience.forEach(exp => {
+      const sortedExperience = [...user.experience].sort((a, b) => parseDate(b.endDate) - parseDate(a.endDate));
+      sortedExperience.forEach(exp => {
         doc.setFont('helvetica', 'bold');
         doc.text(`${exp.title || 'Role'} at ${exp.company || 'Company'}`, marginX + 5, cursorY);
         
