@@ -27,7 +27,11 @@ router.get('/avatar/:key', async (req, res) => {
     const response = await s3Client.send(command);
     
     res.setHeader('Content-Type', response.ContentType || 'image/png');
+    if (response.ContentLength) {
+      res.setHeader('Content-Length', response.ContentLength);
+    }
     res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache 1 year
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'); // Allow embedding from Vercel
     
     // Pipe the S3 stream directly to the Express response
     response.Body.pipe(res);
