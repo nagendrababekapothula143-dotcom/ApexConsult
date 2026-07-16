@@ -5,7 +5,8 @@ import {
   signOut, 
   onAuthStateChanged,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import api from '../services/api';
@@ -68,12 +69,19 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (name, email, password, role) => {
+  const register = async (name, email, password, role, avatarBase64 = null) => {
     try {
+      // Create user in Firebase
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const token = await userCredential.user.getIdToken();
-      // Sync new user with backend
-      const response = await api.post('/auth/register', { name, email, role }, {
+
+      // Send to backend
+      const response = await api.post('/auth/register', { 
+        name, 
+        email, 
+        role,
+        avatarBase64
+      }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setUser(response.data.data);
@@ -154,8 +162,16 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const resetPassword = async (email) => {
+    try {
+      await sendPasswordResetEmail(auth, email);
+    } catch (error) {
+      throw error;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, loginWithGoogle, logout, verify2FA }}>
+    <AuthContext.Provider value={{ user, setUser, loading, login, register, loginWithGoogle, logout, verify2FA, resetPassword }}>
       {children}
     </AuthContext.Provider>
   );

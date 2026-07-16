@@ -1,7 +1,9 @@
 const express = require('express');
 
 const { docClient } = require('../config/dynamodb');
-const { QueryCommand, PutCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
+const { QueryCommand, PutCommand, ScanCommand, GetCommand, UpdateCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
+const { s3Client, bucketName } = require('../config/s3');
+const { PutObjectCommand } = require('@aws-sdk/client-s3');
 const { protect, authorize } = require('../middleware/auth');
 const { auth } = require('../config/firebase');
 const { logAuditAction } = require('../utils/auditLogger');
@@ -68,12 +70,36 @@ router.post('/register', protect, async (req, res) => {
 
     const apexId = 'APX' + Math.floor(1000000 + Math.random() * 9000000);
 
+    let avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=random`;
+
+    if (req.body.avatarBase64 && s3Client) {
+      try {
+        const base64Data = req.body.avatarBase64.replace(/^data:image\/\w+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+        const key = `avatars/${firebaseUserId}-${Date.now()}.png`;
+
+        await s3Client.send(new PutObjectCommand({
+          Bucket: bucketName,
+          Key: key,
+          Body: buffer,
+          ContentEncoding: 'base64',
+          ContentType: 'image/png',
+          ACL: 'public-read' // Make it readable, or handle it via presigned URLs/public bucket
+        }));
+
+        avatarUrl = `https://${bucketName}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${key}`;
+      } catch (uploadError) {
+        console.error('Failed to upload custom avatar, falling back to UI Avatar:', uploadError);
+      }
+    }
+
     const newUser = {
       id: firebaseUserId, // Use Firebase UID as the primary key
       apexId,
       name: name || 'User',
       email: formattedEmail,
       role: role || 'student',
+      avatarUrl,
       createdAt: new Date().toISOString()
     };
 
@@ -432,9 +458,6 @@ router.patch('/students/:id/status', protect, authorize('admin'), async (req, re
 router.patch('/profile/:id', protect, async (req, res) => {
   try {
     const userIdToUpdate = req.params.id;
-    const { name, phone, university, major } = req.body;
-
-    // Check permissions: Must be the user themselves OR an admin
     const requesterId = req.user.id || req.user._id;
     const requesterRole = req.user.role;
 
@@ -443,48 +466,82 @@ router.patch('/profile/:id', protect, async (req, res) => {
     }
 
     const { UpdateCommand } = require('@aws-sdk/lib-dynamodb');
-    
-    // Build update expression dynamically based on provided fields
-    let updateExpr = 'set ';
+
+    // Recursively remove empty strings and empty objects for DynamoDB compatibility
+    const cleanEmptyStrings = (obj) => {
+      if (obj === '') return undefined;
+      
+      if (Array.isArray(obj)) {
+        return obj
+          .map(cleanEmptyStrings)
+          .filter(item => item !== undefined);
+      }
+      
+      if (obj !== null && typeof obj === 'object') {
+        const newObj = {};
+        let hasKeys = false;
+        for (const key in obj) {
+          const cleanedVal = cleanEmptyStrings(obj[key]);
+          if (cleanedVal !== undefined) {
+            newObj[key] = cleanedVal;
+            hasKeys = true;
+          }
+        }
+        return hasKeys ? newObj : undefined;
+      }
+      return obj;
+    };
+
+    const allowedFields = [
+      'name', 'phone', 'university', 'major', 'location', 
+      'linkedinUrl', 'portfolioUrl', 'education', 'experience', 
+      'projects', 'technicalSkills', 'softSkills', 'certifications'
+    ];
+
+    let updateExprSet = [];
+    let updateExprRemove = [];
     let exprAttrNames = {};
     let exprAttrVals = {};
-    let updates = [];
 
-    if (name !== undefined) {
-      updates.push('#name = :name');
-      exprAttrNames['#name'] = 'name';
-      exprAttrVals[':name'] = name === '' ? null : name;
+    allowedFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        const cleaned = cleanEmptyStrings(req.body[field]);
+        if (cleaned === undefined) {
+          updateExprRemove.push(`#${field}`);
+          exprAttrNames[`#${field}`] = field;
+        } else {
+          updateExprSet.push(`#${field} = :${field}`);
+          exprAttrNames[`#${field}`] = field;
+          exprAttrVals[`:${field}`] = cleaned;
+        }
+      }
+    });
+
+    let updateExpr = '';
+    if (updateExprSet.length > 0) {
+      updateExpr += 'SET ' + updateExprSet.join(', ');
     }
-    if (phone !== undefined) {
-      updates.push('#phone = :phone');
-      exprAttrNames['#phone'] = 'phone';
-      exprAttrVals[':phone'] = phone === '' ? null : phone;
-    }
-    if (university !== undefined) {
-      updates.push('#university = :university');
-      exprAttrNames['#university'] = 'university';
-      exprAttrVals[':university'] = university === '' ? null : university;
-    }
-    if (major !== undefined) {
-      updates.push('#major = :major');
-      exprAttrNames['#major'] = 'major';
-      exprAttrVals[':major'] = major === '' ? null : major;
+    if (updateExprRemove.length > 0) {
+      updateExpr += (updateExpr ? ' ' : '') + 'REMOVE ' + updateExprRemove.join(', ');
     }
 
-    if (updates.length === 0) {
+    if (!updateExpr) {
       return res.status(400).json({ success: false, message: 'No fields provided for update' });
     }
 
-    updateExpr += updates.join(', ');
-
-    const result = await docClient.send(new UpdateCommand({
+    const params = {
       TableName: 'consulting_users',
       Key: { id: userIdToUpdate },
       UpdateExpression: updateExpr,
       ExpressionAttributeNames: exprAttrNames,
-      ExpressionAttributeValues: exprAttrVals,
       ReturnValues: 'ALL_NEW'
-    }));
+    };
+
+    if (Object.keys(exprAttrVals).length > 0) {
+      params.ExpressionAttributeValues = exprAttrVals;
+    }
+
+    const result = await docClient.send(new UpdateCommand(params));
 
     // Clear caches
     usersCache.del('students');
@@ -562,8 +619,7 @@ router.post('/profile/bookmark/:jobId', protect, authorize('student'), async (re
       isBookmarked = true;
     }
 
-    const { UpdateCommand } = require('@aws-sdk/lib-dynamodb');
-    
+
     await docClient.send(new UpdateCommand({
       TableName: 'consulting_users',
       Key: { id: userId },

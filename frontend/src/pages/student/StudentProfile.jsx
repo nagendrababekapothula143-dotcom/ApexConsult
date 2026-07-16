@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../services/api';
+import ResumeGenerator from '../../components/ResumeGenerator';
 
 const StudentProfile = () => {
   const { user, setUser } = useContext(AuthContext);
@@ -9,11 +10,19 @@ const StudentProfile = () => {
     name: '',
     phone: '',
     university: '',
-    major: ''
+    major: '',
+    location: '',
+    linkedinUrl: '',
+    portfolioUrl: '',
+    education: [],
+    experience: [],
+    projects: [],
+    technicalSkills: [],
+    softSkills: []
   });
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
+  const [alert, setAlert] = useState(null);
+  const [skillInput, setSkillInput] = useState('');
 
   useEffect(() => {
     document.title = 'My Profile | Student Console';
@@ -25,7 +34,15 @@ const StudentProfile = () => {
         name: user.name || '',
         phone: user.phone || '',
         university: user.university || '',
-        major: user.major || ''
+        major: user.major || '',
+        location: user.location || '',
+        linkedinUrl: user.linkedinUrl || '',
+        portfolioUrl: user.portfolioUrl || '',
+        education: user.education || [],
+        experience: user.experience || [],
+        projects: user.projects || [],
+        technicalSkills: user.technicalSkills || [],
+        softSkills: user.softSkills || []
       });
     }
   }, [user]);
@@ -36,24 +53,57 @@ const StudentProfile = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleArrayChange = (arrayName, index, field, value) => {
+    const updatedArray = [...formData[arrayName]];
+    updatedArray[index] = { ...updatedArray[index], [field]: value };
+    setFormData({ ...formData, [arrayName]: updatedArray });
+  };
+
+  const addArrayItem = (arrayName, emptyItem) => {
+    setFormData({ ...formData, [arrayName]: [...formData[arrayName], emptyItem] });
+  };
+
+  const removeArrayItem = (arrayName, index) => {
+    const updatedArray = formData[arrayName].filter((_, i) => i !== index);
+    setFormData({ ...formData, [arrayName]: updatedArray });
+  };
+
+  const handleSkillKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      const val = skillInput.trim();
+      if (val && !formData.technicalSkills.includes(val)) {
+        setFormData({ ...formData, technicalSkills: [...formData.technicalSkills, val] });
+      }
+      setSkillInput('');
+    }
+  };
+
+  const removeSkill = (skillToRemove) => {
+    setFormData({
+      ...formData,
+      technicalSkills: formData.technicalSkills.filter(s => s !== skillToRemove)
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    setMessage('');
-    setError('');
+    setAlert(null);
 
     try {
       const res = await api.patch(`/auth/profile/${user._id || user.id}`, formData);
       if (res.data.success) {
-        setMessage('Profile updated successfully!');
+        setAlert({ type: 'success', text: 'Profile updated successfully!' });
         setIsEditing(false);
         // Update user context so top navbar and other places reflect the new name
         setUser({ ...user, ...formData });
-        setTimeout(() => setMessage(''), 3000);
+        setTimeout(() => setAlert(null), 3000);
       }
     } catch (err) {
       console.error(err);
-      setError('Failed to update profile. Please try again.');
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to update profile.';
+      setAlert({ type: 'error', text: `Error: ${errorMessage}` });
     } finally {
       setSaving(false);
     }
@@ -66,17 +116,17 @@ const StudentProfile = () => {
         <p className="text-sm text-slate-500 font-medium">Manage your personal and academic information.</p>
       </div>
 
-      {message && (
+      {alert && alert.type === 'success' && (
         <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-2">
           <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-          {message}
+          {alert.text}
         </div>
       )}
       
-      {error && (
+      {alert && alert.type === 'error' && (
         <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-2">
           <span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-pulse"></span>
-          {error}
+          {alert.text}
         </div>
       )}
 
@@ -93,12 +143,15 @@ const StudentProfile = () => {
               </span>
             </div>
           </div>
-          <button 
-            onClick={() => setIsEditing(!isEditing)}
-            className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm px-4 py-2 rounded-lg transition-colors border-none cursor-pointer"
-          >
-            {isEditing ? 'Cancel Edit' : 'Edit Profile'}
-          </button>
+          <div className="flex gap-3">
+            <ResumeGenerator user={user} />
+            <button 
+              onClick={() => setIsEditing(!isEditing)}
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm px-4 py-2 rounded-lg transition-colors border-none cursor-pointer"
+            >
+              {isEditing ? 'Cancel Edit' : 'Edit Profile'}
+            </button>
+          </div>
         </div>
 
         {isEditing ? (
@@ -168,8 +221,286 @@ const StudentProfile = () => {
                   className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 font-semibold focus:border-indigo-500 outline-none transition-all"
                 />
               </div>
-            </div>
 
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                  Location
+                </label>
+                <input
+                  type="text"
+                  name="location"
+                  value={formData.location}
+                  onChange={handleChange}
+                  placeholder="E.g., New York, NY"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 font-semibold focus:border-indigo-500 outline-none transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                  LinkedIn URL
+                </label>
+                <input
+                  type="url"
+                  name="linkedinUrl"
+                  value={formData.linkedinUrl}
+                  onChange={handleChange}
+                  placeholder="https://linkedin.com/in/username"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 font-semibold focus:border-indigo-500 outline-none transition-all"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                  Technical Skills (Press Enter or Comma to add)
+                </label>
+                <div className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 min-h-[50px] flex flex-wrap gap-2 items-center focus-within:border-indigo-500 transition-all">
+                  {formData.technicalSkills.map((skill, index) => (
+                    <span key={index} className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded-md text-xs font-bold flex items-center gap-1">
+                      {skill}
+                      <button 
+                        type="button" 
+                        onClick={() => removeSkill(skill)}
+                        className="text-indigo-400 hover:text-indigo-600 border-none bg-transparent cursor-pointer ml-1"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    type="text"
+                    value={skillInput}
+                    onChange={(e) => setSkillInput(e.target.value)}
+                    onKeyDown={handleSkillKeyDown}
+                    placeholder={formData.technicalSkills.length === 0 ? "E.g., Python, SQL, React, AWS" : ""}
+                    className="flex-1 min-w-[120px] bg-transparent outline-none text-sm text-slate-900 font-semibold"
+                  />
+                </div>
+              </div>
+
+              {/* Experience Array Editor */}
+              <div className="md:col-span-2 mt-4 border-t border-slate-100 pt-6">
+                <div className="flex justify-between items-center mb-4">
+                  <label className="block text-sm font-bold text-slate-900 uppercase tracking-wider">
+                    Experience / Internships
+                  </label>
+                  <button 
+                    type="button" 
+                    onClick={() => addArrayItem('experience', { title: '', company: '', startDate: '', endDate: '', location: '', description: [''] })}
+                    className="text-indigo-600 bg-indigo-50 hover:bg-indigo-100 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors border-none cursor-pointer"
+                  >
+                    + Add Experience
+                  </button>
+                </div>
+                
+                {formData.experience.map((exp, index) => (
+                  <div key={index} className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4 relative">
+                    <button 
+                      type="button" 
+                      onClick={() => removeArrayItem('experience', index)}
+                      className="absolute top-4 right-4 text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 p-1.5 rounded-lg border-none cursor-pointer transition-colors"
+                      title="Remove"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">Job Title / Role</label>
+                        <input
+                          type="text"
+                          value={exp.title || ''}
+                          onChange={(e) => handleArrayChange('experience', index, 'title', e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 outline-none"
+                          placeholder="Software Engineer Intern"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">Company</label>
+                        <input
+                          type="text"
+                          value={exp.company || ''}
+                          onChange={(e) => handleArrayChange('experience', index, 'company', e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 outline-none"
+                          placeholder="Google"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">Start Date</label>
+                        <input
+                          type="text"
+                          value={exp.startDate || ''}
+                          onChange={(e) => handleArrayChange('experience', index, 'startDate', e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 outline-none"
+                          placeholder="May 2025"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">End Date (Leave blank if present)</label>
+                        <input
+                          type="text"
+                          value={exp.endDate || ''}
+                          onChange={(e) => handleArrayChange('experience', index, 'endDate', e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 outline-none"
+                          placeholder="Aug 2025"
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-bold text-slate-500 mb-1">Description / Bullet Points (Separate by new line)</label>
+                        <textarea
+                          value={exp.description ? exp.description.join('\n') : ''}
+                          onChange={(e) => handleArrayChange('experience', index, 'description', e.target.value.split('\n'))}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 outline-none h-24"
+                          placeholder="• Developed new features...&#10;• Improved latency by 15%..."
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {formData.experience.length === 0 && (
+                  <p className="text-sm text-slate-400 italic">No experience added yet.</p>
+                )}
+              </div>
+
+              {/* Education Array Editor */}
+              <div className="md:col-span-2 mt-4 border-t border-slate-100 pt-6">
+                <div className="flex justify-between items-center mb-4">
+                  <label className="block text-sm font-bold text-slate-900 uppercase tracking-wider">
+                    Education History
+                  </label>
+                  <button 
+                    type="button" 
+                    onClick={() => addArrayItem('education', { degree: '', university: '', startDate: '', endDate: '', gpa: '' })}
+                    className="text-indigo-600 bg-indigo-50 hover:bg-indigo-100 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors border-none cursor-pointer"
+                  >
+                    + Add Education
+                  </button>
+                </div>
+                
+                {formData.education.map((edu, index) => (
+                  <div key={index} className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4 relative">
+                    <button 
+                      type="button" 
+                      onClick={() => removeArrayItem('education', index)}
+                      className="absolute top-4 right-4 text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 p-1.5 rounded-lg border-none cursor-pointer transition-colors"
+                      title="Remove"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">Degree / Course</label>
+                        <input
+                          type="text"
+                          value={edu.degree || ''}
+                          onChange={(e) => handleArrayChange('education', index, 'degree', e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 outline-none"
+                          placeholder="B.Tech Computer Science"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">University / Board</label>
+                        <input
+                          type="text"
+                          value={edu.university || ''}
+                          onChange={(e) => handleArrayChange('education', index, 'university', e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 outline-none"
+                          placeholder="Stanford University"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">GPA / Percentage</label>
+                        <input
+                          type="text"
+                          value={edu.gpa || ''}
+                          onChange={(e) => handleArrayChange('education', index, 'gpa', e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 outline-none"
+                          placeholder="3.8 / 95%"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1">Graduation Date</label>
+                        <input
+                          type="text"
+                          value={edu.endDate || ''}
+                          onChange={(e) => handleArrayChange('education', index, 'endDate', e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 outline-none"
+                          placeholder="May 2026"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {formData.education.length === 0 && (
+                  <p className="text-sm text-slate-400 italic">No additional education added yet.</p>
+                )}
+              </div>
+
+              {/* Projects Array Editor */}
+              <div className="md:col-span-2 mt-4 border-t border-slate-100 pt-6">
+                <div className="flex justify-between items-center mb-4">
+                  <label className="block text-sm font-bold text-slate-900 uppercase tracking-wider">
+                    Academic Projects
+                  </label>
+                  <button 
+                    type="button" 
+                    onClick={() => addArrayItem('projects', { name: '', technologies: [], description: [''] })}
+                    className="text-indigo-600 bg-indigo-50 hover:bg-indigo-100 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors border-none cursor-pointer"
+                  >
+                    + Add Project
+                  </button>
+                </div>
+                
+                {formData.projects.map((proj, index) => (
+                  <div key={index} className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4 relative">
+                    <button 
+                      type="button" 
+                      onClick={() => removeArrayItem('projects', index)}
+                      className="absolute top-4 right-4 text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 p-1.5 rounded-lg border-none cursor-pointer transition-colors"
+                      title="Remove"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-bold text-slate-500 mb-1">Project Name</label>
+                        <input
+                          type="text"
+                          value={proj.name || ''}
+                          onChange={(e) => handleArrayChange('projects', index, 'name', e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 outline-none"
+                          placeholder="E-commerce Web App"
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-bold text-slate-500 mb-1">Technologies Used (Comma separated)</label>
+                        <input
+                          type="text"
+                          value={proj.technologies ? proj.technologies.join(', ') : ''}
+                          onChange={(e) => handleArrayChange('projects', index, 'technologies', e.target.value.split(',').map(s => s.trim()))}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 outline-none"
+                          placeholder="React, Node.js, MongoDB"
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-bold text-slate-500 mb-1">Description (Separate by new line)</label>
+                        <textarea
+                          value={proj.description ? proj.description.join('\n') : ''}
+                          onChange={(e) => handleArrayChange('projects', index, 'description', e.target.value.split('\n'))}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 outline-none h-24"
+                          placeholder="Built a full stack app...&#10;Integrated Stripe..."
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {formData.projects.length === 0 && (
+                  <p className="text-sm text-slate-400 italic">No projects added yet.</p>
+                )}
+              </div>
+            </div>
             <div className="flex justify-end pt-4">
               <button
                 type="submit"
@@ -225,6 +556,43 @@ const StudentProfile = () => {
                 </label>
                 <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 font-semibold">
                   {user.major || <span className="text-slate-400 italic">Not provided</span>}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                  Location
+                </label>
+                <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 font-semibold">
+                  {user.location || <span className="text-slate-400 italic">Not provided</span>}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                  LinkedIn URL
+                </label>
+                <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 font-semibold break-all">
+                  {user.linkedinUrl ? (
+                    <a href={user.linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">
+                      {user.linkedinUrl}
+                    </a>
+                  ) : <span className="text-slate-400 italic">Not provided</span>}
+                </div>
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                  Technical Skills
+                </label>
+                <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 min-h-[46px] flex flex-wrap gap-2">
+                  {user.technicalSkills && user.technicalSkills.length > 0 ? (
+                    user.technicalSkills.map((skill, idx) => (
+                      <span key={idx} className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded-md text-xs font-bold">
+                        {skill}
+                      </span>
+                    ))
+                  ) : <span className="text-slate-400 italic text-sm font-semibold">Not provided</span>}
                 </div>
               </div>
             </div>

@@ -7,6 +7,8 @@ const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('student');
+  const [avatarBase64, setAvatarBase64] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [googleSubmitting, setGoogleSubmitting] = useState(false);
@@ -46,7 +48,7 @@ const Register = () => {
     }
 
     setSubmitting(true);
-    const res = await register(name, email, password, role);
+    const res = await register(name, email, password, role, avatarBase64);
     setSubmitting(false);
 
     if (res.success) {
@@ -70,6 +72,26 @@ const Register = () => {
     }
   };
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Image must be less than 5MB');
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarBase64(reader.result);
+        setAvatarPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setAvatarBase64(null);
+      setAvatarPreview(null);
+    }
+  };
+
   return (
     <div className="bg-slate-50 min-h-[90vh] flex items-center justify-center px-4 py-12">
       <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm w-full max-w-[460px]">
@@ -86,6 +108,28 @@ const Register = () => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="flex flex-col items-center gap-3 mb-6">
+            <div className="relative group cursor-pointer">
+              <div className="w-20 h-20 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center bg-slate-50 overflow-hidden relative transition-colors group-hover:border-indigo-400 group-hover:bg-indigo-50">
+                {avatarPreview ? (
+                  <img src={avatarPreview} alt="Preview" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-2xl">📸</span>
+                )}
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                  <span className="text-white text-xs font-semibold">Upload</span>
+                </div>
+              </div>
+              <input 
+                type="file" 
+                accept="image/jpeg, image/png, image/webp" 
+                onChange={handleImageChange}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
+            </div>
+            <span className="text-xs text-slate-500 font-medium">Profile Picture (Optional)</span>
+          </div>
+
           <div className="flex flex-col gap-1.5">
             <label htmlFor="name" className="text-xs font-semibold text-slate-600">Full Name</label>
             <input
