@@ -59,6 +59,7 @@ export const AuthProvider = ({ children }) => {
       setUser(response.data.data);
       return { success: true };
     } catch (error) {
+      console.error('Login error:', error);
       if (error.response?.status === 403) {
         await signOut(auth); // Ensure Firebase doesn't keep them logged in
       }
@@ -140,8 +141,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    await signOut(auth);
-    setUser(null);
+    try {
+      await signOut(auth);
+      setUser(null);
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   const verify2FA = async (otp) => {
@@ -165,8 +170,10 @@ export const AuthProvider = ({ children }) => {
   const resetPassword = async (email) => {
     try {
       await sendPasswordResetEmail(auth, email);
+      return { success: true };
     } catch (error) {
-      throw error;
+      console.error('Reset password error:', error);
+      return { success: false, error: error.message };
     }
   };
 

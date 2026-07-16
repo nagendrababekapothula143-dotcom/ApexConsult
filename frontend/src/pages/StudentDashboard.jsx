@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Outlet, NavLink, useNavigate, Link } from 'react-router-dom';
-import api, { getBaseUrl } from '../services/api';
+import api, { getBaseUrl, getAvatarSource } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import { SocketContext } from '../context/SocketContext';
 import { useToast } from '../context/ToastContext';
@@ -289,8 +289,12 @@ const StudentDashboard = () => {
         {/* PROFILE CARD AT BOTTOM */}
         <div className="flex items-center justify-between pt-4 border-t border-slate-200 mt-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-slate-100 border border-slate-200 rounded-full flex items-center justify-center font-bold text-slate-800">
-              {(user?.name || "Student").charAt(0).toUpperCase()}
+            <div className="w-10 h-10 bg-slate-100 border border-slate-200 rounded-full flex items-center justify-center font-bold text-slate-800 overflow-hidden shrink-0">
+              {user?.avatarUrl ? (
+                <img src={getAvatarSource(user.avatarUrl)} alt={user.name} className="w-full h-full object-cover" />
+              ) : (
+                (user?.name || "Student").charAt(0).toUpperCase()
+              )}
             </div>
             <div>
               <h4 className="text-xs font-bold text-slate-900 leading-none mb-1">{user?.name || "Student Candidate"}</h4>

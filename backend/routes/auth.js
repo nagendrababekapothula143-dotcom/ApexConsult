@@ -3,13 +3,39 @@ const express = require('express');
 const { docClient } = require('../config/dynamodb');
 const { QueryCommand, PutCommand, ScanCommand, GetCommand, UpdateCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
 const { s3Client, bucketName } = require('../config/s3');
-const { PutObjectCommand } = require('@aws-sdk/client-s3');
+const { PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { protect, authorize } = require('../middleware/auth');
 const { auth } = require('../config/firebase');
 const { logAuditAction } = require('../utils/auditLogger');
 const router = express.Router();
 
 
+
+// @desc    Stream an avatar image securely from S3
+// @route   GET /api/auth/avatar/:key
+// @access  Public
+router.get('/avatar/:key', async (req, res) => {
+  const key = req.params.key;
+  if (!key) return res.status(400).send('No key provided');
+  if (!s3Client) return res.status(500).send('S3 not configured');
+
+  try {
+    const command = new GetObjectCommand({
+      Bucket: bucketName,
+      Key: `avatars/${key}`
+    });
+    const response = await s3Client.send(command);
+    
+    res.setHeader('Content-Type', response.ContentType || 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache 1 year
+    
+    // Pipe the S3 stream directly to the Express response
+    response.Body.pipe(res);
+  } catch (error) {
+    // Suppress console error for missing avatars to prevent log spam
+    res.status(404).send('Avatar not found');
+  }
+});
 
 // @desc    Get all recruiters
 // @route   GET /api/auth/recruiters
@@ -83,11 +109,10 @@ router.post('/register', protect, async (req, res) => {
           Key: key,
           Body: buffer,
           ContentEncoding: 'base64',
-          ContentType: 'image/png',
-          ACL: 'public-read' // Make it readable, or handle it via presigned URLs/public bucket
+          ContentType: 'image/png'
         }));
 
-        avatarUrl = `https://${bucketName}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${key}`;
+        avatarUrl = `S3_KEY:${key.replace('avatars/', '')}`;
       } catch (uploadError) {
         console.error('Failed to upload custom avatar, falling back to UI Avatar:', uploadError);
       }
@@ -495,8 +520,29 @@ router.patch('/profile/:id', protect, async (req, res) => {
     const allowedFields = [
       'name', 'phone', 'university', 'major', 'location', 
       'linkedinUrl', 'portfolioUrl', 'education', 'experience', 
-      'projects', 'technicalSkills', 'softSkills', 'certifications'
+      'projects', 'technicalSkills', 'softSkills', 'certifications',
+      'avatarUrl'
     ];
+
+    if (req.body.avatarBase64 && s3Client) {
+      try {
+        const base64Data = req.body.avatarBase64.replace(/^data:image\/\w+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+        const key = `avatars/${userIdToUpdate}-${Date.now()}.png`;
+
+        await s3Client.send(new PutObjectCommand({
+          Bucket: bucketName,
+          Key: key,
+          Body: buffer,
+          ContentEncoding: 'base64',
+          ContentType: 'image/png'
+        }));
+
+        req.body.avatarUrl = `S3_KEY:${key.replace('avatars/', '')}`;
+      } catch (uploadError) {
+        console.error('Failed to upload custom avatar during profile update:', uploadError);
+      }
+    }
 
     let updateExprSet = [];
     let updateExprRemove = [];

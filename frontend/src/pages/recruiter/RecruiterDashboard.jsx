@@ -2,8 +2,9 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate, Link, NavLink } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { SocketContext } from '../../context/SocketContext';
-import api from '../../services/api';
+import api, { getAvatarSource } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
+import GlobalProfileModal from '../../components/GlobalProfileModal';
 
 const SkeletonCard = () => (
   <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm animate-pulse">
@@ -31,6 +32,7 @@ const RecruiterDashboard = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('pending');
   
   const [uploadingId, setUploadingId] = useState(null);
@@ -221,8 +223,12 @@ const RecruiterDashboard = () => {
         {/* PROFILE CARD AT BOTTOM */}
         <div className="flex items-center justify-between pt-4 border-t border-slate-200 mt-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-slate-100 border border-slate-200 rounded-full flex items-center justify-center font-bold text-slate-800">
-              {(user?.name || "Recruiter").charAt(0).toUpperCase()}
+            <div className="w-10 h-10 bg-slate-100 border border-slate-200 rounded-full flex items-center justify-center font-bold text-slate-800 overflow-hidden shrink-0">
+              {user?.avatarUrl ? (
+                <img src={getAvatarSource(user.avatarUrl)} alt={user.name} className="w-full h-full object-cover" />
+              ) : (
+                (user?.name || "Recruiter").charAt(0).toUpperCase()
+              )}
             </div>
             <div>
               <h4 className="text-xs font-bold text-slate-900 leading-none mb-1">{user?.name || "Recruiter"}</h4>
@@ -230,6 +236,9 @@ const RecruiterDashboard = () => {
             </div>
           </div>
           <div className="flex gap-1.5">
+            <button onClick={() => setIsProfileModalOpen(true)} className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="Profile Settings" aria-label="Profile Settings">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            </button>
             <button className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="Open Chat" aria-label="Open Chat">
               <Icons.Chat />
             </button>
@@ -240,6 +249,8 @@ const RecruiterDashboard = () => {
         </div>
 
       </aside>
+
+      <GlobalProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
 
       {/* Main Content Area */}
       <main className="lg:pl-[280px] min-h-screen pt-[64px] lg:pt-0">

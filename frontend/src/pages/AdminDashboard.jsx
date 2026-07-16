@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Outlet, NavLink, useNavigate, Link, useLocation } from 'react-router-dom';
-import api, { getBaseUrl } from '../services/api';
+import api, { getBaseUrl, getAvatarSource } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import { SocketContext } from '../context/SocketContext';
 import Loader from '../components/Loader';
 import Breadcrumbs from '../components/Breadcrumbs';
 import ThemeToggle from '../components/ThemeToggle';
+import GlobalProfileModal from '../components/GlobalProfileModal';
 
 const AdminDashboard = () => {
   const { user, logout } = useContext(AuthContext);
@@ -27,6 +28,7 @@ const AdminDashboard = () => {
   // Status Alerts
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [notification, setNotification] = useState(null);
 
   // Modals & Form states
@@ -469,8 +471,12 @@ const AdminDashboard = () => {
         {/* PROFILE CARD AT BOTTOM */}
         <div className="flex items-center justify-between pt-4 mt-auto">
           <div className="flex items-center gap-3 pl-2">
-            <div className="w-10 h-10 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center font-medium text-sm">
-              {(user?.name || "Sowmyarupa").charAt(0).toUpperCase()}
+            <div className="w-10 h-10 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center font-medium text-sm overflow-hidden shrink-0">
+              {user?.avatarUrl ? (
+                <img src={getAvatarSource(user.avatarUrl)} alt={user.name} className="w-full h-full object-cover" />
+              ) : (
+                (user?.name || "Sowmyarupa").charAt(0).toUpperCase()
+              )}
             </div>
             <div>
               <h4 className="text-sm font-medium text-slate-800 leading-none mb-1">{user?.name || "Sowmyarupa"}</h4>
@@ -478,7 +484,10 @@ const AdminDashboard = () => {
             </div>
           </div>
           <div className="flex gap-1">
-            <button className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 rounded-full transition-colors cursor-pointer border-none bg-transparent" title="Open Chat" aria-label="Open Chat">
+            <button onClick={() => setIsProfileModalOpen(true)} className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="Profile Settings" aria-label="Profile Settings">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            </button>
+            <button className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="Open Chat" aria-label="Open Chat">
               <Icons.Chat />
             </button>
             <button onClick={handleLogout} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="Sign Out" aria-label="Sign Out">
@@ -488,6 +497,8 @@ const AdminDashboard = () => {
         </div>
 
       </aside>
+
+      <GlobalProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
 
       {/* DYNAMIC CHILD WORKSPACE CONTENT */}
       <main className="lg:pl-[260px] min-h-screen pt-[64px] lg:pt-0 bg-slate-50 flex flex-col">

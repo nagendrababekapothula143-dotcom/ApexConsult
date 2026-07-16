@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { AuthContext } from '../../context/AuthContext';
-import api from '../../services/api';
+import api, { getAvatarSource } from '../../services/api';
 import ResumeGenerator from '../../components/ResumeGenerator';
 
 const StudentProfile = () => {
@@ -18,8 +18,10 @@ const StudentProfile = () => {
     experience: [],
     projects: [],
     technicalSkills: [],
-    softSkills: []
+    softSkills: [],
+    avatarBase64: null
   });
+  const [avatarPreview, setAvatarPreview] = useState(null);
   const [saving, setSaving] = useState(false);
   const [alert, setAlert] = useState(null);
   const [skillInput, setSkillInput] = useState('');
@@ -42,8 +44,12 @@ const StudentProfile = () => {
         experience: user.experience || [],
         projects: user.projects || [],
         technicalSkills: user.technicalSkills || [],
-        softSkills: user.softSkills || []
+        softSkills: user.softSkills || [],
+        avatarBase64: null
       });
+      if (!formData.avatarBase64 && user.avatarUrl) {
+        setAvatarPreview(getAvatarSource(user.avatarUrl));
+      }
     }
   }, [user]);
 
@@ -57,6 +63,22 @@ const StudentProfile = () => {
     const updatedArray = [...formData[arrayName]];
     updatedArray[index] = { ...updatedArray[index], [field]: value };
     setFormData({ ...formData, [arrayName]: updatedArray });
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        setAlert({ type: 'error', text: 'Image size must be less than 2MB' });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result);
+        setFormData(prev => ({ ...prev, avatarBase64: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const addArrayItem = (arrayName, emptyItem) => {
@@ -133,9 +155,34 @@ const StudentProfile = () => {
       <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-xs max-w-2xl">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-8 pb-8 border-b border-slate-100">
           <div className="flex items-center gap-6">
-            <div className="w-20 h-20 bg-indigo-50 border border-indigo-100 rounded-full flex items-center justify-center text-3xl font-bold text-indigo-600 uppercase">
-              {user.name.charAt(0)}
-            </div>
+            {isEditing ? (
+              <div className="relative group cursor-pointer shrink-0">
+                <div className="w-20 h-20 bg-indigo-50 border-2 border-dashed border-indigo-200 rounded-full flex items-center justify-center text-3xl font-bold text-indigo-600 uppercase overflow-hidden relative">
+                  {avatarPreview ? (
+                    <img src={avatarPreview} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    user.name.charAt(0)
+                  )}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                    <span className="text-white text-[10px] font-semibold">UPLOAD</span>
+                  </div>
+                </div>
+                <input 
+                  type="file" 
+                  accept="image/jpeg, image/png, image/webp" 
+                  onChange={handleImageChange}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+              </div>
+            ) : (
+              <div className="w-20 h-20 bg-indigo-50 border border-indigo-100 rounded-full flex items-center justify-center text-3xl font-bold text-indigo-600 uppercase overflow-hidden shrink-0">
+                {user.avatarUrl ? (
+                  <img src={getAvatarSource(user.avatarUrl)} alt={user.name} className="w-full h-full object-cover" />
+                ) : (
+                  user.name.charAt(0)
+                )}
+              </div>
+            )}
             <div>
               <h2 className="text-2xl font-extrabold text-slate-900">{user.name}</h2>
               <span className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mt-2 inline-block">

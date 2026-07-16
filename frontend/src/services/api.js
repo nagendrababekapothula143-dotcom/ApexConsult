@@ -19,6 +19,22 @@ export const getBaseUrl = () => {
   return 'https://apexconsult.onrender.com/api';
 };
 
+export const getAvatarSource = (avatarUrl) => {
+  if (!avatarUrl) return '';
+  if (avatarUrl.startsWith('S3_KEY:')) {
+    const key = avatarUrl.replace('S3_KEY:', '');
+    return `${getBaseUrl()}/auth/avatar/${key}`;
+  }
+  
+  // Intercept old direct S3 URLs that throw AccessDenied
+  if (avatarUrl.includes('amazonaws.com/avatars/')) {
+    const key = avatarUrl.split('amazonaws.com/avatars/')[1];
+    return `${getBaseUrl()}/auth/avatar/${key}`;
+  }
+
+  return avatarUrl;
+};
+
 const api = axios.create({
   baseURL: getBaseUrl(),
 });
