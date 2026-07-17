@@ -49,7 +49,8 @@ const AdminStudents = () => {
       toast.success('Student deleted successfully');
       if (fetchData) await fetchData();
     } catch (err) {
-      toast.error('Failed to delete student');
+      console.error(err);
+      toast.error(err.response?.data?.message || 'Failed to delete student');
     } finally {
       setProcessingId(null);
     }
