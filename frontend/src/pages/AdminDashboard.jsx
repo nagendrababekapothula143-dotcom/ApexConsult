@@ -4,7 +4,7 @@ import api, { getBaseUrl, getAvatarSource } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import { SocketContext } from '../context/SocketContext';
 import Loader from '../components/Loader';
-import Breadcrumbs from '../components/Breadcrumbs';
+
 import ThemeToggle from '../components/ThemeToggle';
 import GlobalProfileModal from '../components/GlobalProfileModal';
 
@@ -525,7 +525,7 @@ const AdminDashboard = () => {
         </div>
 
         <div className="p-4 md:p-8 flex-1 flex flex-col max-w-7xl mx-auto w-full">
-            <Breadcrumbs />
+
             <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 flex-1 flex flex-col">
               <Outlet context={{
               jobs,

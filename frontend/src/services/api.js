@@ -37,20 +37,7 @@ export const getAvatarSource = (avatarUrl) => {
 
 const api = axios.create({
   baseURL: getBaseUrl(),
+  withCredentials: true, // Crucial for HttpOnly cookies
 });
-
-// Automatically inject JWT token into header of every request
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
 
 export default api;

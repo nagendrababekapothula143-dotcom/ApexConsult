@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 
 const compression = require('compression');
 const helmet = require('helmet');
@@ -76,7 +77,11 @@ app.set('trust proxy', 1);
 
 // Standard Middlewares
 app.use(helmet()); // Enforce security headers
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:5173', 'https://apexconsult.onrender.com'], 
+  credentials: true 
+}));
+app.use(cookieParser());
 app.use(compression()); // Compress all JSON responses
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));

@@ -5,6 +5,7 @@ import { SocketProvider } from './context/SocketContext';
 import Navbar from './components/Navbar';
 import Loader from './components/Loader';
 import { ToastProvider } from './context/ToastContext';
+import OfflineScreen from './components/OfflineScreen';
 
 // Lazy load pages for Code Splitting
 const Home = lazy(() => import('./pages/Home'));
@@ -92,6 +93,7 @@ function App() {
       <SocketProvider>
         <Router>
         <ToastProvider>
+        <OfflineScreen />
         <Navbar />
         <Suspense fallback={<Loader text="Loading Kryntel..." fullScreen={true} />}>
           <Routes>

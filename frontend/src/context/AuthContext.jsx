@@ -11,18 +11,12 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        try {
-          // api interceptor will automatically attach the token
-          const response = await api.get('/auth/me');
-          setUser(response.data.data);
-        } catch (error) {
-          console.error('Failed to authenticate with token:', error);
-          localStorage.removeItem('token');
-          setUser(null);
-        }
-      } else {
+      try {
+        // api will automatically send the HttpOnly cookie
+        const response = await api.get('/auth/me');
+        setUser(response.data.data);
+      } catch (error) {
+        console.error('Failed to authenticate with cookie:', error);
         setUser(null);
       }
       setLoading(false);
@@ -34,9 +28,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await api.post('/auth/login', { email, password });
-
-
-      localStorage.setItem('token', response.data.token);
+      // No need to save token manually, cookie is set automatically
       setUser(response.data.data);
       return { success: true };
     } catch (error) {
@@ -57,8 +49,7 @@ export const AuthProvider = ({ children }) => {
         role,
         avatarBase64
       });
-      
-      localStorage.setItem('token', response.data.token);
+      // No need to save token manually, cookie is set automatically
       setUser(response.data.data);
       return { success: true };
     } catch (error) {
@@ -69,8 +60,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
     setUser(null);
   };
 

@@ -254,9 +254,16 @@ router.post('/register', async (req, res) => {
       { role: newUser.role, email: newUser.email }
     );
 
+    const token = generateToken(userId);
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+
     res.status(201).json({
       success: true,
-      token: generateToken(userId),
       data: {
         _id: userId,
         name: newUser.name,
@@ -320,9 +327,16 @@ router.post('/login', async (req, res) => {
 
 
 
+    const token = generateToken(user.id);
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+
     res.status(200).json({
       success: true,
-      token: generateToken(user.id),
       data: {
         _id: user.id,
         name: user.name,
@@ -335,6 +349,14 @@ router.post('/login', async (req, res) => {
     console.error('Login error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
+});
+
+// @desc    Logout user & clear cookie
+// @route   POST /api/auth/logout
+// @access  Public
+router.post('/logout', (req, res) => {
+  res.clearCookie('token');
+  res.status(200).json({ success: true, message: 'Logged out successfully' });
 });
 
 // @desc    Get current user profile
