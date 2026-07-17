@@ -38,7 +38,7 @@ const AdminStudents = () => {
       const newStatus = currentStatus === 'inactive' ? 'active' : 'inactive';
       await api.patch(`/auth/students/${studentId}/status`, { status: newStatus });
       toast.success(`Student marked as ${newStatus}`);
-      if (fetchData) await fetchData(true);
+      if (fetchData) await fetchData(['jobs', 'students', 'applications', 'admins', 'recruiters']);
     } catch (err) {
       toast.error('Failed to update student status');
     } finally {
@@ -53,7 +53,7 @@ const AdminStudents = () => {
     try {
       await api.delete(`/auth/students/${studentId}`);
       toast.success('Student deleted successfully');
-      if (fetchData) await fetchData(true);
+      if (fetchData) await fetchData(['jobs', 'students', 'applications', 'admins', 'recruiters']);
     } catch (err) {
       console.error(err);
       toast.error(err.response?.data?.message || 'Failed to delete student');

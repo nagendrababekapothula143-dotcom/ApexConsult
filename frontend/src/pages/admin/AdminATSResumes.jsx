@@ -77,7 +77,7 @@ const AdminATSResumes = () => {
       const res = await api.delete(`/applications/${applicationId}`);
       if (res.data.success) {
         toast.success('Application deleted successfully');
-        if (fetchData) await fetchData(true);
+        if (fetchData) await fetchData(['jobs', 'students', 'applications', 'admins', 'recruiters']);
       }
     } catch (err) {
       console.error(err);
@@ -93,7 +93,7 @@ const AdminATSResumes = () => {
     try {
       await api.patch(`/applications/${appId}/assign-recruiter`, { recruiterId });
       toast.success('Recruiter assigned successfully');
-      if (fetchData) await fetchData(true);
+      if (fetchData) await fetchData(['jobs', 'students', 'applications', 'admins', 'recruiters']);
     } catch (error) {
       console.error(error);
       toast.error('Failed to assign recruiter');

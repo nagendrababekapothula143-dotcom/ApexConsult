@@ -40,7 +40,7 @@ const AdminTeam = () => {
       setUpdatingId(memberId);
       await api.patch(`/auth/profile/${memberId}/role`, { role: newRole });
       toast.success(`Role successfully updated to ${newRole}`);
-      if (fetchData) await fetchData(true);
+      if (fetchData) await fetchData(['jobs', 'students', 'applications', 'admins', 'recruiters']);
     } catch (err) {
       console.error(err);
       toast.error('Failed to update role. Ensure you have permission.');
@@ -62,7 +62,7 @@ const AdminTeam = () => {
       toast.success('Recruiter account created successfully');
       setShowCreateModal(false);
       setNewRecruiter({ name: '', email: '', password: '' });
-      if (fetchData) await fetchData(true);
+      if (fetchData) await fetchData(['jobs', 'students', 'applications', 'admins', 'recruiters']);
     } catch (err) {
       console.error(err);
       toast.error(err.response?.data?.message || 'Failed to create recruiter');
@@ -77,7 +77,7 @@ const AdminTeam = () => {
       await api.delete(`/auth/recruiters/${deleteModalData.memberId}`);
       toast.success('Recruiter successfully deleted.');
       setDeleteModalData({ isOpen: false, memberId: null, name: '' });
-      if (fetchData) await fetchData(true);
+      if (fetchData) await fetchData(['jobs', 'students', 'applications', 'admins', 'recruiters']);
     } catch (err) {
       console.error(err);
       toast.error(err.response?.data?.message || 'Failed to delete recruiter.');

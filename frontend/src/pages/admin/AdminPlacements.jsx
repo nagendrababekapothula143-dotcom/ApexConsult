@@ -37,7 +37,7 @@ const AdminPlacements = () => {
       if (selectedJob?._id === jobId) {
           handleJobSelect(null);
       }
-      if (fetchData) await fetchData(true);
+      if (fetchData) await fetchData(['jobs', 'students', 'applications', 'admins', 'recruiters']);
     } catch (err) {
       console.error(err);
       toast.error('Failed to delete job listing.');
