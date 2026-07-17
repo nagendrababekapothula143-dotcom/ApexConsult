@@ -710,24 +710,7 @@ const StudentJobs = () => {
                                 </div>
                                 
                                 <div className="flex flex-col gap-3">
-                                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Upload Resume Packet (.pdf)</label>
-                                  <input
-                                    type="file"
-                                    id="resume-file"
-                                    accept=".pdf"
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all cursor-pointer"
-                                    onChange={(e) => { setResumeFile(e.target.files[0]); setConfirmFile(e.target.files[0]); }}
-                                  />
-                                  <div className="flex flex-wrap gap-3 mt-2">
-                                    {resumeFile && (
-                                      <button
-                                        type="button"
-                                        onClick={handleTailorStart}
-                                        className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-sm shadow-indigo-500/30 hover:shadow-md transition-all cursor-pointer border-none flex items-center gap-1.5"
-                                      >
-                                        ⚡ Optimize &amp; Tailor Resume to JD
-                                      </button>
-                                    )}
+
                                     {job.link && (
                                       <a
                                         href={job.link}
@@ -738,22 +721,10 @@ const StudentJobs = () => {
                                         🔗 Apply Now (External Posting)
                                      </a>
                                     )}
-                                  </div>
                                 </div>
 
                                 <div className="flex flex-wrap gap-3 pt-4 border-t border-slate-100">
-                                  <button
-                                    type="button"
-                                    onClick={() => { 
-                                      setShowConfirmModal(true); 
-                                      setConfirmStep('question'); 
-                                      setActionError(''); 
-                                      setActionSuccess(''); 
-                                    }}
-                                    className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm px-6 py-3 rounded-xl shadow-sm hover:shadow transition-all cursor-pointer border-none"
-                                  >
-                                    📋 Submit Application to Pipeline
-                                  </button>
+
                                   
                                   <button
                                     type="button"

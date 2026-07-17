@@ -4,7 +4,7 @@ import api, { getBaseUrl, getAvatarSource } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import { SocketContext } from '../context/SocketContext';
 import { useToast } from '../context/ToastContext';
-import FloatingChat from '../components/FloatingChat';
+
 import Loader from '../components/Loader';
 
 const StudentDashboard = () => {
@@ -346,7 +346,7 @@ const StudentDashboard = () => {
       </main>
 
       {/* Persistent Chat Widget */}
-      <FloatingChat />
+
     </div>
   );
 };
