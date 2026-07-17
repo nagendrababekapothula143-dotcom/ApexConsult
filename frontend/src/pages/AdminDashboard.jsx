@@ -175,7 +175,6 @@ const AdminDashboard = () => {
 
   const fetchData = async (resources = []) => {
     try {
-      setLoading(true);
       const t = `?t=${Date.now()}`;
       
       const promises = [];
@@ -204,8 +203,6 @@ const AdminDashboard = () => {
     } catch (err) {
       console.error('Error fetching admin dashboard details:', err);
       setError('Could not retrieve requested information.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -242,11 +239,11 @@ const AdminDashboard = () => {
           : `New application from ${data.studentName} for ${data.jobTitle}`;
         setNotification(text);
         setTimeout(() => setNotification(null), 8000);
-        fetchDashboardData(true);
+        fetchData(['applications']);
       };
 
       const handleAppUpdate = (data) => {
-        fetchDashboardData(true);
+        fetchData(['applications']);
       };
 
       socket.on('newMessage', handleNewMessage);
