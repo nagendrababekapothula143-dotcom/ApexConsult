@@ -41,6 +41,74 @@ router.get('/avatar/:key', async (req, res) => {
   }
 });
 
+// @desc    Create a new recruiter account
+// @route   POST /api/auth/recruiters
+// @access  Private (Admin Only)
+router.post('/recruiters', protect, authorize('admin'), async (req, res) => {
+  const { name, email, password } = req.body;
+
+  if (!name || !email || !password) {
+    return res.status(400).json({ success: false, message: 'Please provide name, email, and password' });
+  }
+
+  try {
+    const formattedEmail = email.toLowerCase().trim();
+
+    // 1. Check if user already exists in DynamoDB
+    const existing = await docClient.send(new QueryCommand({
+      TableName: 'consulting_users',
+      IndexName: 'email-index',
+      KeyConditionExpression: 'email = :email',
+      ExpressionAttributeValues: { ':email': formattedEmail }
+    }));
+
+    if (existing.Items && existing.Items.length > 0) {
+      return res.status(400).json({ success: false, message: 'User with this email already exists' });
+    }
+
+    // 2. Create user in Firebase Auth
+    const userRecord = await auth.createUser({
+      email: formattedEmail,
+      password: password,
+      displayName: name,
+    });
+
+    // 3. Create user in DynamoDB
+    const apexId = 'APX' + Math.floor(1000000 + Math.random() * 9000000);
+    const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
+
+    const newUser = {
+      id: userRecord.uid,
+      apexId,
+      name,
+      email: formattedEmail,
+      role: 'recruiter',
+      avatarUrl,
+      createdAt: new Date().toISOString()
+    };
+
+    await docClient.send(new PutCommand({
+      TableName: 'consulting_users',
+      Item: newUser
+    }));
+
+    res.status(201).json({
+      success: true,
+      data: {
+        ...newUser,
+        _id: newUser.id
+      }
+    });
+  } catch (err) {
+    console.error('Create recruiter error:', err);
+    // Handle Firebase email already exists specifically
+    if (err.code === 'auth/email-already-exists') {
+      return res.status(400).json({ success: false, message: 'The email address is already in use by another account.' });
+    }
+    res.status(500).json({ success: false, message: `Server error: ${err.message}` });
+  }
+});
+
 // @desc    Get all recruiters
 // @route   GET /api/auth/recruiters
 // @access  Private
@@ -70,7 +138,7 @@ router.get('/recruiters', protect, async (req, res) => {
 // @route   POST /api/auth/register
 // @access  Private (Needs Firebase Token)
 router.post('/register', protect, async (req, res) => {
-  const { name, email, role } = req.body;
+  const { name, email } = req.body; // Intentionally omitting 'role' to prevent privilege escalation
   const firebaseUserId = req.user.id; // from protect middleware
 
   try {
@@ -127,7 +195,7 @@ router.post('/register', protect, async (req, res) => {
       apexId,
       name: name || 'User',
       email: formattedEmail,
-      role: role || 'student',
+      role: 'student', // Force student role to prevent privilege escalation
       avatarUrl,
       createdAt: new Date().toISOString()
     };

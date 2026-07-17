@@ -169,19 +169,6 @@ const Register = () => {
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="role" className="text-xs font-semibold text-slate-600">Account Type</label>
-            <select
-              id="role"
-              className="bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 outline-none focus:border-indigo-500 focus:ring-3 focus:ring-indigo-50 transition-all"
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-            >
-              <option value="student">Student (Apply for Placements)</option>
-              <option value="recruiter">Recruiter (Assist Students)</option>
-              <option value="admin">Consulting Administrator (Manage Listings)</option>
-            </select>
-          </div>
 
           <button
             type="submit"

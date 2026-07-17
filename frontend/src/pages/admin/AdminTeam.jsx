@@ -10,6 +10,11 @@ const AdminTeam = () => {
   const toast = useToast();
   const [updatingId, setUpdatingId] = useState(null);
   
+  // New state for recruiter creation
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newRecruiter, setNewRecruiter] = useState({ name: '', email: '', password: '' });
+  const [isCreating, setIsCreating] = useState(false);
+  
   // Combine admins and recruiters into a single list, sorting admins first, then by date
   const allTeamMembers = [...(teamMembers || []), ...(recruiters || [])].sort((a, b) => {
     if (a.role === 'admin' && b.role !== 'admin') return -1;
@@ -35,11 +40,41 @@ const AdminTeam = () => {
     }
   };
 
+  const handleCreateRecruiter = async (e) => {
+    e.preventDefault();
+    if (!newRecruiter.name || !newRecruiter.email || !newRecruiter.password) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+    
+    setIsCreating(true);
+    try {
+      await api.post('/auth/recruiters', newRecruiter);
+      toast.success('Recruiter account created successfully');
+      setShowCreateModal(false);
+      setNewRecruiter({ name: '', email: '', password: '' });
+      if (fetchData) await fetchData(true);
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || 'Failed to create recruiter');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold text-slate-900 mb-0.5">Team Management</h1>
-        <p className="text-sm text-slate-500">Mentors and admins active on the program management team.</p>
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="text-2xl font-extrabold text-slate-900 mb-0.5">Team Management</h1>
+          <p className="text-sm text-slate-500">Mentors and admins active on the program management team.</p>
+        </div>
+        <button 
+          onClick={() => setShowCreateModal(true)}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 text-sm font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
+        >
+          + Add Recruiter
+        </button>
       </div>
       
       <div className="bg-white border border-slate-200 rounded-2xl overflow-x-auto shadow-xs">
@@ -92,6 +127,70 @@ const AdminTeam = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Create Recruiter Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6">
+            <h2 className="text-xl font-bold text-slate-900 mb-2">Create Recruiter Account</h2>
+            <p className="text-sm text-slate-500 mb-6">Create a secure login for a new recruiter to access the portal.</p>
+            
+            <form onSubmit={handleCreateRecruiter} className="space-y-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-slate-600">Full Name</label>
+                <input
+                  type="text"
+                  required
+                  value={newRecruiter.name}
+                  onChange={(e) => setNewRecruiter({ ...newRecruiter, name: e.target.value })}
+                  className="bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 outline-none focus:border-indigo-500"
+                  placeholder="Jane Doe"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-slate-600">Email Address</label>
+                <input
+                  type="email"
+                  required
+                  value={newRecruiter.email}
+                  onChange={(e) => setNewRecruiter({ ...newRecruiter, email: e.target.value })}
+                  className="bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 outline-none focus:border-indigo-500"
+                  placeholder="jane@example.com"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-slate-600">Temporary Password</label>
+                <input
+                  type="password"
+                  required
+                  value={newRecruiter.password}
+                  onChange={(e) => setNewRecruiter({ ...newRecruiter, password: e.target.value })}
+                  className="bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 outline-none focus:border-indigo-500"
+                  placeholder="At least 6 characters"
+                  minLength={6}
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreating}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 text-sm font-semibold rounded-lg shadow-sm transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {isCreating ? 'Creating...' : 'Create Account'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
