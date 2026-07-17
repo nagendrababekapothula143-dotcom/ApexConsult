@@ -27,6 +27,9 @@ const StudentJobs = lazy(() => import('./pages/student/StudentJobs'));
 const StudentApplications = lazy(() => import('./pages/student/StudentApplications'));
 const StudentProfile = lazy(() => import('./pages/student/StudentProfile'));
 
+// Shared pages
+const Settings = lazy(() => import('./pages/shared/Settings'));
+
 // Helper component for protecting student routes
 const StudentRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
@@ -108,6 +111,7 @@ function App() {
               <Route path="jobs/:jobId" element={<StudentJobs />} />
               <Route path="applications" element={<StudentApplications />} />
               <Route path="profile" element={<StudentProfile />} />
+              <Route path="settings" element={<Settings />} />
             </Route>
             <Route
               path="/admin"
@@ -122,8 +126,10 @@ function App() {
               <Route path="students" element={<AdminStudents />} />
               <Route path="ats-resumes" element={<AdminATSResumes />} />
               <Route path="post-jobs" element={<AdminPlacements />} />
+
               <Route path="team" element={<AdminTeam />} />
               <Route path="audit-logs" element={<AdminAuditLogs />} />
+              <Route path="settings" element={<Settings />} />
             </Route>
 
             <Route

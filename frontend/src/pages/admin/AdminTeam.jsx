@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import api from '../../services/api';
+import { Trash2 } from 'lucide-react';
 
 const AdminTeam = () => {
   const { teamMembers, recruiters, fetchData } = useOutletContext();
@@ -14,6 +15,8 @@ const AdminTeam = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newRecruiter, setNewRecruiter] = useState({ name: '', email: '', password: '' });
   const [isCreating, setIsCreating] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+  const [deleteModalData, setDeleteModalData] = useState({ isOpen: false, memberId: null, name: '' });
   
   // Combine admins and recruiters into a single list, sorting admins first, then by date
   const allTeamMembers = [...(teamMembers || []), ...(recruiters || [])].sort((a, b) => {
@@ -62,6 +65,21 @@ const AdminTeam = () => {
     }
   };
 
+  const confirmDelete = async () => {
+    try {
+      setDeletingId(deleteModalData.memberId);
+      await api.delete(`/auth/recruiters/${deleteModalData.memberId}`);
+      toast.success('Recruiter successfully deleted.');
+      setDeleteModalData({ isOpen: false, memberId: null, name: '' });
+      if (fetchData) await fetchData(true);
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || 'Failed to delete recruiter.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-end">
@@ -85,12 +103,13 @@ const AdminTeam = () => {
               <th className="p-4">Email</th>
               <th className="p-4">Role Scope</th>
               <th className="p-4">Joined On</th>
+              <th className="p-4 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-sm">
             {allTeamMembers.length === 0 ? (
               <tr>
-                <td colSpan="4" className="p-8 text-center text-slate-400">No team members loaded.</td>
+                <td colSpan="5" className="p-8 text-center text-slate-400">No team members loaded.</td>
               </tr>
             ) : (
               allTeamMembers.map((tm) => (
@@ -98,14 +117,12 @@ const AdminTeam = () => {
                   <td className="p-4 font-bold text-slate-900">{tm.name}</td>
                   <td className="p-4 text-slate-600">{tm.email}</td>
                   <td className="p-4">
-                    {user?.role === 'admin' && user?._id !== tm._id ? (
+                    {user?.role === 'admin' && user?._id !== tm._id && tm.role !== 'admin' ? (
                       <select 
                         value={tm.role}
                         onChange={(e) => handleRoleChange(tm._id, e.target.value)}
                         disabled={updatingId === tm._id}
-                        className={`text-xs font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-md border outline-none cursor-pointer ${
-                          tm.role === 'admin' ? 'bg-indigo-50 text-indigo-700 border-indigo-200 focus:border-indigo-400' : 'bg-emerald-50 text-emerald-700 border-emerald-200 focus:border-emerald-400'
-                        } ${updatingId === tm._id ? 'opacity-50' : ''}`}
+                        className={`text-xs font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-md border outline-none cursor-pointer bg-emerald-50 text-emerald-700 border-emerald-200 focus:border-emerald-400 ${updatingId === tm._id ? 'opacity-50' : ''}`}
                       >
                         <option value="admin">Admin Access</option>
                         <option value="recruiter">Recruiter Access</option>
@@ -120,6 +137,18 @@ const AdminTeam = () => {
                   </td>
                   <td className="p-4 text-slate-500">
                     {tm.createdAt ? new Date(tm.createdAt).toLocaleDateString() : 'N/A'}
+                  </td>
+                  <td className="p-4 text-right">
+                    {user?.role === 'admin' && tm.role !== 'admin' && (
+                      <button
+                        onClick={() => setDeleteModalData({ isOpen: true, memberId: tm._id, name: tm.name })}
+                        disabled={deletingId === tm._id}
+                        className={`p-2 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center ${deletingId === tm._id ? 'opacity-50' : ''}`}
+                        title="Delete Recruiter"
+                      >
+                        {deletingId === tm._id ? <span className="text-xs font-bold">...</span> : <Trash2 size={18} strokeWidth={2.5} />}
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))
@@ -188,6 +217,36 @@ const AdminTeam = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModalData.isOpen && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 border border-rose-100">
+            <h2 className="text-xl font-bold text-slate-900 mb-2">Delete Recruiter?</h2>
+            <p className="text-sm text-slate-500 mb-6">
+              Are you sure you want to permanently delete the recruiter account for <span className="font-bold text-slate-700">{deleteModalData.name}</span>? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setDeleteModalData({ isOpen: false, memberId: null, name: '' })}
+                disabled={deletingId !== null}
+                className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={deletingId !== null}
+                className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 text-sm font-semibold rounded-lg shadow-sm transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
+              >
+                {deletingId !== null ? 'Deleting...' : 'Yes, Delete Account'}
+              </button>
+            </div>
           </div>
         </div>
       )}

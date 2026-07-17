@@ -134,6 +134,51 @@ router.get('/recruiters', protect, async (req, res) => {
   }
 });
 
+// @desc    Delete a recruiter account
+// @route   DELETE /api/auth/recruiters/:id
+// @access  Private (Admin Only)
+router.delete('/recruiters/:id', protect, authorize('admin'), async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    // 1. Fetch user to confirm they exist and are a recruiter
+    const user = await docClient.send(new GetCommand({
+      TableName: 'consulting_users',
+      Key: { id: userId }
+    }));
+
+    if (!user.Item) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (user.Item.role !== 'recruiter') {
+      return res.status(403).json({ success: false, message: 'You can only delete recruiter accounts.' });
+    }
+
+    // 2. Delete from Firebase Auth
+    try {
+      await auth.deleteUser(userId);
+    } catch (firebaseErr) {
+      if (firebaseErr.code === 'auth/user-not-found') {
+        console.warn(`Firebase user ${userId} not found. Proceeding to delete from DynamoDB.`);
+      } else {
+        throw firebaseErr;
+      }
+    }
+
+    // 3. Delete from DynamoDB
+    await docClient.send(new DeleteCommand({
+      TableName: 'consulting_users',
+      Key: { id: userId }
+    }));
+
+    res.status(200).json({ success: true, message: 'Recruiter successfully deleted' });
+  } catch (err) {
+    console.error('Delete recruiter error:', err);
+    res.status(500).json({ success: false, message: `Server error: ${err.message}` });
+  }
+});
+
 // @desc    Register a new user (sync from Firebase)
 // @route   POST /api/auth/register
 // @access  Private (Needs Firebase Token)
@@ -207,7 +252,7 @@ router.post('/register', protect, async (req, res) => {
     }));
 
     // Invalidate users cache if they are syncing for the first time
-    if (role === 'admin') {
+    if (newUser.role === 'admin') {
       usersCache.del('admins');
     } else {
       usersCache.del('students');
