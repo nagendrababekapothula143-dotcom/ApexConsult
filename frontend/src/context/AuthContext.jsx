@@ -24,12 +24,13 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        // api will automatically send the HttpOnly cookie
+        // api will use the interceptor to send the Bearer token
         const response = await api.get('/auth/me');
         setUser(response.data.data);
       } catch (error) {
-        console.error('Failed to authenticate with cookie:', error);
+        console.error('Failed to authenticate with token/cookie:', error);
         setUser(null);
+        localStorage.removeItem('apex_token');
       }
       setLoading(false);
     };
@@ -40,7 +41,9 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await api.post('/auth/login', { email, password });
-      // No need to save token manually, cookie is set automatically
+      if (response.data.token) {
+        localStorage.setItem('apex_token', response.data.token);
+      }
       setUser(response.data.data);
       return { success: true };
     } catch (error) {
@@ -61,7 +64,9 @@ export const AuthProvider = ({ children }) => {
         role,
         avatarBase64
       });
-      // No need to save token manually, cookie is set automatically
+      if (response.data.token) {
+        localStorage.setItem('apex_token', response.data.token);
+      }
       setUser(response.data.data);
       return { success: true };
     } catch (error) {
@@ -78,6 +83,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Logout error:', error);
     }
+    localStorage.removeItem('apex_token');
     setUser(null);
   };
 

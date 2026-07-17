@@ -101,6 +101,7 @@ router.post('/recruiters', protect, authorize('admin'), async (req, res) => {
 
     res.status(201).json({
       success: true,
+      token: generateToken(newUser.id),
       data: {
         ...newUser,
         _id: newUser.id
@@ -264,6 +265,7 @@ router.post('/register', async (req, res) => {
 
     res.status(201).json({
       success: true,
+      token,
       data: {
         _id: userId,
         name: newUser.name,
@@ -337,6 +339,7 @@ router.post('/login', async (req, res) => {
 
     res.status(200).json({
       success: true,
+      token,
       data: {
         _id: user.id,
         name: user.name,
