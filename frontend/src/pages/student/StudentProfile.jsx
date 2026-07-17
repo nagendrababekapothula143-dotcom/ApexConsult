@@ -161,7 +161,7 @@ const StudentProfile = () => {
                   {avatarPreview ? (
                     <img src={avatarPreview} alt="Preview" className="w-full h-full object-cover" />
                   ) : (
-                    user.name.charAt(0)
+                    <img src={`https://placehold.co/100x100?text=${(user?.name || 'S').charAt(0).toUpperCase()}`} alt="Avatar" className="w-full h-full object-cover" />
                   )}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                     <span className="text-white text-[10px] font-semibold">UPLOAD</span>
@@ -178,9 +178,7 @@ const StudentProfile = () => {
               <div className="w-20 h-20 bg-indigo-50 border border-indigo-100 rounded-full flex items-center justify-center text-3xl font-bold text-indigo-600 uppercase overflow-hidden shrink-0">
                 {user.avatarUrl ? (
                   <img src={getAvatarSource(user.avatarUrl)} alt={user.name} className="w-full h-full object-cover" />
-                ) : (
-                  user.name.charAt(0)
-                )}
+                <img src={`https://placehold.co/100x100?text=${(user?.name || 'S').charAt(0).toUpperCase()}`} alt="Avatar" className="w-full h-full object-cover" />
               </div>
             )}
             <div>

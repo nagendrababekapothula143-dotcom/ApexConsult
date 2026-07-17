@@ -180,8 +180,8 @@ const RecruiterDashboard = () => {
           <img src="/Untitled%20design%20(1).png" alt="Kryntel Logo" className="w-8 h-8 object-contain shrink-0 -ml-1" />
           Kryntel
         </div>
-        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-800 uppercase">
-          {(user?.name || "Recruiter").charAt(0).toUpperCase()}
+        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-800 uppercase overflow-hidden shrink-0">
+          <img src={`https://placehold.co/100x100?text=${(user?.name || "Recruiter").charAt(0).toUpperCase()}`} alt="Avatar" className="w-full h-full object-cover" />
         </div>
       </header>
 
@@ -227,7 +227,7 @@ const RecruiterDashboard = () => {
               {user?.avatarUrl ? (
                 <img src={getAvatarSource(user.avatarUrl)} alt={user.name} className="w-full h-full object-cover" />
               ) : (
-                (user?.name || "Recruiter").charAt(0).toUpperCase()
+                <img src={`https://placehold.co/100x100?text=${(user?.name || "Recruiter").charAt(0).toUpperCase()}`} alt="Avatar" className="w-full h-full object-cover" />
               )}
             </div>
             <div>

@@ -11,8 +11,8 @@ const AdminInterviews = () => {
         <p className="text-sm text-slate-500">Track and schedule active partner consulting interviews.</p>
       </div>
       
-      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
-        <table className="w-full border-collapse text-left">
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-x-auto shadow-xs">
+        <table className="w-full border-collapse text-left min-w-[800px]">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
               <th className="p-4">ID</th>

@@ -96,7 +96,7 @@ const AdminTeam = () => {
       </div>
       
       <div className="bg-white border border-slate-200 rounded-2xl overflow-x-auto shadow-xs">
-        <table className="w-full border-collapse text-left">
+        <table className="w-full border-collapse text-left min-w-[800px]">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
               <th className="p-4">Name</th>
@@ -160,7 +160,7 @@ const AdminTeam = () => {
       {/* Create Recruiter Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6">
+          <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl p-6 custom-scrollbar">
             <h2 className="text-xl font-bold text-slate-900 mb-2">Create Recruiter Account</h2>
             <p className="text-sm text-slate-500 mb-6">Create a secure login for a new recruiter to access the portal.</p>
             

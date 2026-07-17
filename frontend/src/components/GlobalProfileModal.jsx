@@ -106,7 +106,7 @@ const GlobalProfileModal = ({ isOpen, onClose }) => {
                   {avatarPreview ? (
                     <img src={avatarPreview} alt="Preview" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-3xl text-slate-400 font-bold">{(user?.name || 'U').charAt(0).toUpperCase()}</span>
+                    <img src={`https://placehold.co/100x100?text=${(user?.name || 'U').charAt(0).toUpperCase()}`} alt="Avatar" className="w-full h-full object-cover" />
                   )}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                     <span className="text-white text-xs font-semibold">Upload</span>

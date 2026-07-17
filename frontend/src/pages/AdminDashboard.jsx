@@ -427,8 +427,8 @@ const AdminDashboard = () => {
         </div>
         <div className="flex items-center gap-3">
           <ThemeToggle />
-          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-800 uppercase">
-            {(user?.name || "Admin").charAt(0).toUpperCase()}
+          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-800 uppercase overflow-hidden shrink-0">
+            <img src={`https://placehold.co/100x100?text=${(user?.name || "Admin").charAt(0).toUpperCase()}`} alt="Avatar" className="w-full h-full object-cover" />
           </div>
         </div>
       </header>
@@ -482,7 +482,7 @@ const AdminDashboard = () => {
               {user?.avatarUrl ? (
                 <img src={getAvatarSource(user.avatarUrl)} alt={user.name} className="w-full h-full object-cover" />
               ) : (
-                (user?.name || "Sowmyarupa").charAt(0).toUpperCase()
+                <img src={`https://placehold.co/100x100?text=${(user?.name || "Sowmyarupa").charAt(0).toUpperCase()}`} alt="Avatar" className="w-full h-full object-cover" />
               )}
             </div>
             <div>
@@ -518,8 +518,8 @@ const AdminDashboard = () => {
               </svg>
               {currentTime.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })}
             </div>
-            <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs uppercase cursor-default border border-indigo-200" title={user?.email}>
-              {(user?.name || "A").charAt(0)}
+            <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs uppercase cursor-default border border-indigo-200 overflow-hidden" title={user?.email}>
+              <img src={`https://placehold.co/100x100?text=${(user?.name || "A").charAt(0).toUpperCase()}`} alt="Avatar" className="w-full h-full object-cover" />
             </div>
           </div>
         </div>

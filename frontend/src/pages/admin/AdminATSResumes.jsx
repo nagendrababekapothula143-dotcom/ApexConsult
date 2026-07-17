@@ -230,7 +230,7 @@ const AdminATSResumes = () => {
       </div>
 
       <div className="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-x-auto max-h-[70vh] custom-scrollbar">
-        <table className="w-full table-fixed border-collapse text-left relative">
+        <table className="w-full table-fixed border-collapse text-left relative min-w-[800px]">
           <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-sm border-b border-slate-200 shadow-sm">
             <tr className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               <th className="p-4 w-[25%] cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('student.name')}>
