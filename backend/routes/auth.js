@@ -74,22 +74,21 @@ router.post('/recruiters', protect, authorize('admin'), async (req, res) => {
       return res.status(400).json({ success: false, message: 'User with this email already exists' });
     }
 
-    // 2. Create user in Firebase Auth
-    const userRecord = await auth.createUser({
-      email: formattedEmail,
-      password: password,
-      displayName: name,
-    });
+    // 2. Create user with bcrypt
+    const userId = crypto.randomUUID();
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
     // 3. Create user in DynamoDB
-    const apexId = 'APX' + Math.floor(1000000 + Math.random() * 9000000);
+    const apexId = 'KRY' + Math.floor(1000000 + Math.random() * 9000000);
     const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
 
     const newUser = {
-      id: userRecord.uid,
+      id: userId,
       apexId,
       name,
       email: formattedEmail,
+      password: hashedPassword,
       role: 'recruiter',
       avatarUrl,
       createdAt: new Date().toISOString()
@@ -202,7 +201,7 @@ router.post('/register', async (req, res) => {
     }
 
     const userId = crypto.randomUUID();
-    const apexId = 'APX' + Math.floor(1000000 + Math.random() * 9000000);
+    const apexId = 'KRY' + Math.floor(1000000 + Math.random() * 9000000);
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -405,7 +404,7 @@ router.get('/students', protect, authorize('admin', 'recruiter'), async (req, re
       
       // Retroactively assign apexId to legacy students
       if (!currentApexId) {
-        currentApexId = 'APX' + Math.floor(1000000 + Math.random() * 9000000);
+        currentApexId = 'KRY' + Math.floor(1000000 + Math.random() * 9000000);
         try {
           await docClient.send(new UpdateCommand({
             TableName: 'consulting_users',
