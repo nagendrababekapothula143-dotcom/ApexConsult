@@ -36,8 +36,15 @@ const AdminATSResumes = () => {
   const [sortConfig, setSortConfig] = useState({ key: 'appliedAt', direction: 'desc' });
   const [isLoading, setIsLoading] = useState(true);
 
+  const [localLoading, setLocalLoading] = useState(true);
+
   useEffect(() => {
     document.title = 'ATS Resumes | Kryntel Console';
+    if (fetchData) {
+      fetchData(['applications']).finally(() => setLocalLoading(false));
+    } else {
+      setLocalLoading(false);
+    }
     const fetchRecruiters = async () => {
       try {
         const res = await api.get('/auth/recruiters');

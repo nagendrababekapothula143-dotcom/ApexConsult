@@ -5,12 +5,13 @@ import EmptyState from '../../components/EmptyState';
 import TableSkeleton from '../../components/TableSkeleton';
 
 const AdminOverview = () => {
-  const { jobs = [], globalApplications = [], students = [] } = useOutletContext() || {};
+  const { jobs = [], globalApplications = [], students = [], fetchData } = useOutletContext() || {};
   const applications = globalApplications || [];
   const navigate = useNavigate();
 
   useEffect(() => {
     document.title = 'Admin Overview | Kryntel Console';
+    if (fetchData) fetchData(['jobs', 'students', 'applications']);
   }, []);
 
   const acceptedAppsCount = applications.filter((a) => a.status === 'accepted').length;

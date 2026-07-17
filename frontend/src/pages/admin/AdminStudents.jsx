@@ -19,9 +19,15 @@ const AdminStudents = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [localLoading, setLocalLoading] = useState(true);
 
   useEffect(() => {
     document.title = 'All Students | Kryntel Console';
+    if (fetchData) {
+      fetchData(['students', 'applications']).finally(() => setLocalLoading(false));
+    } else {
+      setLocalLoading(false);
+    }
   }, []);
 
   const handleStatusToggle = async () => {

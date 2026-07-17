@@ -173,49 +173,45 @@ const AdminDashboard = () => {
     )
   };
 
-  const fetchDashboardData = async (isSilent = false) => {
+  const fetchData = async (resources = []) => {
     try {
-      if (!isSilent) setLoading(true);
+      setLoading(true);
+      const t = `?t=${Date.now()}`;
       
-      const t = isSilent ? `?t=${Date.now()}` : '';
-      const [jobsRes, studentsRes, ticketsRes, adminsRes, globalAppsRes, recruitersRes] = await Promise.all([
-        api.get(`/jobs?includeExpired=true${isSilent ? '&' : '?'}${t.replace('?', '')}`),
-        api.get(`/auth/students${t}`),
-        api.get(`/tickets${t}`),
-        api.get(`/auth/admins${t}`),
-        api.get(`/applications${t}`),
-        api.get(`/auth/recruiters${t}`)
-      ]);
+      const promises = [];
+      
+      if (resources.includes('jobs')) {
+        promises.push(api.get(`/jobs?includeExpired=true&t=${Date.now()}`).then(res => setJobs(res.data.data)));
+      }
+      if (resources.includes('students')) {
+        promises.push(api.get(`/auth/students${t}`).then(res => setStudents(res.data.data)));
+      }
+      if (resources.includes('admins')) {
+        promises.push(api.get(`/auth/admins${t}`).then(res => setTeamMembers(res.data.data)));
+      }
+      if (resources.includes('applications')) {
+        promises.push(api.get(`/applications${t}`).then(res => setGlobalApplications(res.data.data)));
+      }
+      if (resources.includes('recruiters')) {
+        promises.push(api.get(`/auth/recruiters${t}`).then(res => setRecruiters(res.data.data)));
+      }
 
-      setJobs(jobsRes.data.data);
-      setStudents(studentsRes.data.data);
-      setTickets(ticketsRes.data.data);
-      setTeamMembers(adminsRes.data.data);
-      setGlobalApplications(globalAppsRes.data.data);
-      setRecruiters(recruitersRes.data.data);
+      await Promise.all(promises);
       
-      if (!isSilent && jobsRes.data.data.length > 0) {
-        setSelectedJob(prev => prev || jobsRes.data.data[0]);
+      if (resources.includes('jobs') && jobs.length === 0) {
+        // Will auto-select first job if needed in children
       }
     } catch (err) {
       console.error('Error fetching admin dashboard details:', err);
-      if (!isSilent) setError('Could not retrieve workspace information.');
+      setError('Could not retrieve requested information.');
     } finally {
-      if (!isSilent) setLoading(false);
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     if (user?.role === 'admin') {
-      fetchDashboardData();
       fetchUnreadStatus();
-      
-      // Real-time background polling every 5 seconds
-      const interval = setInterval(() => {
-        fetchDashboardData(true);
-      }, 5000);
-      
-      return () => clearInterval(interval);
     }
   }, [user]);
 
@@ -548,13 +544,12 @@ const AdminDashboard = () => {
               recruiters,
               globalApplications,
               setGlobalApplications,
-              fetchDashboardData,
+              fetchData,
               error,
               setError,
               success,
               setSuccess,
               setHasUnreadSupport,
-              fetchData: fetchDashboardData,
               setApplications: setGlobalApplications
             }} />
             </div>

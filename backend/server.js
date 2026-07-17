@@ -89,7 +89,7 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 // Global Rate Limiting
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // Limit each IP to 500 requests per windowMs
+  max: 10000, // Limit each IP to 10000 requests per windowMs
   message: 'Too many requests from this IP, please try again after 15 minutes',
   standardHeaders: true,
   legacyHeaders: false,
@@ -105,8 +105,6 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/jobs', require('./routes/jobs'));
 app.use('/api/applications', require('./routes/applications'));
-app.use('/api/tickets', require('./routes/tickets'));
-app.use('/api/messages', require('./routes/messages'));
 app.use('/api/audit-logs', require('./routes/audit'));
 
 // Basic Health Check Route

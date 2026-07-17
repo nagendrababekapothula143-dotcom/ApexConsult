@@ -46,8 +46,15 @@ const AdminPlacements = () => {
     }
   };
 
+  const [localLoading, setLocalLoading] = useState(true);
+
   useEffect(() => {
-    document.title = 'Post Jobs | Kryntel Console';
+    document.title = 'Placements | Kryntel Console';
+    if (fetchData) {
+      fetchData(['jobs']).finally(() => setLocalLoading(false));
+    } else {
+      setLocalLoading(false);
+    }
   }, []);
 
   const handleExportCSV = () => {

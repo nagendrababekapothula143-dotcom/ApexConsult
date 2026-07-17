@@ -17,6 +17,7 @@ const AdminTeam = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [deleteModalData, setDeleteModalData] = useState({ isOpen: false, memberId: null, name: '' });
+  const [localLoading, setLocalLoading] = useState(true);
   
   // Combine admins and recruiters into a single list, sorting admins first, then by date
   const allTeamMembers = [...(teamMembers || []), ...(recruiters || [])].sort((a, b) => {
@@ -27,6 +28,11 @@ const AdminTeam = () => {
 
   useEffect(() => {
     document.title = 'Team Management | Kryntel Console';
+    if (fetchData) {
+      fetchData(['admins', 'recruiters']).finally(() => setLocalLoading(false));
+    } else {
+      setLocalLoading(false);
+    }
   }, []);
 
   const handleRoleChange = async (memberId, newRole) => {
