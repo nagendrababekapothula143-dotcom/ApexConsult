@@ -257,8 +257,8 @@ router.post('/register', async (req, res) => {
     const token = generateToken(userId);
     res.cookie('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: true,
+      sameSite: 'none',
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
@@ -330,8 +330,8 @@ router.post('/login', async (req, res) => {
     const token = generateToken(user.id);
     res.cookie('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: true,
+      sameSite: 'none',
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
@@ -355,7 +355,11 @@ router.post('/login', async (req, res) => {
 // @route   POST /api/auth/logout
 // @access  Public
 router.post('/logout', (req, res) => {
-  res.clearCookie('token');
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none'
+  });
   res.status(200).json({ success: true, message: 'Logged out successfully' });
 });
 
