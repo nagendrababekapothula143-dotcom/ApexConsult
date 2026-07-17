@@ -108,13 +108,7 @@ const AdminOverview = () => {
           <div className="text-3xl font-extrabold text-slate-900 mb-0.5">{submittedApps.length}</div>
           <p className="text-[10px] text-slate-400 font-medium">Uploaded resume files</p>
         </div>
-        <div className="bg-white border border-slate-200/60 rounded-xl p-5 shadow-xs">
-          <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Avg ATS Match</h4>
-          <div className="text-3xl font-extrabold text-emerald-600 mb-0.5">
-            {submittedApps.length > 0 ? `${avgATSScore}%` : 'N/A'}
-          </div>
-          <p className="text-[10px] text-slate-400 font-medium">Keyword accuracy score</p>
-        </div>
+
         <div className="bg-gradient-to-br from-indigo-600 to-violet-700 border border-indigo-700 rounded-xl p-5 shadow-md text-white">
           <h4 className="text-xs font-semibold text-indigo-200 uppercase tracking-wider mb-2">Total Revenue</h4>
           <div className="text-3xl font-extrabold mb-0.5">
@@ -128,7 +122,7 @@ const AdminOverview = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
         
         {/* Pipeline Analytics Chart */}
-        <div className="lg:col-span-8 bg-white border border-slate-200/60 rounded-2xl p-4 sm:p-8 shadow-xs">
+        <div className="lg:col-span-12 bg-white border border-slate-200/60 rounded-2xl p-4 sm:p-8 shadow-xs">
           <h3 className="text-sm font-bold text-slate-900 mb-0.5">Pipeline Activity Traffic</h3>
           <p className="text-xs text-slate-400 mb-6">Visual resume submission volume mapping matching timeline</p>
           
@@ -178,38 +172,7 @@ const AdminOverview = () => {
           </div>
         </div>
 
-        {/* ATS Fit distribution */}
-        <div className="lg:col-span-4 bg-white border border-slate-200/60 rounded-2xl p-4 sm:p-8 flex flex-col justify-between shadow-xs">
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 mb-0.5">Application Fit Score</h3>
-            <p className="text-xs text-slate-400 mb-4">Overall pipeline placement index</p>
-          </div>
-          
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
-                <span>Direct Hired Rate</span>
-                <span>{submittedApps.length > 0 ? Math.round((acceptedAppsCount / submittedApps.length) * 100) : 0}%</span>
-              </div>
-              <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                <div
-                  className="bg-indigo-600 h-full rounded-full transition-all duration-500"
-                  style={{ width: `${submittedApps.length > 0 ? (acceptedAppsCount / submittedApps.length) * 100 : 0}%` }}
-                ></div>
-              </div>
-            </div>
-            
-            <div>
-              <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
-                <span>Cloud Storage Fallback</span>
-                <span>100% Secure</span>
-              </div>
-              <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                <div className="bg-emerald-500 h-full rounded-full" style={{ width: '100%' }}></div>
-              </div>
-            </div>
-          </div>
-        </div>
+
 
       </div>
 

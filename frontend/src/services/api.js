@@ -39,19 +39,12 @@ const api = axios.create({
   baseURL: getBaseUrl(),
 });
 
-import { auth } from '../config/firebase';
-
 // Automatically inject JWT token into header of every request
 api.interceptors.request.use(
-  async (config) => {
-    // Check if we have a firebase user logged in
-    if (auth.currentUser) {
-      try {
-        const token = await auth.currentUser.getIdToken();
-        config.headers.Authorization = `Bearer ${token}`;
-      } catch (e) {
-        console.error('Error getting Firebase token:', e);
-      }
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },

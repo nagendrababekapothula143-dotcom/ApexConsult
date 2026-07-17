@@ -1,4 +1,4 @@
-const { auth } = require('../config/firebase');
+const jwt = require('jsonwebtoken');
 const { docClient } = require('../config/dynamodb');
 const { GetCommand } = require('@aws-sdk/lib-dynamodb');
 
@@ -17,47 +17,28 @@ const protect = async (req, res, next) => {
   }
 
   try {
-    // Verify Firebase token
-    const decodedToken = await auth.verifyIdToken(token);
+    // Verify custom JWT token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'consulting_jwt_secret_key_987654321_abcdef');
     
-    // Check if user exists in DynamoDB by Firebase UID
+    // Check if user exists in DynamoDB
     let result = await docClient.send(new GetCommand({
       TableName: 'consulting_users',
-      Key: { id: decodedToken.uid }
+      Key: { id: decoded.id }
     }));
 
     if (!result.Item) {
-      // Check if user exists by email (pre-migration account)
-      const { QueryCommand, PutCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
-      const existing = await docClient.send(new QueryCommand({
-        TableName: 'consulting_users',
-        IndexName: 'email-index',
-        KeyConditionExpression: 'email = :email',
-        ExpressionAttributeValues: { ':email': decodedToken.email.toLowerCase().trim() }
-      }));
-
-      if (existing.Items && existing.Items.length > 0) {
-        const oldUser = existing.Items[0];
-        // Create new item with Firebase UID and delete old one to migrate them
-        const migratedUser = { ...oldUser, id: decodedToken.uid };
-        await docClient.send(new PutCommand({ TableName: 'consulting_users', Item: migratedUser }));
-        await docClient.send(new DeleteCommand({ TableName: 'consulting_users', Key: { id: oldUser.id } }));
-        result.Item = migratedUser;
-      }
+      return res.status(401).json({ success: false, message: 'The user belonging to this token no longer exists.' });
     }
 
-    // If user doesn't exist in our DB yet, they just registered in Firebase but haven't synced
-    // We allow them through, but they won't have a role yet. The register route handles syncing.
-    
-    if (result.Item && result.Item.status === 'inactive') {
+    if (result.Item.status === 'inactive') {
       return res.status(403).json({ success: false, message: 'Your account has been deactivated. Please contact support.' });
     }
 
-    req.user = result.Item ? result.Item : { id: decodedToken.uid, email: decodedToken.email };
+    req.user = result.Item;
     next();
   } catch (error) {
-    console.error('Firebase token verification error:', error);
-    return res.status(401).json({ success: false, message: 'Not authorized to access this route' });
+    console.error('Token verification error:', error);
+    return res.status(401).json({ success: false, message: 'Not authorized, token failed' });
   }
 };
 

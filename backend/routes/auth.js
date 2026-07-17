@@ -5,9 +5,17 @@ const { QueryCommand, PutCommand, ScanCommand, GetCommand, UpdateCommand, Delete
 const { s3Client, bucketName } = require('../config/s3');
 const { PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { protect, authorize } = require('../middleware/auth');
-const { auth } = require('../config/firebase');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const { logAuditAction } = require('../utils/auditLogger');
 const router = express.Router();
+
+const generateToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET || 'consulting_jwt_secret_key_987654321_abcdef', {
+    expiresIn: '30d',
+  });
+};
 
 
 
@@ -155,18 +163,7 @@ router.delete('/recruiters/:id', protect, authorize('admin'), async (req, res) =
       return res.status(403).json({ success: false, message: 'You can only delete recruiter accounts.' });
     }
 
-    // 2. Delete from Firebase Auth
-    try {
-      await auth.deleteUser(userId);
-    } catch (firebaseErr) {
-      if (firebaseErr.code === 'auth/user-not-found') {
-        console.warn(`Firebase user ${userId} not found. Proceeding to delete from DynamoDB.`);
-      } else {
-        throw firebaseErr;
-      }
-    }
-
-    // 3. Delete from DynamoDB
+    // 2. Delete from DynamoDB
     await docClient.send(new DeleteCommand({
       TableName: 'consulting_users',
       Key: { id: userId }
@@ -179,12 +176,15 @@ router.delete('/recruiters/:id', protect, authorize('admin'), async (req, res) =
   }
 });
 
-// @desc    Register a new user (sync from Firebase)
+// @desc    Register a new user
 // @route   POST /api/auth/register
-// @access  Private (Needs Firebase Token)
-router.post('/register', protect, async (req, res) => {
-  const { name, email } = req.body; // Intentionally omitting 'role' to prevent privilege escalation
-  const firebaseUserId = req.user.id; // from protect middleware
+// @access  Public
+router.post('/register', async (req, res) => {
+  const { name, email, password } = req.body; 
+
+  if (!email || !password || !name) {
+    return res.status(400).json({ success: false, message: 'Please provide all required fields' });
+  }
 
   try {
     const formattedEmail = email.toLowerCase().trim();
@@ -198,20 +198,13 @@ router.post('/register', protect, async (req, res) => {
     }));
 
     if (existing.Items && existing.Items.length > 0) {
-      // If they already exist, just return them (maybe they are trying to register again or syncing)
-      const existingUser = existing.Items[0];
-      return res.status(200).json({
-        success: true,
-        data: {
-          _id: existingUser.id,
-          name: existingUser.name,
-          email: existingUser.email,
-          role: existingUser.role,
-        },
-      });
+      return res.status(400).json({ success: false, message: 'User already exists' });
     }
 
+    const userId = crypto.randomUUID();
     const apexId = 'APX' + Math.floor(1000000 + Math.random() * 9000000);
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
     let avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=random`;
 
@@ -219,7 +212,7 @@ router.post('/register', protect, async (req, res) => {
       try {
         const base64Data = req.body.avatarBase64.replace(/^data:image\/\w+;base64,/, '');
         const buffer = Buffer.from(base64Data, 'base64');
-        const key = `avatars/${firebaseUserId}-${Date.now()}.png`;
+        const key = `avatars/${userId}-${Date.now()}.png`;
 
         await s3Client.send(new PutObjectCommand({
           Bucket: bucketName,
@@ -236,10 +229,11 @@ router.post('/register', protect, async (req, res) => {
     }
 
     const newUser = {
-      id: firebaseUserId, // Use Firebase UID as the primary key
+      id: userId,
       apexId,
-      name: name || 'User',
+      name: name,
       email: formattedEmail,
+      password: hashedPassword,
       role: 'student', // Force student role to prevent privilege escalation
       avatarUrl,
       createdAt: new Date().toISOString()
@@ -251,28 +245,25 @@ router.post('/register', protect, async (req, res) => {
       Item: newUser
     }));
 
-    // Invalidate users cache if they are syncing for the first time
-    if (newUser.role === 'admin') {
-      usersCache.del('admins');
-    } else {
-      usersCache.del('students');
-    }
+    usersCache.del('students');
 
     await logAuditAction(
-      firebaseUserId,
+      userId,
       newUser.name,
       'REGISTER_ACCOUNT',
-      firebaseUserId,
+      userId,
       { role: newUser.role, email: newUser.email }
     );
 
     res.status(201).json({
       success: true,
+      token: generateToken(userId),
       data: {
-        _id: firebaseUserId,
+        _id: userId,
         name: newUser.name,
         email: newUser.email,
         role: newUser.role,
+        avatarUrl
       },
     });
   } catch (error) {
@@ -281,44 +272,84 @@ router.post('/register', protect, async (req, res) => {
   }
 });
 
-// @desc    Authenticate user & get token (sync from Firebase)
+// @desc    Authenticate user & get token
 // @route   POST /api/auth/login
-// @access  Private (Needs Firebase Token)
-router.post('/login', protect, async (req, res) => {
+// @access  Public
+router.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ success: false, message: 'Please provide email and password' });
+  }
+
   try {
-    // protect middleware already checks if they exist in DynamoDB and adds to req.user
-    if (!req.user || !req.user.role) {
-       return res.status(404).json({ success: false, message: 'User record not found in database. Please register.' });
+    const formattedEmail = email.toLowerCase().trim();
+
+    // Find user by email
+    const existing = await docClient.send(new QueryCommand({
+      TableName: 'consulting_users',
+      IndexName: 'email-index',
+      KeyConditionExpression: 'email = :email',
+      ExpressionAttributeValues: { ':email': formattedEmail }
+    }));
+
+    if (!existing.Items || existing.Items.length === 0) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    const user = existing.Items[0];
+
+    // Handle legacy users (from Firebase) who don't have a password in DynamoDB
+    if (!user.password) {
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash('password123', salt);
+      
+      // Update them in DynamoDB with the fallback password
+      await docClient.send(new PutCommand({
+        TableName: 'consulting_users',
+        Item: { ...user, password: hashedPassword }
+      }));
+
+      return res.status(401).json({ success: false, message: 'Your account was migrated from our old system. Your temporary password is: password123. Please log in with that and change it immediately.' });
+    }
+
+    // Verify password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
     // Require 2FA for admins and recruiters
-    if (req.user.role === 'admin' || req.user.role === 'recruiter') {
+    if (user.role === 'admin' || user.role === 'recruiter') {
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      twoFactorStore.set(req.user.id, {
+      twoFactorStore.set(user.id, {
         otp,
         expires: Date.now() + 5 * 60 * 1000 // 5 minutes
       });
 
       // MOCK EMAIL SEND (In a real app, use SendGrid/SES)
       console.log(`\n=========================================`);
-      console.log(`📧 MOCK EMAIL SENT TO: ${req.user.email}`);
+      console.log(`📧 MOCK EMAIL SENT TO: ${user.email}`);
       console.log(`🔒 Your 2FA Login Code is: ${otp}`);
       console.log(`=========================================\n`);
 
       return res.status(200).json({
         success: true,
         require2FA: true,
+        userId: user.id,
         message: 'A 6-digit OTP has been sent to your email.'
       });
     }
 
     res.status(200).json({
       success: true,
+      token: generateToken(user.id),
       data: {
-        _id: req.user.id,
-        name: req.user.name,
-        email: req.user.email,
-        role: req.user.role,
+        _id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatarUrl: user.avatarUrl
       },
     });
   } catch (error) {
@@ -327,25 +358,51 @@ router.post('/login', protect, async (req, res) => {
   }
 });
 
-// @desc    Verify 2FA OTP
-// @route   POST /api/auth/verify-2fa
-// @access  Private (Needs Firebase Token)
-router.post('/verify-2fa', protect, async (req, res) => {
+// @desc    Get current user profile
+// @route   GET /api/auth/me
+// @access  Private
+router.get('/me', protect, async (req, res) => {
   try {
-    const { otp } = req.body;
-    
-    if (!req.user || !req.user.role) {
-       return res.status(404).json({ success: false, message: 'User not found.' });
+    const user = req.user;
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    const stored2FA = twoFactorStore.get(req.user.id);
+    res.status(200).json({
+      success: true,
+      data: {
+        _id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatarUrl: user.avatarUrl
+      }
+    });
+  } catch (error) {
+    console.error('Get me error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// @desc    Verify 2FA OTP
+// @route   POST /api/auth/verify-2fa
+// @access  Public
+router.post('/verify-2fa', async (req, res) => {
+  try {
+    const { userId, otp } = req.body;
+    
+    if (!userId || !otp) {
+       return res.status(400).json({ success: false, message: 'Missing userId or otp' });
+    }
+
+    const stored2FA = twoFactorStore.get(userId);
 
     if (!stored2FA) {
       return res.status(400).json({ success: false, message: 'OTP session expired or not found. Please log in again.' });
     }
 
     if (Date.now() > stored2FA.expires) {
-      twoFactorStore.delete(req.user.id);
+      twoFactorStore.delete(userId);
       return res.status(400).json({ success: false, message: 'OTP has expired.' });
     }
 
@@ -354,27 +411,39 @@ router.post('/verify-2fa', protect, async (req, res) => {
     }
 
     // Success! Clear the OTP.
-    twoFactorStore.delete(req.user.id);
+    twoFactorStore.delete(userId);
+
+    // Get user details
+    const result = await docClient.send(new GetCommand({
+      TableName: 'consulting_users',
+      Key: { id: userId }
+    }));
+
+    if (!result.Item) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
 
     await logAuditAction(
-      req.user.id,
-      req.user.name,
-      '2FA_LOGIN_SUCCESS',
-      req.user.id,
-      { role: req.user.role, email: req.user.email }
+      userId,
+      result.Item.name,
+      'VERIFY_2FA',
+      userId,
+      { success: true }
     );
 
     res.status(200).json({
       success: true,
+      token: generateToken(userId),
       data: {
-        _id: req.user.id,
-        name: req.user.name,
-        email: req.user.email,
-        role: req.user.role,
+        _id: userId,
+        name: result.Item.name,
+        email: result.Item.email,
+        role: result.Item.role,
+        avatarUrl: result.Item.avatarUrl
       },
     });
   } catch (error) {
-    console.error('Verify 2FA error:', error);
+    console.error('2FA error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -525,17 +594,7 @@ router.delete('/students/:id', protect, authorize('admin'), async (req, res) => 
     const { DeleteCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
     const { deleteS3Object } = require('../config/s3');
     
-    // 1. Delete from Firebase Auth
-    try {
-      await auth.deleteUser(studentId);
-    } catch (firebaseErr) {
-      console.error('Firebase user deletion error:', firebaseErr);
-      if (firebaseErr.code !== 'auth/user-not-found') {
-        return res.status(400).json({ success: false, message: `Firebase Error: ${firebaseErr.message}` });
-      }
-    }
-
-    // 2. Delete from DynamoDB
+    // 1. Delete from DynamoDB
     await docClient.send(new DeleteCommand({
       TableName: 'consulting_users',
       Key: { id: studentId }
@@ -566,6 +625,76 @@ router.delete('/students/:id', protect, authorize('admin'), async (req, res) => 
     res.status(200).json({ success: true, message: 'Student deleted successfully' });
   } catch (error) {
     console.error('Delete student error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// @desc    Update user password
+// @route   PATCH /api/auth/update-password
+// @access  Private
+router.patch('/update-password', protect, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.id;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Please provide both current and new password' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'New password must be at least 6 characters' });
+    }
+
+    const { GetCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+    
+    // Get user from DB
+    const result = await docClient.send(new GetCommand({
+      TableName: 'consulting_users',
+      Key: { id: userId }
+    }));
+
+    if (!result.Item) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Legacy users who haven't set a password yet will have 'password123' if they just logged in,
+    // but if they bypassed login (already had a token), they might have no password field at all.
+    // We handle this gracefully.
+    if (result.Item.password) {
+      const isMatch = await bcrypt.compare(currentPassword, result.Item.password);
+      if (!isMatch) {
+        return res.status(400).json({ success: false, message: 'Incorrect current password' });
+      }
+    } else {
+      // If no password exists, assume currentPassword is 'password123' which they were told to use
+      if (currentPassword !== 'password123') {
+        return res.status(400).json({ success: false, message: 'Incorrect current password. Please use password123 as your temporary password.' });
+      }
+    }
+
+    // Hash the new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedNewPassword = await bcrypt.hash(newPassword, salt);
+
+    // Update DynamoDB
+    await docClient.send(new UpdateCommand({
+      TableName: 'consulting_users',
+      Key: { id: userId },
+      UpdateExpression: 'set password = :pwd',
+      ExpressionAttributeValues: { ':pwd': hashedNewPassword }
+    }));
+
+    await logAuditAction(
+      userId,
+      req.user.name,
+      'UPDATE_PASSWORD',
+      userId,
+      {}
+    );
+
+    res.status(200).json({ success: true, message: 'Password successfully updated' });
+  } catch (error) {
+    console.error('Update password error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
