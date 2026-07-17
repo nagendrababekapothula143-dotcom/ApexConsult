@@ -170,6 +170,14 @@ const StudentDashboard = () => {
 
   // SVG Icons
   const Icons = {
+    Overview: () => (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="7" height="7"></rect>
+        <rect x="14" y="3" width="7" height="7"></rect>
+        <rect x="14" y="14" width="7" height="7"></rect>
+        <rect x="3" y="14" width="7" height="7"></rect>
+      </svg>
+    ),
     JobBoard: () => (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
@@ -193,6 +201,12 @@ const StudentDashboard = () => {
     Chat: () => (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+    ),
+    Bell: () => (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
       </svg>
     ),
     Logout: () => (
@@ -287,6 +301,7 @@ const StudentDashboard = () => {
 
           <div className="mt-2">
             <ul className="flex flex-col gap-1.5 list-none m-0 p-0">
+            <li>{renderNavLink('/student', <Icons.Overview />, 'Overview', true)}</li>
             <li>{renderNavLink('/student/jobs', <Icons.JobBoard />, 'Job Board')}</li>
             <li>{renderNavLink('/student/applications', <Icons.Applications />, 'My Applications')}</li>
             <li>{renderNavLink('/student/profile', <Icons.Profile />, 'My Profile')}</li>
@@ -311,6 +326,10 @@ const StudentDashboard = () => {
             </div>
           </div>
           <div className="flex gap-1.5 pr-1">
+            <button className="relative p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="Notifications" aria-label="Notifications">
+              <Icons.Bell />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full border-2 border-slate-950"></span>
+            </button>
             <button className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="Open Chat" aria-label="Open Chat">
               <Icons.Chat />
             </button>

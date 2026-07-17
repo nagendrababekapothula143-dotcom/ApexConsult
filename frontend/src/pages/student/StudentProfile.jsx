@@ -131,11 +131,47 @@ const StudentProfile = () => {
     }
   };
 
+  const calculateProfileStrength = () => {
+    if (!user) return 0;
+    const fields = ['phone', 'university', 'major', 'location', 'linkedinUrl', 'avatarUrl'];
+    const filled = fields.filter(f => user[f]).length;
+    let score = (filled / fields.length) * 40;
+    
+    if (user.education?.length > 0) score += 20;
+    if (user.experience?.length > 0) score += 20;
+    if (user.technicalSkills?.length > 0) score += 20;
+    
+    return Math.min(Math.round(score), 100);
+  };
+  
+  const profileStrength = calculateProfileStrength();
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold text-slate-900 mb-0.5">My Profile</h1>
-        <p className="text-sm text-slate-500 font-medium">Manage your personal and academic information.</p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-extrabold text-slate-900 mb-0.5">My Profile</h1>
+          <p className="text-sm text-slate-500 font-medium">Manage your personal and academic information.</p>
+        </div>
+        <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4 group hover:border-indigo-200 transition-colors">
+          <div>
+            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-0.5">Profile Strength</p>
+            <p className="text-sm font-black text-slate-900">{profileStrength}% Complete</p>
+          </div>
+          <div className="relative w-10 h-10 shrink-0 group-hover:scale-105 transition-transform">
+            <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+              <path className="text-slate-100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="4" />
+              <path className={`${profileStrength === 100 ? 'text-emerald-500' : 'text-indigo-500'} drop-shadow-sm`} strokeDasharray={`${profileStrength}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              {profileStrength === 100 ? (
+                <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+              ) : (
+                <span className="text-[10px] font-black text-indigo-600">{profileStrength}%</span>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {alert && alert.type === 'success' && (

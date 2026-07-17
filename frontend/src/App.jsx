@@ -13,6 +13,7 @@ const Home = lazy(() => import('./pages/Home'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
+const StudentOverview = lazy(() => import('./pages/student/StudentOverview'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const RecruiterDashboard = lazy(() => import('./pages/recruiter/RecruiterDashboard'));
 
@@ -110,7 +111,7 @@ function App() {
                 </StudentRoute>
               }
             >
-              <Route index element={<Navigate to="/student/jobs" replace />} />
+              <Route index element={<StudentOverview />} />
               <Route path="jobs" element={<StudentJobs />} />
               <Route path="jobs/:jobId" element={<StudentJobs />} />
               <Route path="applications" element={<StudentApplications />} />
