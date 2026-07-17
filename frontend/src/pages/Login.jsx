@@ -9,16 +9,14 @@ const Login = () => {
   const [submitting, setSubmitting] = useState(false);
   const [googleSubmitting, setGoogleSubmitting] = useState(false);
   
-  // 2FA State
-  const [require2FA, setRequire2FA] = useState(false);
-  const [otp, setOtp] = useState('');
+
   
   // Reset Password State
   const [resetMode, setResetMode] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   
-  const { login, user, verify2FA } = useContext(AuthContext);
+  const { login, user } = useContext(AuthContext);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -50,11 +48,7 @@ const Login = () => {
     setSubmitting(true);
     const res = await login(email, password);
     setSubmitting(false);
-
     if (res.success) {
-      if (res.require2FA) {
-        setRequire2FA(true);
-      }
       // Redirect handled by useEffect if fully logged in
     } else {
       setError(res.message);
@@ -63,83 +57,12 @@ const Login = () => {
 
 
 
-  const handleVerifyOTP = async (e) => {
-    e.preventDefault();
-    setError('');
-    if (!otp || otp.length !== 6) {
-      setError('Please enter a valid 6-digit code');
-      return;
-    }
-    setSubmitting(true);
-    const res = await verify2FA(otp);
-    setSubmitting(false);
-    
-    if (res.success) {
-      // Redirect handled by useEffect
-    } else {
-      setError(res.message);
-    }
-  };
-
   const handleResetPassword = async (e) => {
     e.preventDefault();
     setError('Password reset is currently disabled. Please contact an administrator.');
   };
 
-  if (require2FA) {
-    return (
-      <div className="bg-slate-50 min-h-[90vh] flex items-center justify-center px-4 py-12">
-        <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm w-full max-w-[440px]">
-          <div className="w-16 h-16 bg-indigo-50 border-2 border-indigo-100 rounded-full flex items-center justify-center mx-auto text-3xl mb-4">
-            🔒
-          </div>
-          <h2 className="text-2xl font-extrabold text-slate-900 text-center mb-1">Two-Factor Auth</h2>
-          <p className="text-sm text-slate-500 text-center mb-8">
-            Please enter the 6-digit code sent to your email.
-          </p>
 
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm mb-6 flex items-start gap-2">
-              <span>⚠️</span>
-              <span>{error}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleVerifyOTP} className="space-y-4">
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="otp" className="text-xs font-semibold text-slate-600">6-Digit Code</label>
-              <input
-                type="text"
-                id="otp"
-                maxLength={6}
-                className="bg-white border border-slate-200 rounded-lg px-3.5 py-3 text-center text-2xl font-bold tracking-[0.5em] text-slate-900 outline-none focus:border-indigo-500 focus:ring-3 focus:ring-indigo-50 transition-all"
-                placeholder="000000"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm py-3 rounded-lg shadow-sm hover:shadow transition-all cursor-pointer mt-2"
-              disabled={submitting}
-            >
-              {submitting ? 'Verifying...' : 'Verify & Continue'}
-            </button>
-            <button
-              type="button"
-              onClick={() => { setRequire2FA(false); setOtp(''); }}
-              className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm py-3 rounded-lg transition-all cursor-pointer mt-2 border-none"
-              disabled={submitting}
-            >
-              Cancel
-            </button>
-          </form>
-        </div>
-      </div>
-    );
-  }
 
   if (resetMode) {
     return (

@@ -319,27 +319,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
-    // Require 2FA for admins and recruiters
-    if (user.role === 'admin' || user.role === 'recruiter') {
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      twoFactorStore.set(user.id, {
-        otp,
-        expires: Date.now() + 5 * 60 * 1000 // 5 minutes
-      });
 
-      // MOCK EMAIL SEND (In a real app, use SendGrid/SES)
-      console.log(`\n=========================================`);
-      console.log(`📧 MOCK EMAIL SENT TO: ${user.email}`);
-      console.log(`🔒 Your 2FA Login Code is: ${otp}`);
-      console.log(`=========================================\n`);
-
-      return res.status(200).json({
-        success: true,
-        require2FA: true,
-        userId: user.id,
-        message: 'A 6-digit OTP has been sent to your email.'
-      });
-    }
 
     res.status(200).json({
       success: true,
@@ -384,69 +364,7 @@ router.get('/me', protect, async (req, res) => {
   }
 });
 
-// @desc    Verify 2FA OTP
-// @route   POST /api/auth/verify-2fa
-// @access  Public
-router.post('/verify-2fa', async (req, res) => {
-  try {
-    const { userId, otp } = req.body;
-    
-    if (!userId || !otp) {
-       return res.status(400).json({ success: false, message: 'Missing userId or otp' });
-    }
 
-    const stored2FA = twoFactorStore.get(userId);
-
-    if (!stored2FA) {
-      return res.status(400).json({ success: false, message: 'OTP session expired or not found. Please log in again.' });
-    }
-
-    if (Date.now() > stored2FA.expires) {
-      twoFactorStore.delete(userId);
-      return res.status(400).json({ success: false, message: 'OTP has expired.' });
-    }
-
-    if (stored2FA.otp !== otp) {
-      return res.status(400).json({ success: false, message: 'Invalid OTP code.' });
-    }
-
-    // Success! Clear the OTP.
-    twoFactorStore.delete(userId);
-
-    // Get user details
-    const result = await docClient.send(new GetCommand({
-      TableName: 'consulting_users',
-      Key: { id: userId }
-    }));
-
-    if (!result.Item) {
-      return res.status(404).json({ success: false, message: 'User not found.' });
-    }
-
-    await logAuditAction(
-      userId,
-      result.Item.name,
-      'VERIFY_2FA',
-      userId,
-      { success: true }
-    );
-
-    res.status(200).json({
-      success: true,
-      token: generateToken(userId),
-      data: {
-        _id: userId,
-        name: result.Item.name,
-        email: result.Item.email,
-        role: result.Item.role,
-        avatarUrl: result.Item.avatarUrl
-      },
-    });
-  } catch (error) {
-    console.error('2FA error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
 
 // @desc    Get current logged in user
 // @route   GET /api/auth/me
@@ -463,9 +381,6 @@ router.get('/me', protect, async (req, res) => {
 const NodeCache = require('node-cache');
 const usersCache = new NodeCache({ stdTTL: 60, checkperiod: 120 }); // 60 seconds caching
 
-// In-memory 2FA store for mock email delivery
-// Key: userId, Value: { otp: string, expires: number }
-const twoFactorStore = new Map();
 
 // @desc    Get all students
 // @route   GET /api/auth/students

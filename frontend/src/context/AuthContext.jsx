@@ -7,8 +7,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   
-  // Used for 2FA flow
-  const [tempUserId, setTempUserId] = useState(null); 
+
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -35,11 +34,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await api.post('/auth/login', { email, password });
-      
-      if (response.data.require2FA) {
-        setTempUserId(response.data.userId);
-        return { success: true, require2FA: true, message: response.data.message };
-      }
+
 
       localStorage.setItem('token', response.data.token);
       setUser(response.data.data);
@@ -79,26 +74,9 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
-  const verify2FA = async (otp) => {
-    try {
-      if (!tempUserId) throw new Error("No temporary user ID found for 2FA");
-
-      const response = await api.post('/auth/verify-2fa', { userId: tempUserId, otp });
-      
-      localStorage.setItem('token', response.data.token);
-      setUser(response.data.data);
-      setTempUserId(null); // Clear it
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.response?.data?.message || 'Invalid OTP code.',
-      };
-    }
-  };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, loading, login, register, logout, verify2FA }}>
+    <AuthContext.Provider value={{ user, setUser, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
