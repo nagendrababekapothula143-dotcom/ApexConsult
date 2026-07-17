@@ -78,7 +78,7 @@ app.set('trust proxy', 1);
 // Standard Middlewares
 app.use(helmet()); // Enforce security headers
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://apexconsult.onrender.com'], 
+  origin: ['http://localhost:5173', 'https://apexconsult.onrender.com', 'https://apexconsulting-kohl.vercel.app'], 
   credentials: true 
 }));
 app.use(cookieParser());
