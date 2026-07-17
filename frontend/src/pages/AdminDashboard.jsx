@@ -259,6 +259,11 @@ const AdminDashboard = () => {
 
   const handleJobSelect = async (job) => {
     setSelectedJob(job);
+    if (!job) {
+      setApplications([]);
+      return;
+    }
+    
     setLoadingApps(true);
     setError('');
     try {

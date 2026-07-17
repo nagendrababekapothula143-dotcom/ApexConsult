@@ -95,7 +95,7 @@ const AdminStudents = () => {
 
       toast.success('Student profile updated successfully!');
       setEditModalConfig({ isOpen: false, student: null, formData: { name: '', phone: '', university: '', major: '' } });
-      if (fetchData) await fetchData();
+      if (fetchData) await fetchData(['jobs', 'students', 'applications', 'admins', 'recruiters']);
     } catch (err) {
       console.error(err);
       toast.error('Failed to update student profile.');
