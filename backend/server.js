@@ -78,7 +78,32 @@ app.set('trust proxy', 1);
 // Standard Middlewares
 app.use(helmet()); // Enforce security headers
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://apexconsult.onrender.com', 'https://apexconsulting-kohl.vercel.app'], 
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true); // Allow non-browser requests
+    
+    // Always allow localhost and local network IP ranges for development
+    if (
+      origin.startsWith('http://localhost:') || 
+      origin.startsWith('http://127.0.0.1:') ||
+      origin.startsWith('http://192.168.') ||
+      origin.startsWith('http://10.')
+    ) {
+      return callback(null, true);
+    }
+    
+    // Exact production domains
+    const allowedOrigins = [
+      'https://apexconsult.onrender.com', 
+      'https://apexconsulting-kohl.vercel.app'
+    ];
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    }
+    
+    // Reject anything else
+    return callback(new Error('CORS policy violation'), false);
+  },
   credentials: true 
 }));
 app.use(cookieParser());
