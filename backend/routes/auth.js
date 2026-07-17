@@ -529,7 +529,10 @@ router.delete('/students/:id', protect, authorize('admin'), async (req, res) => 
     try {
       await auth.deleteUser(studentId);
     } catch (firebaseErr) {
-      console.error('Firebase user deletion error (might not exist):', firebaseErr.message);
+      console.error('Firebase user deletion error:', firebaseErr);
+      if (firebaseErr.code !== 'auth/user-not-found') {
+        return res.status(400).json({ success: false, message: `Firebase Error: ${firebaseErr.message}` });
+      }
     }
 
     // 2. Delete from DynamoDB
