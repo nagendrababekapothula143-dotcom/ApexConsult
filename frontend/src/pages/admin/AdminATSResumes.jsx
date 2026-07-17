@@ -236,27 +236,27 @@ const AdminATSResumes = () => {
         </select>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-x-auto max-h-[70vh] custom-scrollbar">
+      <div className="bg-white border border-slate-200/70 rounded-3xl shadow-sm overflow-x-auto custom-scrollbar relative">
         <table className="w-full table-fixed border-collapse text-left relative min-w-[800px]">
-          <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-sm border-b border-slate-200 shadow-sm">
-            <tr className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              <th className="p-4 w-[25%] cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('student.name')}>
-                Student Name {sortConfig.key === 'student.name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+          <thead className="sticky top-0 z-10 bg-white/90 backdrop-blur-md border-b border-slate-200/60 shadow-xs">
+            <tr className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+              <th className="p-5 w-[25%] cursor-pointer hover:bg-slate-50 transition-colors group" onClick={() => handleSort('student.name')}>
+                Student Name <span className="inline-block ml-1 text-slate-300 group-hover:text-indigo-400">{sortConfig.key === 'student.name' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</span>
               </th>
-              <th className="p-4 w-[20%] cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('job.title')}>
-                Role Applied For {sortConfig.key === 'job.title' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+              <th className="p-5 w-[20%] cursor-pointer hover:bg-slate-50 transition-colors group" onClick={() => handleSort('job.title')}>
+                Role Applied For <span className="inline-block ml-1 text-slate-300 group-hover:text-indigo-400">{sortConfig.key === 'job.title' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</span>
               </th>
-              <th className="p-4 w-[17%] cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('job.company')}>
-                Company Name {sortConfig.key === 'job.company' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+              <th className="p-5 w-[17%] cursor-pointer hover:bg-slate-50 transition-colors group" onClick={() => handleSort('job.company')}>
+                Company Name <span className="inline-block ml-1 text-slate-300 group-hover:text-indigo-400">{sortConfig.key === 'job.company' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</span>
               </th>
-              <th className="p-4 w-[11%] cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('appliedAt')}>
-                Applied On {sortConfig.key === 'appliedAt' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+              <th className="p-5 w-[11%] cursor-pointer hover:bg-slate-50 transition-colors group" onClick={() => handleSort('appliedAt')}>
+                Applied On <span className="inline-block ml-1 text-slate-300 group-hover:text-indigo-400">{sortConfig.key === 'appliedAt' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</span>
               </th>
-              <th className="p-4 w-[15%]">Status / Assignment</th>
-              <th className="p-4 w-[12%] text-center">Actions</th>
+              <th className="p-5 w-[15%]">Status / Assignment</th>
+              <th className="p-5 w-[12%] text-center">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 text-sm">
+          <tbody className="divide-y divide-slate-100/80 text-sm">
             {(() => {
               if (isLoading) {
                 return Array(5).fill(0).map((_, i) => <SkeletonRow key={i} />);
@@ -316,34 +316,34 @@ const AdminATSResumes = () => {
               return (
                 <>
                   {paginatedApps.map((app) => (
-                    <tr key={app._id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="p-4 max-w-0">
-                    <div className="w-full truncate font-bold text-slate-900" title={app.student?.name}>
+                    <tr key={app._id} className="hover:bg-slate-50/80 transition-colors group">
+                  <td className="p-5 max-w-0">
+                    <div className="w-full truncate font-bold text-slate-900 group-hover:text-indigo-700 transition-colors" title={app.student?.name}>
                       {app.student?.name || 'Unknown Student'}
                     </div>
-                    <div className="w-full truncate text-xs text-slate-500" title={app.student?.email}>
+                    <div className="w-full truncate text-xs text-slate-500 font-medium" title={app.student?.email}>
                       {app.student?.email}
                     </div>
                   </td>
                   
-                  <td className="p-4 max-w-0">
-                    <div className="w-full truncate font-semibold text-slate-800" title={app.job?.title}>
+                  <td className="p-5 max-w-0">
+                    <div className="w-full truncate font-bold text-slate-800" title={app.job?.title}>
                       {app.job?.title || 'Unknown Role'}
                     </div>
                   </td>
                   
-                  <td className="p-4 max-w-0">
-                    <div className="w-full truncate text-slate-600 font-medium" title={app.job?.company}>
+                  <td className="p-5 max-w-0">
+                    <div className="w-full truncate text-slate-500 font-medium" title={app.job?.company}>
                       {app.job?.company || 'Unknown Company'}
                     </div>
                   </td>
                   
-                  <td className="p-4 text-slate-500">
-                    <div className="font-medium text-slate-700">{new Date(app.appliedAt).toLocaleDateString()}</div>
-                    <div className="text-xs text-slate-400 mt-0.5">{new Date(app.appliedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}</div>
+                  <td className="p-5 text-slate-500">
+                    <div className="font-semibold text-slate-700">{new Date(app.appliedAt).toLocaleDateString()}</div>
+                    <div className="text-[11px] text-slate-400 mt-0.5 font-medium">{new Date(app.appliedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}</div>
                   </td>
                   
-                  <td className="p-4">
+                  <td className="p-5">
                     <div className="flex flex-col gap-1.5">
                       {app.status === 'recruiter_requested' ? (
                         <>
@@ -384,21 +384,22 @@ const AdminATSResumes = () => {
                     </div>
                   </td>
                   
-                  <td className="p-4">
+                  <td className="p-5">
                     <div className="flex justify-center gap-2 items-center flex-nowrap whitespace-nowrap">
                       
                       {/* Download Action */}
-                      <div className="relative group flex justify-center">
+                      <div className="relative flex justify-center">
                         <a 
-                          href={app.resumeUrl ? getResumeDownloadUrl(app.resumeUrl) : '#'} 
-                          download={app.resumeUrl ? `${app.student?.name || 'Applicant'}_Resume.pdf` : undefined}
+                          href={app.resumeUrl?.startsWith('/uploads') ? `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}${app.resumeUrl}` : app.resumeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           onClick={(e) => {
                             if (!app.resumeUrl) {
                               e.preventDefault();
                               alert('No resume uploaded for this request yet.');
                             }
                           }}
-                          className={`p-2 rounded-lg flex items-center justify-center transition-colors ${
+                          className={`peer p-2 rounded-lg flex items-center justify-center transition-colors ${
                             app.resumeUrl 
                               ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 cursor-pointer' 
                               : 'bg-slate-50 text-slate-400 border border-slate-200 cursor-not-allowed opacity-50'
@@ -407,23 +408,23 @@ const AdminATSResumes = () => {
                         >
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                         </a>
-                        <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-emerald-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg whitespace-nowrap pointer-events-none z-10">
+                        <div className="absolute bottom-full right-1/2 translate-x-1/2 mb-2 opacity-0 peer-hover:opacity-100 transition-opacity bg-emerald-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg whitespace-nowrap pointer-events-none z-10">
                           {app.resumeUrl ? 'Download Resume' : 'No Resume Yet'}
                         </div>
                       </div>
 
                       {/* Delete Action */}
                       {user?.role === 'admin' && (
-                        <div className="relative group flex justify-center">
+                        <div className="relative flex justify-center">
                           <button 
                             disabled={processingId === app._id}
                             onClick={() => setModalConfig({ isOpen: true, applicationId: app._id })}
-                            className="p-2 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors cursor-pointer flex items-center justify-center disabled:opacity-50"
+                            className="peer p-2 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors cursor-pointer flex items-center justify-center disabled:opacity-50"
                             aria-label="Delete Submission"
                           >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                           </button>
-                          <div className="absolute bottom-full right-0 mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg whitespace-nowrap pointer-events-none z-10">
+                          <div className="absolute bottom-full right-0 mb-2 opacity-0 peer-hover:opacity-100 transition-opacity bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg whitespace-nowrap pointer-events-none z-10">
                             Delete Submission
                           </div>
                         </div>

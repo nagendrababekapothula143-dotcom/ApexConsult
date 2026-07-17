@@ -11,7 +11,7 @@ const StudentDashboard = () => {
   const { user, logout } = useContext(AuthContext);
   const socket = useContext(SocketContext);
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const toast = useToast();
 
   // Dynamic States
   const [jobs, setJobs] = useState([]);
@@ -25,20 +25,26 @@ const StudentDashboard = () => {
   const [actionError, setActionError] = useState('');
   const [actionSuccess, setActionSuccess] = useState('');
 
-  const fetchData = async (isSilent = false) => {
+  const fetchData = async (resources = [], isSilent = false) => {
     try {
       if (!isSilent) setLoading(true);
-      const t = isSilent ? `?t=${Date.now()}` : '';
-      const [jobsRes, appsRes] = await Promise.all([
-        api.get(`/jobs${t}`),
-        api.get(`/applications/student${t}`)
-      ]);
-      setJobs(jobsRes.data.data);
-      setApplications(appsRes.data.data);
+      const t = `?t=${Date.now()}`;
+      const promises = [];
       
-      if (!isSilent && jobsRes.data.data.length > 0) {
-        setSelectedJob(prev => prev || jobsRes.data.data[0]);
+      if (resources.includes('jobs')) {
+        promises.push(api.get(`/jobs${t}`).then(res => {
+          setJobs(res.data.data);
+          if (!selectedJob && res.data.data.length > 0) {
+            setSelectedJob(res.data.data[0]);
+          }
+        }));
       }
+      
+      if (resources.includes('applications')) {
+        promises.push(api.get(`/applications/student${t}`).then(res => setApplications(res.data.data)));
+      }
+
+      await Promise.all(promises);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       if (!isSilent) setActionError('Failed to fetch data from server.');
@@ -48,7 +54,6 @@ const StudentDashboard = () => {
   };
 
   useEffect(() => {
-    fetchData();
     if (document.title === 'Kryntel') {
       document.title = 'Student Dashboard | Kryntel';
     }
@@ -56,7 +61,7 @@ const StudentDashboard = () => {
 
   useEffect(() => {
     if (socket) {
-      const handleAppUpdate = () => fetchData(true);
+      const handleAppUpdate = () => fetchData(['applications'], true);
       socket.on('application_updated', handleAppUpdate);
       return () => {
         socket.off('application_updated', handleAppUpdate);
@@ -212,10 +217,10 @@ const StudentDashboard = () => {
         end={end}
         onClick={() => setIsSidebarOpen(false)}
         className={({ isActive }) =>
-          `flex items-center gap-3 px-4 py-2.5 text-sm font-semibold rounded-xl w-full text-left transition-all cursor-pointer no-underline ${
-            isActive
-              ? 'bg-slate-100 text-indigo-600'
-              : 'bg-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+          `flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-[15px] transition-all duration-200 border-none no-underline ${
+            isActive 
+              ? 'bg-indigo-600/10 text-indigo-400 font-semibold shadow-inner border border-indigo-500/20' 
+              : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800 hover:shadow-sm'
           }`
         }
       >
@@ -225,15 +230,13 @@ const StudentDashboard = () => {
     );
   };
 
-  if (loading) {
-    return <Loader text="Loading student dashboard..." fullScreen={true} />;
-  }
-
+  // Removed global loading block so Outlet can render and fetch data
+  
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-500/30">
       
       {/* Mobile Top Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 h-[64px] bg-white border-b border-slate-200 flex items-center justify-between px-6 z-40">
+      <header className="lg:hidden fixed top-0 left-0 right-0 h-[64px] bg-white/70 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 z-40">
         <button
           onClick={() => setIsSidebarOpen(true)}
           className="bg-transparent border-none text-slate-600 hover:text-slate-900 cursor-pointer p-1.5 focus:outline-none"
@@ -264,13 +267,13 @@ const StudentDashboard = () => {
       )}
 
       {/* LEFT SIDEBAR SECTION */}
-      <aside className={`w-[280px] bg-white border-r border-slate-200 flex flex-col justify-between h-screen fixed left-0 top-0 z-50 p-6 transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="flex flex-col gap-6 overflow-y-auto pr-1">
+      <aside className={`w-[270px] bg-slate-950 border-r border-slate-900/50 flex flex-col justify-between h-screen fixed left-0 top-0 z-50 p-5 transition-transform duration-300 lg:translate-x-0 shadow-2xl lg:shadow-none ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="flex flex-col gap-8 overflow-y-auto pr-2 custom-scrollbar-dark">
           
-          <div className="flex justify-between items-center">
-            <Link to="/" className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent flex items-center gap-1.5 no-underline hover:opacity-90 transition-opacity">
-              <img src="/Untitled%20design%20(1).png" alt="Kryntel Logo" className="w-8 h-8 object-contain shrink-0 -ml-1" />
-              Kryntel <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full inline-block"></span>
+          <div className="flex justify-between items-center pl-1">
+            <Link to="/" className="text-2xl font-black tracking-tight flex items-center gap-3 no-underline hover:opacity-80 transition-opacity bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">
+              <img src="/Untitled%20design%20(1).png" alt="Kryntel Logo" className="w-8 h-8 object-contain shrink-0 drop-shadow-md" />
+              Kryntel
             </Link>
             <button
               onClick={() => setIsSidebarOpen(false)}
@@ -282,21 +285,20 @@ const StudentDashboard = () => {
             </button>
           </div>
 
-          <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 px-4">Navigation</span>
-
-          <ul className="flex flex-col gap-1 list-none m-0 p-0">
+          <div className="mt-2">
+            <ul className="flex flex-col gap-1.5 list-none m-0 p-0">
             <li>{renderNavLink('/student/jobs', <Icons.JobBoard />, 'Job Board')}</li>
             <li>{renderNavLink('/student/applications', <Icons.Applications />, 'My Applications')}</li>
             <li>{renderNavLink('/student/profile', <Icons.Profile />, 'My Profile')}</li>
             <li>{renderNavLink('/student/settings', <Icons.Settings />, 'Settings')}</li>
-          </ul>
-
+            </ul>
+          </div>
         </div>
 
         {/* PROFILE CARD AT BOTTOM */}
-        <div className="flex items-center justify-between pt-4 border-t border-slate-200 mt-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-slate-100 border border-slate-200 rounded-full flex items-center justify-center font-bold text-slate-800 overflow-hidden shrink-0">
+        <div className="flex items-center justify-between pt-5 mt-auto border-t border-slate-800/50">
+          <div className="flex items-center gap-3 pl-1">
+            <div className="w-10 h-10 bg-gradient-to-tr from-indigo-600 to-violet-600 text-white rounded-full flex items-center justify-center font-bold text-sm overflow-hidden shrink-0 shadow-lg border border-indigo-500/30">
               {user?.avatarUrl ? (
                 <img src={getAvatarSource(user.avatarUrl)} alt={user.name} className="w-full h-full object-cover" />
               ) : (
@@ -304,15 +306,15 @@ const StudentDashboard = () => {
               )}
             </div>
             <div>
-              <h4 className="text-xs font-bold text-slate-900 leading-none mb-1">{user?.name || "Student Candidate"}</h4>
-              <p className="text-[10px] text-slate-400 font-medium">Student</p>
+              <h4 className="text-sm font-semibold text-slate-200 leading-none mb-1">{user?.name || "Student Candidate"}</h4>
+              <p className="text-xs text-indigo-400/80 font-medium">Student</p>
             </div>
           </div>
-          <div className="flex gap-1.5">
-            <button className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="Open Chat" aria-label="Open Chat">
+          <div className="flex gap-1.5 pr-1">
+            <button className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="Open Chat" aria-label="Open Chat">
               <Icons.Chat />
             </button>
-            <button onClick={handleLogout} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="Sign Out" aria-label="Sign Out">
+            <button onClick={handleLogout} className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="Sign Out" aria-label="Sign Out">
               <Icons.Logout />
             </button>
           </div>
@@ -321,7 +323,7 @@ const StudentDashboard = () => {
       </aside>
 
       {/* DYNAMIC CHILD WORKSPACE CONTENT */}
-      <main className="lg:pl-[280px] min-h-screen pt-[64px] lg:pt-0">
+      <main className="lg:pl-[270px] min-h-screen pt-[64px] lg:pt-0">
         <div className="p-4 md:p-8">
           <Outlet context={{
             jobs,
@@ -341,6 +343,7 @@ const StudentDashboard = () => {
             getResumeDownloadUrl,
             fetchData,
             setApplications,
+            loading
           }} />
         </div>
       </main>

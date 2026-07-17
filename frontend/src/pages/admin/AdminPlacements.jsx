@@ -19,6 +19,7 @@ const AdminPlacements = () => {
     getStatusBadgeClass,
     getResumeDownloadUrl,
     fetchData,
+    loading
   } = useOutletContext() || {};
   const { user } = useContext(AuthContext);
   const toast = useToast();
@@ -99,13 +100,17 @@ const AdminPlacements = () => {
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
+      <div className="bg-white border border-slate-200/70 rounded-3xl p-6 md:p-8 shadow-sm relative overflow-hidden">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-sm font-bold text-slate-900">Active Listings ({jobs.length})</h2>
           <span className="text-xs text-slate-500 font-medium bg-slate-100 px-2 py-1 rounded">Expand a job to view submissions</span>
         </div>
         
-        {jobs.length === 0 ? (
+        {loading ? (
+          <div className="flex flex-col gap-4">
+            {[1,2,3].map(i => <div key={i} className="h-24 bg-slate-50 border border-slate-100 rounded-2xl animate-pulse"></div>)}
+          </div>
+        ) : jobs.length === 0 ? (
           <EmptyState 
             title="No Active Listings" 
             description="No consulting jobs posted yet. Create your first job listing to get started." 
@@ -119,26 +124,25 @@ const AdminPlacements = () => {
               return (
                 <div
                   key={job._id}
-                  className={`border rounded-xl overflow-hidden transition-all duration-300 ${
+                  className={`border rounded-2xl overflow-hidden transition-all duration-300 group ${
                     isExpanded 
-                      ? 'border-indigo-300 ring-1 ring-indigo-300 shadow-md bg-white' 
-                      : 'border-slate-200 hover:border-indigo-200 bg-white shadow-sm hover:shadow'
+                      ? 'border-indigo-300 ring-4 ring-indigo-500/10 shadow-lg bg-white relative z-10' 
+                      : 'border-slate-200 hover:border-indigo-200 bg-white shadow-sm hover:shadow-md'
                   }`}
                 >
-                  {/* Accordion Header */}
                   <div 
-                    className={`p-5 flex justify-between items-center cursor-pointer transition-colors ${isExpanded ? 'bg-indigo-50/40' : 'hover:bg-slate-50'}`}
+                    className={`p-6 flex justify-between items-center cursor-pointer transition-colors ${isExpanded ? 'bg-indigo-50/50' : 'hover:bg-slate-50'}`}
                     onClick={() => handleJobSelect(isExpanded ? null : job)}
                   >
-                    <div className="flex items-center gap-4">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isExpanded ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
-                        <svg className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="flex items-center gap-5">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors shadow-sm ${isExpanded ? 'bg-indigo-600 text-white shadow-indigo-200' : 'bg-slate-100 text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-500'}`}>
+                        <svg className={`w-5 h-5 transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
                         </svg>
                       </div>
                       <div>
-                        <h3 className="font-bold text-slate-900 text-base">{job.title}</h3>
-                        <div className="flex items-center text-sm text-slate-500 font-medium gap-2 mt-0.5">
+                        <h3 className="font-black text-slate-900 text-lg tracking-tight mb-0.5 group-hover:text-indigo-700 transition-colors">{job.title}</h3>
+                        <div className="flex items-center text-sm text-slate-500 font-medium gap-2">
                           <span>{job.company}</span>
                           <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
                           <span>{job.location}</span>
@@ -246,22 +250,22 @@ const AdminPlacements = () => {
 
       {/* DELETE CONFIRMATION MODAL */}
       {deleteModalConfig.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 animate-in fade-in zoom-in-95 duration-200">
-            <h3 className="text-lg font-bold text-slate-900 mb-2">Delete Job Listing</h3>
-            <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+          <div className="bg-white/95 backdrop-blur-xl border border-slate-200/60 rounded-3xl shadow-2xl max-w-sm w-full p-8 animate-in fade-in zoom-in-95 duration-300">
+            <h3 className="text-xl font-black text-slate-900 mb-3 tracking-tight">Delete Job Listing</h3>
+            <p className="text-sm text-slate-500 mb-8 font-medium leading-relaxed">
               Are you sure you want to permanently delete this job post? This action cannot be undone.
             </p>
             <div className="flex justify-end gap-3">
               <button 
                 onClick={() => setDeleteModalConfig({ isOpen: false, jobId: null })}
-                className="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer border-none"
+                className="px-5 py-2.5 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer border-none"
               >
                 Cancel
               </button>
               <button 
                 onClick={handleDeleteJob}
-                className="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors cursor-pointer border-none"
+                className="px-5 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 shadow-lg shadow-red-200 hover:shadow-red-300 rounded-xl transition-all cursor-pointer border-none active:scale-[0.98]"
               >
                 Confirm Delete
               </button>

@@ -15,6 +15,8 @@ const AdminAuditLogs = () => {
   const [logs, setLogs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [actionFilter, setActionFilter] = useState('All');
+  const [actorFilter, setActorFilter] = useState('All');
   const toast = useToast();
 
   // Pagination
@@ -44,12 +46,15 @@ const AdminAuditLogs = () => {
   const filteredLogs = logs.filter(log => {
     const searchLower = searchQuery.toLowerCase();
     const detailsStr = typeof log.details === 'object' ? JSON.stringify(log.details) : String(log.details || '');
-    return (
-      (log.action || '').toLowerCase().includes(searchLower) ||
+    const matchesSearch = (log.action || '').toLowerCase().includes(searchLower) ||
       (log.actorName || '').toLowerCase().includes(searchLower) ||
       (log.targetName || '').toLowerCase().includes(searchLower) ||
-      detailsStr.toLowerCase().includes(searchLower)
-    );
+      detailsStr.toLowerCase().includes(searchLower);
+
+    const matchesAction = actionFilter === 'All' || log.action === actionFilter;
+    const matchesActor = actorFilter === 'All' || (log.actorName || 'System') === actorFilter;
+
+    return matchesSearch && matchesAction && matchesActor;
   });
 
   const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
@@ -124,12 +129,34 @@ const AdminAuditLogs = () => {
           </div>
           <input
             type="text"
-            className="block w-full pl-10 pr-3 py-2.5 border-transparent bg-slate-50 rounded-xl text-sm placeholder-slate-400 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all font-medium text-slate-900"
+            className="block w-full pl-10 pr-3 py-2.5 border border-slate-100 bg-slate-50 rounded-xl text-sm placeholder-slate-400 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all font-medium text-slate-900"
             placeholder="Search by action, name, or details..."
             aria-label="Search audit logs"
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
           />
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <select
+            value={actionFilter}
+            onChange={(e) => { setActionFilter(e.target.value); setCurrentPage(1); }}
+            className="w-full sm:w-48 px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-slate-700 font-medium cursor-pointer"
+          >
+            <option value="All">All Actions</option>
+            {Array.from(new Set(logs.map(log => log.action).filter(Boolean))).map(action => (
+              <option key={action} value={action}>{action.replace(/_/g, ' ')}</option>
+            ))}
+          </select>
+          <select
+            value={actorFilter}
+            onChange={(e) => { setActorFilter(e.target.value); setCurrentPage(1); }}
+            className="w-full sm:w-48 px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-slate-700 font-medium cursor-pointer"
+          >
+            <option value="All">All Actors</option>
+            {Array.from(new Set(logs.map(log => log.actorName || 'System').filter(Boolean))).map(actor => (
+              <option key={actor} value={actor}>{actor}</option>
+            ))}
+          </select>
         </div>
       </div>
 

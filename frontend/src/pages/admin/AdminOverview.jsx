@@ -5,7 +5,7 @@ import EmptyState from '../../components/EmptyState';
 import TableSkeleton from '../../components/TableSkeleton';
 
 const AdminOverview = () => {
-  const { jobs = [], globalApplications = [], students = [], fetchData } = useOutletContext() || {};
+  const { jobs = [], globalApplications = [], students = [], fetchData, loading } = useOutletContext() || {};
   const applications = globalApplications || [];
   const navigate = useNavigate();
 
@@ -62,73 +62,88 @@ const AdminOverview = () => {
   };
 
   const chartData = generateChartData();
-  const [isLoaded, setIsLoaded] = useState(false);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoaded(true), 400); // Simulate network load for skeleton
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (!isLoaded) {
-    return (
-      <div className="space-y-8">
-        <div>
-          <div className="h-8 bg-slate-200 rounded w-1/4 animate-pulse mb-2"></div>
-          <div className="h-4 bg-slate-100 rounded w-1/3 animate-pulse"></div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
-          {[1,2,3,4,5].map(i => <div key={i} className="h-24 bg-slate-50 rounded-xl animate-pulse"></div>)}
-        </div>
-        <div className="h-64 bg-slate-50 rounded-2xl animate-pulse"></div>
-      </div>
-    );
-  }
+  // Removed early loading return to keep the static header visible during loading
 
   return (
     <div className="space-y-8">
-      {/* Header */}
+      {/* Header (Always Visible) */}
       <div>
         <h2 className="text-2xl font-extrabold text-slate-900 mb-0.5">Recruitment Hub</h2>
         <p className="text-sm text-slate-500">Live monitoring of consulting placement pipeline and resume submissions.</p>
       </div>
 
       {/* Stats Cards grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
-        <div className="bg-white border border-slate-200/60 rounded-xl p-5 shadow-xs">
-          <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Active Positions</h4>
-          <div className="text-3xl font-extrabold text-slate-900 mb-0.5">{jobs.length}</div>
-          <p className="text-[10px] text-slate-400 font-medium">Sourced consulting firms</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        <div className="bg-white border border-slate-200/70 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <svg className="w-16 h-16 text-indigo-600" fill="currentColor" viewBox="0 0 24 24"><path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/></svg>
+          </div>
+          <div className="relative z-10">
+            <h4 className="text-[13px] font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-blue-500"></span> Active Positions
+            </h4>
+            {loading ? <div className="h-10 w-16 bg-slate-100 rounded animate-pulse mb-1"></div> : <div className="text-4xl font-black text-slate-900 mb-1 tracking-tight">{jobs.length}</div>}
+            <p className="text-xs text-slate-400 font-medium">Sourced consulting firms</p>
+          </div>
         </div>
-        <div className="bg-white border border-slate-200/60 rounded-xl p-5 shadow-xs">
-          <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Registered Candidates</h4>
-          <div className="text-3xl font-extrabold text-slate-900 mb-0.5">{students.length}</div>
-          <p className="text-[10px] text-slate-400 font-medium">Vetted student candidates</p>
+        
+        <div className="bg-white border border-slate-200/70 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <svg className="w-16 h-16 text-violet-600" fill="currentColor" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+          </div>
+          <div className="relative z-10">
+            <h4 className="text-[13px] font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-violet-500"></span> Registered Candidates
+            </h4>
+            {loading ? <div className="h-10 w-16 bg-slate-100 rounded animate-pulse mb-1"></div> : <div className="text-4xl font-black text-slate-900 mb-1 tracking-tight">{students.length}</div>}
+            <p className="text-xs text-slate-400 font-medium">Vetted student candidates</p>
+          </div>
         </div>
-        <div className="bg-white border border-slate-200/60 rounded-xl p-5 shadow-xs">
-          <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Total Submissions</h4>
-          <div className="text-3xl font-extrabold text-slate-900 mb-0.5">{submittedApps.length}</div>
-          <p className="text-[10px] text-slate-400 font-medium">Uploaded resume files</p>
+        
+        <div className="bg-white border border-slate-200/70 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow duration-300 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <svg className="w-16 h-16 text-emerald-600" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+          </div>
+          <div className="relative z-10">
+            <h4 className="text-[13px] font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Total Submissions
+            </h4>
+            {loading ? <div className="h-10 w-16 bg-slate-100 rounded animate-pulse mb-1"></div> : <div className="text-4xl font-black text-slate-900 mb-1 tracking-tight">{submittedApps.length}</div>}
+            <p className="text-xs text-slate-400 font-medium">Uploaded resume files</p>
+          </div>
         </div>
 
-        <div className="bg-gradient-to-br from-indigo-600 to-violet-700 border border-indigo-700 rounded-xl p-5 shadow-md text-white">
-          <h4 className="text-xs font-semibold text-indigo-200 uppercase tracking-wider mb-2">Total Revenue</h4>
-          <div className="text-3xl font-extrabold mb-0.5">
-            ${totalRevenue.toLocaleString()}
+        <div className="bg-gradient-to-br from-indigo-900 via-indigo-800 to-violet-900 border border-indigo-700/50 rounded-2xl p-6 shadow-xl text-white relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500 rounded-full blur-3xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
+          <div className="relative z-10">
+            <h4 className="text-[13px] font-bold text-indigo-300 uppercase tracking-widest mb-3 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span> Total Revenue
+            </h4>
+            {loading ? (
+              <div className="h-10 w-32 bg-indigo-700/50 rounded animate-pulse mb-1"></div>
+            ) : (
+              <div className="text-4xl font-black mb-1 tracking-tight text-white drop-shadow-md">
+                ${totalRevenue.toLocaleString()}
+              </div>
+            )}
+            <p className="text-xs text-indigo-200/80 font-medium">From {acceptedAppsCount} accepted placements</p>
           </div>
-          <p className="text-[10px] text-indigo-300 font-medium">From {acceptedAppsCount} accepted placements</p>
         </div>
       </div>
 
       {/* Main Charts & Analytics row */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch mt-8">
         
         {/* Pipeline Analytics Chart */}
-        <div className="lg:col-span-12 bg-white border border-slate-200/60 rounded-2xl p-4 sm:p-8 shadow-xs">
-          <h3 className="text-sm font-bold text-slate-900 mb-0.5">Pipeline Activity Traffic</h3>
-          <p className="text-xs text-slate-400 mb-6">Visual resume submission volume mapping matching timeline</p>
+        <div className="lg:col-span-12 bg-white border border-slate-200/70 rounded-3xl p-6 sm:p-10 shadow-sm">
+          <h3 className="text-lg font-black text-slate-900 mb-1 tracking-tight">Pipeline Activity Traffic</h3>
+          <p className="text-sm text-slate-500 mb-8 font-medium">Visual resume submission volume mapping matching timeline</p>
           
-          <div className="h-[200px] w-full mt-4">
-            {chartData.length > 0 ? (
+          <div className="h-[240px] w-full mt-4">
+            {loading ? (
+              <div className="w-full h-full bg-slate-50 rounded-xl animate-pulse border border-slate-100"></div>
+            ) : chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
@@ -193,7 +208,19 @@ const AdminOverview = () => {
         </div>
 
         <div className="divide-y divide-slate-100">
-          {recentApps.length === 0 ? (
+          {loading ? (
+            <div className="space-y-4 py-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="flex justify-between items-center gap-4">
+                  <div>
+                    <div className="h-5 w-32 bg-slate-100 rounded animate-pulse mb-2"></div>
+                    <div className="h-4 w-48 bg-slate-50 rounded animate-pulse"></div>
+                  </div>
+                  <div className="h-6 w-16 bg-slate-100 rounded-full animate-pulse"></div>
+                </div>
+              ))}
+            </div>
+          ) : recentApps.length === 0 ? (
             <EmptyState 
               title="Empty Queue" 
               description="No recent resume uploads in database. Job applications will appear here." 

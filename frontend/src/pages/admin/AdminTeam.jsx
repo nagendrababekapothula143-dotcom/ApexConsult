@@ -4,9 +4,10 @@ import { AuthContext } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import api from '../../services/api';
 import { Trash2 } from 'lucide-react';
+import TableSkeleton from '../../components/TableSkeleton';
 
 const AdminTeam = () => {
-  const { teamMembers, recruiters, fetchData } = useOutletContext();
+  const { teamMembers = [], recruiters = [], fetchData, loading } = useOutletContext() || {};
   const { user } = useContext(AuthContext);
   const toast = useToast();
   const [updatingId, setUpdatingId] = useState(null);
@@ -101,50 +102,56 @@ const AdminTeam = () => {
         </button>
       </div>
       
-      <div className="bg-white border border-slate-200 rounded-2xl overflow-x-auto shadow-xs">
+      <div className="bg-white border border-slate-200/70 rounded-3xl overflow-x-auto shadow-sm relative">
         <table className="w-full border-collapse text-left min-w-[800px]">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
-              <th className="p-4">Name</th>
-              <th className="p-4">Email</th>
-              <th className="p-4">Role Scope</th>
-              <th className="p-4">Joined On</th>
-              <th className="p-4 text-right">Actions</th>
+          <thead className="bg-white/90 backdrop-blur-md">
+            <tr className="border-b border-slate-200/60 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+              <th className="p-5">Name</th>
+              <th className="p-5">Email</th>
+              <th className="p-5">Role Scope</th>
+              <th className="p-5">Joined On</th>
+              <th className="p-5 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 text-sm">
-            {allTeamMembers.length === 0 ? (
+          <tbody className="divide-y divide-slate-100/80 text-sm">
+            {loading ? (
+              <tr>
+                <td colSpan="5" className="p-0">
+                  <TableSkeleton columns={5} rows={3} />
+                </td>
+              </tr>
+            ) : allTeamMembers.length === 0 ? (
               <tr>
                 <td colSpan="5" className="p-8 text-center text-slate-400">No team members loaded.</td>
               </tr>
             ) : (
               allTeamMembers.map((tm) => (
-                <tr key={tm._id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="p-4 font-bold text-slate-900">{tm.name}</td>
-                  <td className="p-4 text-slate-600">{tm.email}</td>
-                  <td className="p-4">
+                <tr key={tm._id} className="hover:bg-slate-50/80 transition-colors group">
+                  <td className="p-5 font-bold text-slate-900 group-hover:text-indigo-700 transition-colors">{tm.name}</td>
+                  <td className="p-5 text-slate-500 font-medium">{tm.email}</td>
+                  <td className="p-5">
                     {user?.role === 'admin' && user?._id !== tm._id && tm.role !== 'admin' ? (
                       <select 
                         value={tm.role}
                         onChange={(e) => handleRoleChange(tm._id, e.target.value)}
                         disabled={updatingId === tm._id}
-                        className={`text-xs font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-md border outline-none cursor-pointer bg-emerald-50 text-emerald-700 border-emerald-200 focus:border-emerald-400 ${updatingId === tm._id ? 'opacity-50' : ''}`}
+                        className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-1.5 rounded-md border outline-none cursor-pointer bg-emerald-50 text-emerald-700 border-emerald-100/50 shadow-xs focus:border-emerald-400 ${updatingId === tm._id ? 'opacity-50' : ''}`}
                       >
                         <option value="admin">Admin Access</option>
                         <option value="recruiter">Recruiter Access</option>
                       </select>
                     ) : (
-                      <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                        tm.role === 'admin' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-xs ${
+                        tm.role === 'admin' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100/50' : 'bg-emerald-50 text-emerald-700 border border-emerald-100/50'
                       }`}>
                         {tm.role} Access
                       </span>
                     )}
                   </td>
-                  <td className="p-4 text-slate-500">
+                  <td className="p-5 text-slate-400 font-medium">
                     {tm.createdAt ? new Date(tm.createdAt).toLocaleDateString() : 'N/A'}
                   </td>
-                  <td className="p-4 text-right">
+                  <td className="p-5 text-right">
                     {user?.role === 'admin' && tm.role !== 'admin' && (
                       <button
                         onClick={() => setDeleteModalData({ isOpen: true, memberId: tm._id, name: tm.name })}
@@ -165,59 +172,59 @@ const AdminTeam = () => {
 
       {/* Create Recruiter Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl p-6 custom-scrollbar">
-            <h2 className="text-xl font-bold text-slate-900 mb-2">Create Recruiter Account</h2>
-            <p className="text-sm text-slate-500 mb-6">Create a secure login for a new recruiter to access the portal.</p>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-white/95 backdrop-blur-xl rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl p-8 border border-slate-200/60 custom-scrollbar animate-in fade-in zoom-in-95 duration-300">
+            <h2 className="text-xl font-black text-slate-900 mb-2 tracking-tight">Create Recruiter Account</h2>
+            <p className="text-sm text-slate-500 mb-8 font-medium">Create a secure login for a new recruiter to access the portal.</p>
             
-            <form onSubmit={handleCreateRecruiter} className="space-y-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-slate-600">Full Name</label>
+            <form onSubmit={handleCreateRecruiter} className="space-y-5">
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Full Name</label>
                 <input
                   type="text"
                   required
                   value={newRecruiter.name}
                   onChange={(e) => setNewRecruiter({ ...newRecruiter, name: e.target.value })}
-                  className="bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 outline-none focus:border-indigo-500"
+                  className="bg-white/50 border border-slate-200/80 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium placeholder-slate-400 shadow-sm"
                   placeholder="Jane Doe"
                 />
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-slate-600">Email Address</label>
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Email Address</label>
                 <input
                   type="email"
                   required
                   value={newRecruiter.email}
                   onChange={(e) => setNewRecruiter({ ...newRecruiter, email: e.target.value })}
-                  className="bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 outline-none focus:border-indigo-500"
+                  className="bg-white/50 border border-slate-200/80 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium placeholder-slate-400 shadow-sm"
                   placeholder="jane@example.com"
                 />
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-slate-600">Temporary Password</label>
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Temporary Password</label>
                 <input
                   type="password"
                   required
                   value={newRecruiter.password}
                   onChange={(e) => setNewRecruiter({ ...newRecruiter, password: e.target.value })}
-                  className="bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 outline-none focus:border-indigo-500"
+                  className="bg-white/50 border border-slate-200/80 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium placeholder-slate-400 shadow-sm"
                   placeholder="At least 6 characters"
                   minLength={6}
                 />
               </div>
 
-              <div className="flex justify-end gap-3 mt-6">
+              <div className="flex justify-end gap-3 pt-6">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+                  className="px-5 py-2.5 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer border-none"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isCreating}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 text-sm font-semibold rounded-lg shadow-sm transition-colors cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-lg shadow-indigo-200 hover:shadow-indigo-300 rounded-xl transition-all cursor-pointer border-none disabled:opacity-50 active:scale-[0.98]"
                 >
                   {isCreating ? 'Creating...' : 'Create Account'}
                 </button>
@@ -229,10 +236,10 @@ const AdminTeam = () => {
 
       {/* Delete Confirmation Modal */}
       {deleteModalData.isOpen && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 border border-rose-100">
-            <h2 className="text-xl font-bold text-slate-900 mb-2">Delete Recruiter?</h2>
-            <p className="text-sm text-slate-500 mb-6">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-white/95 backdrop-blur-xl border border-slate-200/60 rounded-3xl shadow-2xl max-w-sm w-full p-8 animate-in fade-in zoom-in-95 duration-300">
+            <h2 className="text-xl font-black text-slate-900 mb-3 tracking-tight">Delete Recruiter?</h2>
+            <p className="text-sm text-slate-500 mb-8 font-medium leading-relaxed">
               Are you sure you want to permanently delete the recruiter account for <span className="font-bold text-slate-700">{deleteModalData.name}</span>? This action cannot be undone.
             </p>
             <div className="flex justify-end gap-3">
@@ -240,7 +247,7 @@ const AdminTeam = () => {
                 type="button"
                 onClick={() => setDeleteModalData({ isOpen: false, memberId: null, name: '' })}
                 disabled={deletingId !== null}
-                className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+                className="px-5 py-2.5 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer border-none"
               >
                 Cancel
               </button>
@@ -248,7 +255,7 @@ const AdminTeam = () => {
                 type="button"
                 onClick={confirmDelete}
                 disabled={deletingId !== null}
-                className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 text-sm font-semibold rounded-lg shadow-sm transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                className="px-5 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 shadow-lg shadow-red-200 hover:shadow-red-300 rounded-xl transition-all cursor-pointer border-none disabled:opacity-50 flex items-center gap-2 active:scale-[0.98]"
               >
                 {deletingId !== null ? 'Deleting...' : 'Yes, Delete Account'}
               </button>

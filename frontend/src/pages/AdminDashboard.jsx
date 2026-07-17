@@ -175,6 +175,7 @@ const AdminDashboard = () => {
 
   const fetchData = async (resources = []) => {
     try {
+      setLoading(true);
       const t = `?t=${Date.now()}`;
       
       const promises = [];
@@ -203,6 +204,8 @@ const AdminDashboard = () => {
     } catch (err) {
       console.error('Error fetching admin dashboard details:', err);
       setError('Could not retrieve requested information.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -372,10 +375,10 @@ const AdminDashboard = () => {
         end={end}
         onClick={() => setIsSidebarOpen(false)}
         className={({ isActive }) =>
-          `flex items-center gap-4 px-4 py-2.5 text-[14px] font-medium rounded-full w-full text-left transition-all cursor-pointer no-underline ${
-            isActive
-              ? 'bg-slate-100 text-slate-900 font-semibold'
-              : 'bg-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+          `flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-[15px] transition-all duration-200 border-none no-underline ${
+            isActive 
+              ? 'bg-indigo-600/10 text-indigo-400 font-semibold shadow-inner border border-indigo-500/20' 
+              : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800 hover:shadow-sm'
           }`
         }
       >
@@ -387,12 +390,10 @@ const AdminDashboard = () => {
 
 
 
-  if (loading) {
-    return <Loader text="Loading Kryntel..." fullScreen={true} />;
-  }
+  // Removed global loading block to allow layout to render immediately
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-indigo-500/30 font-sans">
       
       {/* Mobile Top Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 h-[64px] bg-white border-b border-slate-200 flex items-center justify-between px-6 z-40">
@@ -429,17 +430,17 @@ const AdminDashboard = () => {
       )}
 
       {/* LEFT SIDEBAR SECTION */}
-      <aside className={`w-[260px] bg-white border-r border-slate-100 flex flex-col justify-between h-screen fixed left-0 top-0 z-50 p-4 transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="flex flex-col gap-6 overflow-y-auto pr-1">
+      <aside className={`w-[270px] bg-slate-950 border-r border-slate-900/50 flex flex-col justify-between h-screen fixed left-0 top-0 z-50 p-5 transition-transform duration-300 lg:translate-x-0 shadow-2xl lg:shadow-none ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="flex flex-col gap-8 overflow-y-auto pr-2 custom-scrollbar-dark">
           
-          <div className="flex justify-between items-center pl-2">
-            <Link to="/" className="text-[22px] font-medium tracking-tight text-slate-800 flex items-center gap-2.5 no-underline hover:opacity-80 transition-opacity">
-              <img src="/Untitled%20design%20(1).png" alt="Kryntel Logo" className="w-7 h-7 object-contain shrink-0" />
+          <div className="flex justify-between items-center pl-1">
+            <Link to="/" className="text-2xl font-black tracking-tight flex items-center gap-3 no-underline hover:opacity-80 transition-opacity bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">
+              <img src="/Untitled%20design%20(1).png" alt="Kryntel Logo" className="w-8 h-8 object-contain shrink-0 drop-shadow-md" />
               Kryntel
             </Link>
             <button
               onClick={() => setIsSidebarOpen(false)}
-              className="lg:hidden bg-transparent border-none text-slate-400 hover:text-slate-800 text-xl font-semibold cursor-pointer p-1"
+              className="lg:hidden bg-transparent border-none text-slate-400 hover:text-white text-xl font-semibold cursor-pointer p-1"
               title="Close Menu"
               aria-label="Close Menu"
             >
@@ -449,8 +450,8 @@ const AdminDashboard = () => {
 
           <div className="mt-2">
 
-          <ul className="flex flex-col gap-1 list-none m-0 p-0">
-            <li>{renderNavLink('/admin/overview', <Icons.Dashboard />, 'Dashboard')}</li>
+          <ul className="flex flex-col gap-1.5 list-none m-0 p-0">
+            <li>{renderNavLink('/admin', <Icons.Dashboard />, 'Overview', true)}</li>
             <li>{renderNavLink('/admin/students', <Icons.Students />, 'All Students')}</li>
             <li>{renderNavLink('/admin/ats-resumes', <Icons.ATSResumes />, 'ATS Resumes')}</li>
             <li>{renderNavLink('/admin/post-jobs', <Icons.JobPlacements />, 'Post Jobs')}</li>
@@ -463,26 +464,26 @@ const AdminDashboard = () => {
         </div>
 
         {/* PROFILE CARD AT BOTTOM */}
-        <div className="flex items-center justify-between pt-4 mt-auto">
-          <div className="flex items-center gap-3 pl-2">
-            <div className="w-10 h-10 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center font-medium text-sm overflow-hidden shrink-0">
+        <div className="flex items-center justify-between pt-5 mt-auto border-t border-slate-800/50">
+          <div className="flex items-center gap-3 pl-1">
+            <div className="w-10 h-10 bg-gradient-to-tr from-indigo-600 to-violet-600 text-white rounded-full flex items-center justify-center font-bold text-sm overflow-hidden shrink-0 shadow-lg border border-indigo-500/30">
               {user?.avatarUrl ? (
                 <img src={getAvatarSource(user.avatarUrl)} alt={user.name} className="w-full h-full object-cover" />
               ) : (
-                <img src={`https://placehold.co/100x100?text=${(user?.name || "Sowmyarupa").charAt(0).toUpperCase()}`} alt="Avatar" className="w-full h-full object-cover" />
+                <img src={`https://placehold.co/100x100?text=${(user?.name || "A").charAt(0).toUpperCase()}`} alt="Avatar" className="w-full h-full object-cover" />
               )}
             </div>
             <div>
-              <h4 className="text-sm font-medium text-slate-800 leading-none mb-1">{user?.name || "Sowmyarupa"}</h4>
-              <p className="text-[12px] text-slate-500 font-normal">{user?.role === 'admin' ? "Mentor Team" : "Admin Staff"}</p>
+              <h4 className="text-sm font-semibold text-slate-200 leading-none mb-1">{user?.name || "Admin User"}</h4>
+              <p className="text-xs text-indigo-400/80 font-medium">{user?.role === 'admin' ? "Mentor Team" : "Admin Staff"}</p>
             </div>
           </div>
-          <div className="flex gap-1">
-            <button onClick={() => setIsProfileModalOpen(true)} className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="Profile Settings" aria-label="Profile Settings">
+          <div className="flex gap-0.5">
+            <button onClick={() => setIsProfileModalOpen(true)} className="p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="Profile Settings" aria-label="Profile Settings">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
             </button>
 
-            <button onClick={handleLogout} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="Sign Out" aria-label="Sign Out">
+            <button onClick={handleLogout} className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="Sign Out" aria-label="Sign Out">
               <Icons.Logout />
             </button>
           </div>
@@ -493,28 +494,29 @@ const AdminDashboard = () => {
       <GlobalProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
 
       {/* DYNAMIC CHILD WORKSPACE CONTENT */}
-      <main className="lg:pl-[260px] min-h-screen pt-[64px] lg:pt-0 bg-slate-50 flex flex-col">
+      <main className="lg:pl-[270px] min-h-screen pt-[64px] lg:pt-[80px] flex flex-col relative overflow-x-hidden">
         {/* Desktop Top Navbar / Header area */}
-        <div className="hidden lg:flex h-16 bg-white border-b border-slate-200 items-center justify-between px-8 z-30 sticky top-0">
+        <div className="hidden lg:flex h-20 bg-white/70 backdrop-blur-md border-b border-slate-200/50 items-center justify-between px-10 z-30 fixed top-0 right-0 lg:left-[270px] shadow-sm/50">
           <div className="flex-1"></div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-5">
             <ThemeToggle />
-            <div className="text-sm font-semibold text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg flex items-center justify-center gap-2 border border-slate-200 min-w-[220px] tabular-nums">
-              <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <div className="text-sm font-semibold text-slate-600 bg-white px-4 py-2 rounded-xl flex items-center justify-center gap-2 border border-slate-200/60 shadow-sm min-w-[220px] tabular-nums tracking-tight">
+              <svg className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               {currentTime.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })}
             </div>
-            <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs uppercase cursor-default border border-indigo-200 overflow-hidden" title={user?.email}>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-100 to-violet-100 text-indigo-700 flex items-center justify-center font-black text-sm uppercase cursor-default border border-indigo-200/50 shadow-sm overflow-hidden ring-2 ring-white" title={user?.email}>
               <img src={`https://placehold.co/100x100?text=${(user?.name || "A").charAt(0).toUpperCase()}`} alt="Avatar" className="w-full h-full object-cover" />
             </div>
           </div>
         </div>
 
-        <div className="p-4 md:p-8 flex-1 flex flex-col max-w-7xl mx-auto w-full">
+        <div className="p-6 md:p-10 flex-1 flex flex-col max-w-7xl mx-auto w-full">
 
             <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 flex-1 flex flex-col">
               <Outlet context={{
+              loading,
               jobs,
               selectedJob,
               handleJobSelect,
@@ -549,8 +551,8 @@ const AdminDashboard = () => {
 
       {/* CREATE JOB MODAL OVERLAY */}
       {showJobModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-300">
-          <div className="bg-white rounded-3xl w-full max-w-3xl max-h-[90vh] shadow-2xl relative flex flex-col overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-100">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-300">
+          <div className="bg-white/95 backdrop-blur-xl border border-slate-200/60 rounded-3xl w-full max-w-3xl max-h-[90vh] shadow-2xl relative flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
             
             {/* Modal Premium Header */}
             <div className="bg-slate-900 text-white p-6 sm:px-8 relative overflow-hidden shrink-0">

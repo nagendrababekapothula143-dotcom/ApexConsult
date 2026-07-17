@@ -22,19 +22,19 @@ const Navbar = () => {
 
   const isActive = (path) => {
     return location.pathname === path
-      ? 'text-sm text-indigo-600 font-semibold'
-      : 'text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium';
+      ? 'text-sm text-indigo-600 dark:text-indigo-400 font-semibold'
+      : 'text-sm text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors font-medium';
   };
 
   const isStudent = location.pathname.startsWith('/student');
 
   return (
-    <nav className={`sticky top-0 z-40 bg-white/85 backdrop-blur-md border-b border-slate-200 py-3 sm:py-4 ${isStudent ? 'lg:pl-[280px]' : ''}`}>
+    <nav className={`sticky top-0 z-40 bg-white/85 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800/50 py-3 sm:py-4 ${isStudent ? 'lg:pl-[280px]' : ''}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex justify-between items-center">
         {!isStudent ? (
-          <Link to="/" className="text-lg sm:text-2xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent flex items-center gap-1.5 sm:gap-2 no-underline">
-            <img src="/Untitled%20design%20(1).png" alt="Kryntel Logo" className="w-8 h-8 sm:w-10 sm:h-10 object-contain shrink-0" />
-            Kryntel <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-emerald-500 rounded-full inline-block"></span>
+          <Link to="/" className="text-lg sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5 sm:gap-2 no-underline">
+            <img src="/Untitled%20design%20(1).png" alt="Kryntel Logo" className="w-8 h-8 sm:w-10 sm:h-10 object-contain shrink-0 drop-shadow-md" />
+            Kryntel <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-indigo-500 rounded-full inline-block shadow-none dark:shadow-[0_0_10px_rgba(99,102,241,0.8)]"></span>
           </Link>
         ) : (
           <div /> // Spacer to preserve alignment
@@ -42,13 +42,6 @@ const Navbar = () => {
         
         {/* Desktop Navigation */}
         <ul className="hidden sm:flex items-center gap-6 list-none m-0 p-0 text-sm">
-          {!isStudent && (
-            <li>
-              <Link to="/" className={isActive('/')}>
-                Home
-              </Link>
-            </li>
-          )}
           {user ? (
             <>
               {user.role === 'admin' ? (
@@ -65,17 +58,17 @@ const Navbar = () => {
                 </li>
               )}
               <li className="flex items-center gap-2">
-                <span className="font-medium text-slate-700">
+                <span className="font-medium text-slate-700 dark:text-slate-300">
                   {user.name ? user.name.split(' ')[0] : 'Hi'}
                 </span>
-                <span className="bg-indigo-50 border border-indigo-200 text-indigo-600 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                <span className="bg-indigo-50 border-indigo-200 text-indigo-600 dark:bg-indigo-500/10 dark:border-indigo-500/20 dark:text-indigo-400 border px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
                   {user.role}
                 </span>
               </li>
               <li>
                 <button
                   onClick={handleLogout}
-                  className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-semibold text-xs px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                  className="bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 border dark:border-slate-700 dark:text-slate-300 font-semibold text-xs px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
                 >
                   Logout
                 </button>
@@ -89,13 +82,13 @@ const Navbar = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/register" className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-4 py-2 rounded-lg transition-colors no-underline">
+                <Link to="/register" className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs px-4 py-2 rounded-lg transition-colors no-underline shadow-none dark:shadow-[0_0_15px_-3px_rgba(99,102,241,0.4)]">
                   Get Started
                 </Link>
               </li>
             </>
           )}
-          <li className="pl-2 border-l border-slate-200 flex items-center">
+          <li className="pl-2 border-l border-slate-200 dark:border-slate-800 flex items-center">
             <ThemeToggle />
           </li>
         </ul>
@@ -104,7 +97,7 @@ const Navbar = () => {
         <div className="sm:hidden flex items-center">
           <button 
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="text-slate-600 hover:text-slate-900 focus:outline-none p-1"
+            className="text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white focus:outline-none p-1"
           >
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               {isMobileMenuOpen ? (
@@ -119,12 +112,7 @@ const Navbar = () => {
 
       {/* Mobile Dropdown Menu */}
       {isMobileMenuOpen && (
-        <div className="sm:hidden absolute top-full left-0 w-full bg-white border-b border-slate-200 shadow-lg py-4 px-4 flex flex-col gap-4">
-          {!isStudent && (
-            <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className={isActive('/')}>
-              Home
-            </Link>
-          )}
+        <div className="sm:hidden absolute top-full left-0 w-full bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 shadow-lg dark:shadow-xl dark:shadow-slate-900/50 py-4 px-4 flex flex-col gap-4">
           {user ? (
             <>
               {user.role === 'admin' ? (
@@ -136,17 +124,17 @@ const Navbar = () => {
                   Find Jobs
                 </Link>
               )}
-              <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
-                <span className="font-medium text-slate-700">
+              <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <span className="font-medium text-slate-700 dark:text-slate-300">
                   {user.name || 'Hi'}
                 </span>
-                <span className="bg-indigo-50 border border-indigo-200 text-indigo-600 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                <span className="bg-indigo-50 border-indigo-200 text-indigo-600 dark:bg-indigo-500/10 dark:border-indigo-500/20 dark:text-indigo-400 border px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
                   {user.role}
                 </span>
               </div>
               <button
                 onClick={handleLogout}
-                className="bg-slate-50 border border-slate-200 text-slate-700 font-semibold text-xs px-3 py-2 rounded-lg text-left"
+                className="bg-slate-50 border-slate-200 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:hover:bg-slate-700 dark:text-slate-300 border font-semibold text-xs px-3 py-2 rounded-lg text-left transition-colors"
               >
                 Logout
               </button>
@@ -156,12 +144,12 @@ const Navbar = () => {
               <Link to="/login" onClick={() => setIsMobileMenuOpen(false)} className={isActive('/login')}>
                 Login
               </Link>
-              <Link to="/register" onClick={() => setIsMobileMenuOpen(false)} className="bg-indigo-600 text-center text-white font-semibold text-xs px-4 py-2 rounded-lg">
+              <Link to="/register" onClick={() => setIsMobileMenuOpen(false)} className="bg-indigo-600 text-center text-white font-semibold text-xs px-4 py-2 rounded-lg shadow-none dark:shadow-[0_0_15px_-3px_rgba(99,102,241,0.4)]">
                 Get Started
               </Link>
             </div>
           )}
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500">Theme</span>
             <ThemeToggle />
           </div>

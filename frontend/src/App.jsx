@@ -6,6 +6,7 @@ import Navbar from './components/Navbar';
 import Loader from './components/Loader';
 import { ToastProvider } from './context/ToastContext';
 import OfflineScreen from './components/OfflineScreen';
+import ScrollToTop from './components/ScrollToTop';
 
 // Lazy load pages for Code Splitting
 const Home = lazy(() => import('./pages/Home'));
@@ -16,7 +17,7 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const RecruiterDashboard = lazy(() => import('./pages/recruiter/RecruiterDashboard'));
 
 // Sub-pages for admin nested routing
-const AdminOverview = lazy(() => import('./pages/admin/AdminOverview'));
+import AdminOverview from './pages/admin/AdminOverview';
 const AdminStudents = lazy(() => import('./pages/admin/AdminStudents'));
 const AdminATSResumes = lazy(() => import('./pages/admin/AdminATSResumes'));
 const AdminTeam = lazy(() => import('./pages/admin/AdminTeam'));
@@ -92,6 +93,7 @@ function App() {
     <AuthProvider>
       <SocketProvider>
         <Router>
+        <ScrollToTop />
         <ToastProvider>
         <OfflineScreen />
         <Navbar />
@@ -123,8 +125,7 @@ function App() {
                 </AdminRoute>
               }
             >
-              <Route index element={<Navigate to="/admin/overview" replace />} />
-              <Route path="overview" element={<AdminOverview />} />
+              <Route index element={<AdminOverview />} />
               <Route path="students" element={<AdminStudents />} />
               <Route path="ats-resumes" element={<AdminATSResumes />} />
               <Route path="post-jobs" element={<AdminPlacements />} />

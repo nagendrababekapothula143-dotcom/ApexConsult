@@ -8,7 +8,7 @@ import useDebounce from '../../hooks/useDebounce';
 
 const StudentJobs = () => {
   const { user } = useContext(AuthContext);
-  const { toast } = useToast();
+  const toast = useToast();
   const {
     jobs,
     applications,
@@ -25,7 +25,9 @@ const StudentJobs = () => {
     getStatusBadgeClass,
     getResumeDownloadUrl,
     setApplications,
-    handleRequestAssistance
+    handleRequestAssistance,
+    loading,
+    fetchData
   } = useOutletContext();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -74,6 +76,12 @@ const StudentJobs = () => {
       ? `${selectedJob.title} - ${selectedJob.company} | Student Console`
       : 'Job Board | Student Console';
   }, [selectedJob]);
+
+  useEffect(() => {
+    if (jobs.length === 0 || applications.length === 0) {
+      fetchData(['jobs', 'applications']);
+    }
+  }, []);
 
   useEffect(() => {
     if (jobs.length > 0) {
@@ -538,7 +546,9 @@ const StudentJobs = () => {
             Recommended based on your Major
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {recommendedJobs.map((job) => (
+            {loading ? (
+              [1, 2, 3].map(i => <div key={i} className="h-32 bg-white border border-slate-100 rounded-2xl shadow-sm animate-pulse"></div>)
+            ) : recommendedJobs.map((job) => (
               <div 
                 key={`rec-${job._id}`}
                 onClick={() => {
@@ -575,9 +585,13 @@ const StudentJobs = () => {
             </h2>
           </div>
         
-        {filteredJobs.length === 0 ? (
-          <div className="text-center py-16 border border-slate-100 border-dashed rounded-xl bg-white">
-            <p className="text-slate-500 text-sm">No jobs match your search parameters.</p>
+        {loading ? (
+          <div className="flex flex-col gap-4">
+            {[1, 2, 3, 4].map(i => <div key={i} className="h-24 bg-white border border-slate-100 rounded-2xl animate-pulse shadow-sm"></div>)}
+          </div>
+        ) : filteredJobs.length === 0 ? (
+          <div className="text-center py-16 border border-slate-100 border-dashed rounded-xl bg-white shadow-sm">
+            <p className="text-slate-500 text-sm font-medium">No jobs match your search parameters.</p>
           </div>
         ) : (
           <div className="flex flex-col gap-5">
@@ -588,7 +602,11 @@ const StudentJobs = () => {
               return (
                 <div
                   key={job._id}
-                  className={`bg-white border rounded-2xl overflow-hidden transition-all duration-300 ${isExpanded ? 'border-indigo-500 ring-4 ring-indigo-50 shadow-md' : 'border-slate-200 hover:border-indigo-300 hover:shadow-sm'}`}
+                  className={`border rounded-2xl overflow-hidden transition-all duration-300 group ${
+                    isExpanded 
+                      ? 'border-indigo-300 ring-4 ring-indigo-500/10 shadow-lg bg-white relative z-10' 
+                      : 'border-slate-200 hover:border-indigo-200 bg-white shadow-sm hover:shadow-md'
+                  }`}
                 >
                   {/* Job Header Row (Clickable) */}
                   <div 
@@ -752,8 +770,8 @@ const StudentJobs = () => {
 
       {/* AI TAILORING MODAL */}
       {showTailorModal && (
-        <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-4xl p-6 shadow-xl relative max-h-[95vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-white/95 backdrop-blur-xl border border-white/20 rounded-3xl w-full max-w-4xl p-6 shadow-2xl relative max-h-[95vh] overflow-y-auto">
             <button
               onClick={() => setShowTailorModal(false)}
               className="absolute top-4 right-4 bg-transparent border-none text-slate-400 hover:text-slate-950 text-2xl font-semibold cursor-pointer"
@@ -809,8 +827,8 @@ const StudentJobs = () => {
       )}
       {/* EXTERNAL APPLY CONFIRMATION MODAL */}
       {showConfirmModal && (
-        <div className="fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-white/95 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl w-full max-w-md p-6 sm:p-8 relative">
             <button
               type="button"
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 text-xl font-bold bg-transparent border-none cursor-pointer"

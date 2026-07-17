@@ -146,10 +146,10 @@ const RecruiterDashboard = () => {
         end={end}
         onClick={() => setIsSidebarOpen(false)}
         className={({ isActive }) =>
-          `flex items-center gap-3 px-4 py-2.5 text-sm font-semibold rounded-xl w-full text-left transition-all cursor-pointer no-underline ${
-            isActive
-              ? 'bg-slate-100 text-indigo-600'
-              : 'bg-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+          `flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-[15px] transition-all duration-200 border-none no-underline ${
+            isActive 
+              ? 'bg-indigo-600/10 text-indigo-400 font-semibold shadow-inner border border-indigo-500/20' 
+              : 'text-slate-400 hover:text-slate-50 hover:bg-slate-800 hover:shadow-sm'
           }`
         }
       >
@@ -160,10 +160,10 @@ const RecruiterDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-inter">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-500/30">
       
       {/* Mobile Top Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 h-[64px] bg-white border-b border-slate-200 flex items-center justify-between px-6 z-40">
+      <header className="lg:hidden fixed top-0 left-0 right-0 h-[64px] bg-white/70 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 z-40">
         <button
           onClick={() => setIsSidebarOpen(true)}
           className="bg-transparent border-none text-slate-600 hover:text-slate-900 cursor-pointer p-1.5 focus:outline-none"
@@ -194,13 +194,13 @@ const RecruiterDashboard = () => {
       )}
 
       {/* LEFT SIDEBAR SECTION */}
-      <aside className={`w-[280px] bg-white border-r border-slate-200 flex flex-col justify-between h-screen fixed left-0 top-0 z-50 p-6 transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="flex flex-col gap-6 overflow-y-auto pr-1">
+      <aside className={`w-[270px] bg-slate-950 border-r border-slate-900/50 flex flex-col justify-between h-screen fixed left-0 top-0 z-50 p-5 transition-transform duration-300 lg:translate-x-0 shadow-2xl lg:shadow-none ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="flex flex-col gap-8 overflow-y-auto pr-2 custom-scrollbar-dark">
           
-          <div className="flex justify-between items-center">
-            <Link to="/" className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent flex items-center gap-1.5 no-underline hover:opacity-90 transition-opacity">
-              <img src="/Untitled%20design%20(1).png" alt="Kryntel Logo" className="w-8 h-8 object-contain shrink-0 -ml-1" />
-              Kryntel <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full inline-block"></span>
+          <div className="flex justify-between items-center pl-1">
+            <Link to="/" className="text-2xl font-black tracking-tight flex items-center gap-3 no-underline hover:opacity-80 transition-opacity bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">
+              <img src="/Untitled%20design%20(1).png" alt="Kryntel Logo" className="w-8 h-8 object-contain shrink-0 drop-shadow-md" />
+              Kryntel
             </Link>
             <button
               onClick={() => setIsSidebarOpen(false)}
@@ -212,18 +212,17 @@ const RecruiterDashboard = () => {
             </button>
           </div>
 
-          <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 px-4">Navigation</span>
-
-          <ul className="flex flex-col gap-1 list-none m-0 p-0">
+          <div className="mt-2">
+            <ul className="flex flex-col gap-1.5 list-none m-0 p-0">
             <li>{renderNavLink('/recruiter', <Icons.Students />, 'Assigned Students', true)}</li>
-          </ul>
-
+            </ul>
+          </div>
         </div>
 
         {/* PROFILE CARD AT BOTTOM */}
-        <div className="flex items-center justify-between pt-4 border-t border-slate-200 mt-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-slate-100 border border-slate-200 rounded-full flex items-center justify-center font-bold text-slate-800 overflow-hidden shrink-0">
+        <div className="flex items-center justify-between pt-5 mt-auto border-t border-slate-800/50">
+          <div className="flex items-center gap-3 pl-1">
+            <div className="w-10 h-10 bg-gradient-to-tr from-indigo-600 to-violet-600 text-white rounded-full flex items-center justify-center font-bold text-sm overflow-hidden shrink-0 shadow-lg border border-indigo-500/30">
               {user?.avatarUrl ? (
                 <img src={getAvatarSource(user.avatarUrl)} alt={user.name} className="w-full h-full object-cover" />
               ) : (
@@ -231,18 +230,18 @@ const RecruiterDashboard = () => {
               )}
             </div>
             <div>
-              <h4 className="text-xs font-bold text-slate-900 leading-none mb-1">{user?.name || "Recruiter"}</h4>
-              <p className="text-[10px] text-slate-400 font-medium">Recruiter Team</p>
+              <h4 className="text-sm font-semibold text-slate-200 leading-none mb-1">{user?.name || "Recruiter"}</h4>
+              <p className="text-xs text-indigo-400/80 font-medium">Recruiter Team</p>
             </div>
           </div>
-          <div className="flex gap-1.5">
-            <button onClick={() => setIsProfileModalOpen(true)} className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="Profile Settings" aria-label="Profile Settings">
+          <div className="flex gap-1.5 pr-1">
+            <button onClick={() => setIsProfileModalOpen(true)} className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="Profile Settings" aria-label="Profile Settings">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
             </button>
-            <button className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="Open Chat" aria-label="Open Chat">
+            <button className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="Open Chat" aria-label="Open Chat">
               <Icons.Chat />
             </button>
-            <button onClick={handleLogout} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="Sign Out" aria-label="Sign Out">
+            <button onClick={handleLogout} className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer border-none bg-transparent" title="Sign Out" aria-label="Sign Out">
               <Icons.Logout />
             </button>
           </div>
@@ -253,7 +252,7 @@ const RecruiterDashboard = () => {
       <GlobalProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
 
       {/* Main Content Area */}
-      <main className="lg:pl-[280px] min-h-screen pt-[64px] lg:pt-0">
+      <main className="lg:pl-[270px] min-h-screen pt-[64px] lg:pt-0">
         <div className="p-4 md:p-8">
         
           <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
@@ -279,8 +278,10 @@ const RecruiterDashboard = () => {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-20">
-            <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="bg-white border border-slate-100 rounded-3xl p-6 h-64 animate-pulse shadow-sm"></div>
+            ))}
           </div>
         ) : (() => {
           const displayedApps = applications.filter(app => 
@@ -291,16 +292,16 @@ const RecruiterDashboard = () => {
 
           if (displayedApps.length === 0) {
             return (
-              <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
-                <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <div className="bg-white/80 backdrop-blur-sm rounded-3xl border border-slate-200/70 p-12 text-center shadow-sm max-w-2xl mx-auto mt-10">
+                <div className="w-16 h-16 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-sm">
                   <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 mb-1">
+                <h3 className="text-xl font-extrabold text-slate-900 mb-2">
                   {activeTab === 'pending' ? 'No Pending Applications' : 'No Completed Applications'}
                 </h3>
-                <p className="text-slate-500 text-sm max-w-sm mx-auto">
+                <p className="text-slate-500 text-sm font-medium max-w-sm mx-auto">
                   {activeTab === 'pending' 
                     ? 'You currently have no students assigned to you for assistance.' 
                     : 'You have not completed any application assistance yet.'}
@@ -312,8 +313,8 @@ const RecruiterDashboard = () => {
           return (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {displayedApps.map((app) => (
-              <div key={app._id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col">
-                <div className="p-5 border-b border-slate-100">
+              <div key={app._id} className="bg-white/90 backdrop-blur-md rounded-3xl border border-slate-200/70 overflow-hidden shadow-sm hover:shadow-md hover:border-indigo-200 transition-all flex flex-col group">
+                <div className="p-6 border-b border-slate-100">
                   <div className="flex justify-between items-start mb-3">
                     <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
                       app.status === 'recruiter_requested' ? 'bg-amber-50 text-amber-600 border border-amber-200' :

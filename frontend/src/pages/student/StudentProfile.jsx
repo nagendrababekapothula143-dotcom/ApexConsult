@@ -152,7 +152,7 @@ const StudentProfile = () => {
         </div>
       )}
 
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-xs max-w-2xl">
+      <div className="bg-white/95 backdrop-blur-md border border-slate-200/70 rounded-3xl p-6 md:p-8 shadow-sm max-w-3xl mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-8 pb-8 border-b border-slate-100">
           <div className="flex items-center gap-6">
             {isEditing ? (
@@ -192,12 +192,12 @@ const StudentProfile = () => {
           </div>
           <div className="flex gap-3">
             <ResumeGenerator user={user} />
-            <button 
-              onClick={() => setIsEditing(!isEditing)}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm px-4 py-2 rounded-lg transition-colors border-none cursor-pointer"
-            >
-              {isEditing ? 'Cancel Edit' : 'Edit Profile'}
-            </button>
+              <button 
+                onClick={() => setIsEditing(!isEditing)}
+                className="bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-sm px-5 py-2.5 rounded-xl transition-all border border-slate-200 shadow-sm cursor-pointer"
+              >
+                {isEditing ? 'Cancel Edit' : 'Edit Profile'}
+              </button>
           </div>
         </div>
 
@@ -213,7 +213,7 @@ const StudentProfile = () => {
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 font-semibold focus:border-indigo-500 outline-none transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 font-semibold focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-50 outline-none transition-all"
                   required
                 />
               </div>
@@ -222,7 +222,7 @@ const StudentProfile = () => {
                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
                   Email Address
                 </label>
-                <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-400 font-semibold cursor-not-allowed" title="Email cannot be changed">
+                <div className="bg-slate-100/50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-400 font-semibold cursor-not-allowed" title="Email cannot be changed">
                   {user.email}
                 </div>
               </div>
@@ -237,7 +237,7 @@ const StudentProfile = () => {
                   value={formData.phone}
                   onChange={handleChange}
                   placeholder="+1 (555) 000-0000"
-                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 font-semibold focus:border-indigo-500 outline-none transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 font-semibold focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-50 outline-none transition-all"
                 />
               </div>
 
@@ -274,7 +274,7 @@ const StudentProfile = () => {
                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
                   Technical Skills (Press Enter or Comma to add)
                 </label>
-                <div className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 min-h-[50px] flex flex-wrap gap-2 items-center focus-within:border-indigo-500 transition-all">
+                <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 min-h-[50px] flex flex-wrap gap-2 items-center focus-within:border-indigo-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-indigo-50 transition-all">
                   {formData.technicalSkills.map((skill, index) => (
                     <span key={index} className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded-md text-xs font-bold flex items-center gap-1">
                       {skill}
