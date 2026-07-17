@@ -20,7 +20,7 @@ const AdminDashboard = () => {
   const [applications, setApplications] = useState([]);
   const [globalApplications, setGlobalApplications] = useState([]);
   const [students, setStudents] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [loadingApps, setLoadingApps] = useState(false);
   const [hasUnreadSupport, setHasUnreadSupport] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -210,9 +210,7 @@ const AdminDashboard = () => {
   };
 
   useEffect(() => {
-    if (user?.role === 'admin') {
-      fetchUnreadStatus();
-    }
+    // Unread status polling removed because messages API was deleted
   }, [user]);
 
   // Set default document title if not set by children
@@ -274,15 +272,6 @@ const AdminDashboard = () => {
       setError('Could not retrieve candidate applications.');
     } finally {
       setLoadingApps(false);
-    }
-  };
-
-  const fetchUnreadStatus = async () => {
-    try {
-      const res = await api.get('/messages/admin/unread');
-      setHasUnreadSupport(res.data.hasUnread);
-    } catch (err) {
-      console.error('Failed to fetch unread status', err);
     }
   };
 
