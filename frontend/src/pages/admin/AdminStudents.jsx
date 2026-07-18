@@ -331,58 +331,60 @@ const AdminStudents = () => {
               </button>
             </div>
 
-            {/* Form Body - Scrollable without visible scrollbar */}
-            <form onSubmit={handleEditSubmit} className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Full Name</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={editModalConfig.formData.name}
-                  onChange={handleEditChange}
-                  className="bg-white/50 border border-slate-200/80 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium placeholder-slate-400 shadow-sm"
-                  required
-                />
+            <form onSubmit={handleEditSubmit} className="flex flex-col overflow-hidden max-h-full">
+              {/* Form Body - Scrollable without visible scrollbar */}
+              <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Full Name</label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={editModalConfig.formData.name}
+                    onChange={handleEditChange}
+                    className="bg-white/50 border border-slate-200/80 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium placeholder-slate-400 shadow-sm"
+                    required
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Email Address</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={editModalConfig.formData.email}
+                    onChange={handleEditChange}
+                    className="bg-white/50 border border-slate-200/80 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium placeholder-slate-400 shadow-sm"
+                    required
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Phone Number</label>
+                  <input
+                    type="text"
+                    name="phone"
+                    value={editModalConfig.formData.phone}
+                    onChange={handleEditChange}
+                    placeholder="+1 (555) 000-0000"
+                    className="bg-white/50 border border-slate-200/80 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium placeholder-slate-400 shadow-sm"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">LinkedIn URL</label>
+                  <input
+                    type="url"
+                    name="linkedinUrl"
+                    value={editModalConfig.formData.linkedinUrl}
+                    onChange={handleEditChange}
+                    placeholder="https://linkedin.com/in/username"
+                    className="bg-white/50 border border-slate-200/80 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium placeholder-slate-400 shadow-sm"
+                  />
+                </div>
               </div>
 
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Email Address</label>
-                <input
-                  type="email"
-                  name="email"
-                  value={editModalConfig.formData.email}
-                  onChange={handleEditChange}
-                  className="bg-white/50 border border-slate-200/80 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium placeholder-slate-400 shadow-sm"
-                  required
-                />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Phone Number</label>
-                <input
-                  type="text"
-                  name="phone"
-                  value={editModalConfig.formData.phone}
-                  onChange={handleEditChange}
-                  placeholder="+1 (555) 000-0000"
-                  className="bg-white/50 border border-slate-200/80 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium placeholder-slate-400 shadow-sm"
-                />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">LinkedIn URL</label>
-                <input
-                  type="url"
-                  name="linkedinUrl"
-                  value={editModalConfig.formData.linkedinUrl}
-                  onChange={handleEditChange}
-                  placeholder="https://linkedin.com/in/username"
-                  className="bg-white/50 border border-slate-200/80 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium placeholder-slate-400 shadow-sm"
-                />
-              </div>
-
-              {/* Footer Buttons */}
-              <div className="pt-4 flex justify-end gap-3 sticky bottom-0 bg-white/95 pb-2">
+              {/* Footer Buttons - Fixed */}
+              <div className="p-6 sm:p-8 pt-4 flex justify-end gap-3 border-t border-slate-100 shrink-0 bg-slate-50/50">
                 <button 
                   type="button"
                   onClick={() => setEditModalConfig({ isOpen: false, student: null, formData: { name: '', email: '', phone: '', linkedinUrl: '' } })}
