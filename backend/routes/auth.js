@@ -379,30 +379,13 @@ router.get('/me', protect, async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
-        _id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        avatarUrl: user.avatarUrl
+        ...user,
+        _id: user.id
       }
     });
   } catch (error) {
     console.error('Get me error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
-  }
-});
-
-
-
-// @desc    Get current logged in user
-// @route   GET /api/auth/me
-// @access  Private
-router.get('/me', protect, async (req, res) => {
-  try {
-    res.status(200).json({ success: true, data: req.user });
-  } catch (error) {
-    console.error('Fetch me error:', error);
-    res.status(500).json({ success: false, message: error.message });
   }
 });
 
