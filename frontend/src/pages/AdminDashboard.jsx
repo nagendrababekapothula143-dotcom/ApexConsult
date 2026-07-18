@@ -361,6 +361,7 @@ const AdminDashboard = () => {
   };
 
   const getResumeDownloadUrl = (url) => {
+    if (!url) return '';
     if (url.startsWith('/uploads')) {
       const baseUrl = getBaseUrl().replace('/api', '');
       return `${baseUrl}${url}`;
