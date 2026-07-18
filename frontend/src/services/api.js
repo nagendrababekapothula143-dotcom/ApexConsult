@@ -15,8 +15,8 @@ export const getBaseUrl = () => {
     return 'http://localhost:5000/api';
   }
   
-  // If running in production (Vercel), connect to the live Render backend
-  return 'https://apexconsult.onrender.com/api';
+  // If running in production, connect to the live Vercel backend
+  return 'https://apex-consult-nine.vercel.app/api';
 };
 
 export const getAvatarSource = (avatarUrl) => {
