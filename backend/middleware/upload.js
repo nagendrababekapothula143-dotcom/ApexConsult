@@ -25,9 +25,10 @@ const uploadMemory = multer({
   fileFilter,
 }).single('resume');
 
-// Create uploads folder if it doesn't exist (for local fallback)
+// Create uploads folder if it doesn't exist (for local fallback - DISABLED on Vercel)
 const uploadsDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadsDir)) {
+const isServerless = process.env.VERCEL || process.env.NODE_ENV === 'production';
+if (!isServerless && !fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
