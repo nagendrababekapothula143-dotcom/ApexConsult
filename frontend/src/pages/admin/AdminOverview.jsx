@@ -121,10 +121,10 @@ const AdminOverview = () => {
               <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span> Total Revenue
             </h4>
             {loading ? (
-              <div className="text-4xl font-black mb-1 tracking-tight text-indigo-400 drop-shadow-md animate-pulse">$0</div>
+              <div className="text-4xl font-black mb-1 tracking-tight text-indigo-400 drop-shadow-md animate-pulse">₹0</div>
             ) : (
               <div className="text-4xl font-black mb-1 tracking-tight text-white drop-shadow-md">
-                ${totalRevenue.toLocaleString()}
+                ₹{totalRevenue.toLocaleString()}
               </div>
             )}
             <p className="text-xs text-indigo-200/80 font-medium">From {acceptedAppsCount} accepted placements</p>

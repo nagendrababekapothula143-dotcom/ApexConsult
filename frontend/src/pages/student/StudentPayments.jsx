@@ -54,7 +54,7 @@ const StudentPayments = () => {
     const options = {
       key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TEwFkiQm9rCHCi', 
       amount: payment.amount * 100, 
-      currency: "USD",
+      currency: "INR",
       name: "Apex Consulting",
       description: "Consulting Placement Fee",
       image: "/Untitled design (1).png",
@@ -142,7 +142,7 @@ const StudentPayments = () => {
                         {new Date(payment.createdAt).toLocaleDateString()}
                       </td>
                       <td className="p-4 font-black text-slate-900">
-                        ${payment.amount.toLocaleString()}
+                        ₹{payment.amount.toLocaleString()}
                       </td>
                       <td className="p-4">
                         {payment.status === 'completed' ? (

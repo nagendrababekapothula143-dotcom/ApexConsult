@@ -48,7 +48,7 @@ const AdminPayments = () => {
       return;
     }
     
-    const headers = ['Order ID', 'Student Name', 'Student Email', 'Student ID', 'Amount (USD)', 'Status', 'Date Generated'];
+    const headers = ['Order ID', 'Student Name', 'Student Email', 'Student ID', 'Amount (INR)', 'Status', 'Date Generated'];
     const csvRows = [
       headers.join(','),
       ...payments.map(p => [
@@ -116,13 +116,13 @@ const AdminPayments = () => {
             </div>
             
             <div className="w-full sm:w-48">
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Amount ($)</label>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Amount (₹)</label>
               <input
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 min="1"
-                placeholder="e.g. 500"
+                placeholder="e.g. 50000"
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none focus:bg-white focus:border-indigo-500 transition-all font-medium"
                 required
               />
@@ -172,7 +172,7 @@ const AdminPayments = () => {
                       {payment.razorpayOrderId}
                     </td>
                     <td className="p-4 font-bold text-slate-800">
-                      ${payment.amount.toLocaleString()}
+                      ₹{payment.amount.toLocaleString()}
                     </td>
                     <td className="p-4">
                       {payment.status === 'completed' ? (

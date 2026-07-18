@@ -58,10 +58,10 @@ router.post('/create-order', protect, authorize('admin', 'recruiter'), async (re
       return res.status(400).json({ success: false, error: 'Student ID and amount are required' });
     }
 
-    // Razorpay expects amount in cents for USD (multiply by 100)
+    // Razorpay expects amount in paise (multiply by 100)
     const options = {
       amount: amount * 100,
-      currency: 'USD',
+      currency: 'INR',
       receipt: `receipt_order_${Date.now()}`
     };
 
