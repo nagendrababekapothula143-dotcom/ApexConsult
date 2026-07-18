@@ -99,8 +99,9 @@ function App() {
     <AuthProvider>
       <SocketProvider>
         <Router>
-        <ScrollToTop />
         <ToastProvider>
+        <MaintenanceModal />
+        <ScrollToTop />
         <OfflineScreen />
         <Navbar />
         <Suspense fallback={<Loader text="Loading Kryntel..." fullScreen={true} />}>
@@ -156,7 +157,6 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
-        <MaintenanceModal />
         </ToastProvider>
         </Router>
       </SocketProvider>

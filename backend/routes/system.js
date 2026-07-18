@@ -90,10 +90,12 @@ router.get('/settings', async (req, res) => {
     
     const response = await docClient.send(command);
     const maintenanceMode = response.Item ? response.Item.value : false;
+    const scheduledMaintenanceTime = response.Item ? response.Item.scheduledMaintenanceTime : null;
     
     res.status(200).json({
       success: true,
-      maintenanceMode
+      maintenanceMode,
+      scheduledMaintenanceTime
     });
   } catch (err) {
     console.error('DynamoDB GetSettings error:', err);
@@ -106,13 +108,14 @@ router.get('/settings', async (req, res) => {
 // @access  Private/Admin
 router.put('/settings', protect, authorize('admin'), async (req, res) => {
   try {
-    const { maintenanceMode } = req.body;
+    const { maintenanceMode, scheduledMaintenanceTime } = req.body;
     
     const command = new PutCommand({
       TableName: 'consulting_settings',
       Item: {
         settingKey: 'maintenanceMode',
         value: Boolean(maintenanceMode),
+        scheduledMaintenanceTime: scheduledMaintenanceTime || null,
         updatedAt: new Date().toISOString()
       }
     });
@@ -121,7 +124,8 @@ router.put('/settings', protect, authorize('admin'), async (req, res) => {
     
     res.status(200).json({
       success: true,
-      maintenanceMode: Boolean(maintenanceMode)
+      maintenanceMode: Boolean(maintenanceMode),
+      scheduledMaintenanceTime: scheduledMaintenanceTime || null
     });
   } catch (err) {
     console.error('DynamoDB PutSettings error:', err);

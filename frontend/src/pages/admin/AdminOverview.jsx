@@ -12,6 +12,7 @@ const AdminOverview = () => {
   const [systemMetrics, setSystemMetrics] = useState(null);
   const [healthLoading, setHealthLoading] = useState(true);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [scheduledMaintenanceTime, setScheduledMaintenanceTime] = useState('');
   const [togglingMaintenance, setTogglingMaintenance] = useState(false);
 
   useEffect(() => {
@@ -33,6 +34,14 @@ const AdminOverview = () => {
       try {
         const res = await api.get('/system/settings');
         setMaintenanceMode(res.data.maintenanceMode);
+        if (res.data.scheduledMaintenanceTime) {
+          // Format the ISO string to YYYY-MM-DDThh:mm for the datetime-local input
+          const d = new Date(res.data.scheduledMaintenanceTime);
+          const formatted = d.toISOString().slice(0, 16);
+          setScheduledMaintenanceTime(formatted);
+        } else {
+          setScheduledMaintenanceTime('');
+        }
       } catch (err) {
         console.error('Failed to fetch settings', err);
       }
@@ -45,14 +54,45 @@ const AdminOverview = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const toggleMaintenance = async () => {
+  const toggleMaintenance = async (isScheduled = false, clearSchedule = false) => {
     try {
       setTogglingMaintenance(true);
-      const res = await api.put('/system/settings', { maintenanceMode: !maintenanceMode });
+      
+      let payload = { maintenanceMode: !maintenanceMode };
+      
+      if (isScheduled) {
+        payload = { 
+          maintenanceMode: false, // Keep it off right now, wait for schedule
+          scheduledMaintenanceTime: new Date(scheduledMaintenanceTime).toISOString() 
+        };
+      } else if (clearSchedule) {
+        payload = {
+          maintenanceMode,
+          scheduledMaintenanceTime: null
+        };
+      } else {
+        // Just toggling mode immediately, keep schedule as is or clear it
+        payload.scheduledMaintenanceTime = clearSchedule ? null : (scheduledMaintenanceTime ? new Date(scheduledMaintenanceTime).toISOString() : null);
+      }
+
+      const res = await api.put('/system/settings', payload);
       setMaintenanceMode(res.data.maintenanceMode);
+      
+      if (res.data.scheduledMaintenanceTime) {
+        const d = new Date(res.data.scheduledMaintenanceTime);
+        setScheduledMaintenanceTime(d.toISOString().slice(0, 16));
+      } else {
+        setScheduledMaintenanceTime('');
+      }
+      
+      if (isScheduled) {
+        alert('Maintenance scheduled successfully!');
+      } else if (clearSchedule) {
+        alert('Maintenance schedule cleared.');
+      }
     } catch (err) {
-      console.error('Failed to toggle maintenance mode', err);
-      alert('Failed to toggle maintenance mode.');
+      console.error('Failed to update maintenance settings', err);
+      alert('Failed to update maintenance settings.');
     } finally {
       setTogglingMaintenance(false);
     }
@@ -178,21 +218,53 @@ const AdminOverview = () => {
 
       {/* System Health Monitor */}
       <div>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
           <h3 className="text-lg font-black text-slate-900 tracking-tight">System Health</h3>
           
-          <button 
-            onClick={toggleMaintenance}
-            disabled={togglingMaintenance}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-all duration-300 ${
-              maintenanceMode 
-                ? 'bg-rose-100 text-rose-700 hover:bg-rose-200 border border-rose-200' 
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
-            }`}
-          >
-            <div className={`w-2 h-2 rounded-full ${maintenanceMode ? 'bg-rose-500 animate-pulse' : 'bg-slate-400'}`}></div>
-            {togglingMaintenance ? 'Updating...' : maintenanceMode ? 'Maintenance Mode: ON' : 'Maintenance Mode: OFF'}
-          </button>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg p-1 pr-2">
+              <input 
+                type="datetime-local" 
+                value={scheduledMaintenanceTime}
+                onChange={(e) => setScheduledMaintenanceTime(e.target.value)}
+                className="text-sm bg-transparent border-none focus:ring-0 text-slate-600 outline-none p-1 rounded cursor-pointer"
+              />
+              {scheduledMaintenanceTime ? (
+                <>
+                  <button 
+                    onClick={() => toggleMaintenance(true, false)}
+                    disabled={togglingMaintenance}
+                    className="text-xs font-bold bg-indigo-100 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-200 transition-colors"
+                  >
+                    Schedule
+                  </button>
+                  <button 
+                    onClick={() => toggleMaintenance(false, true)}
+                    disabled={togglingMaintenance}
+                    className="text-xs font-bold text-slate-400 hover:text-slate-600 p-1"
+                    title="Clear Schedule"
+                  >
+                    ✕
+                  </button>
+                </>
+              ) : (
+                <span className="text-xs text-slate-400 px-2">No Schedule</span>
+              )}
+            </div>
+
+            <button 
+              onClick={() => toggleMaintenance()}
+              disabled={togglingMaintenance}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all duration-300 ${
+                maintenanceMode 
+                  ? 'bg-rose-100 text-rose-700 hover:bg-rose-200 border border-rose-200' 
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
+              }`}
+            >
+              <div className={`w-2 h-2 rounded-full ${maintenanceMode ? 'bg-rose-500 animate-pulse' : 'bg-slate-400'}`}></div>
+              {togglingMaintenance ? 'Updating...' : maintenanceMode ? 'Force Maintenance: ON' : 'Force Maintenance: OFF'}
+            </button>
+          </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* CPU Widget */}
