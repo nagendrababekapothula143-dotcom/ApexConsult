@@ -17,6 +17,7 @@ const StudentDashboard = () => {
   // Dynamic States
   const [jobs, setJobs] = useState([]);
   const [applications, setApplications] = useState([]);
+  const [payments, setPayments] = useState([]);
   const [selectedJob, setSelectedJob] = useState(null);
   
   const [resumeFile, setResumeFile] = useState(null);
@@ -44,6 +45,9 @@ const StudentDashboard = () => {
       if (resources.includes('applications')) {
         promises.push(api.get(`/applications/student${t}`).then(res => setApplications(res.data.data)));
       }
+      if (resources.includes('payments')) {
+        promises.push(api.get(`/payments/student${t}`).then(res => setPayments(res.data.data)));
+      }
 
       await Promise.all(promises);
     } catch (error) {
@@ -58,6 +62,10 @@ const StudentDashboard = () => {
     if (document.title === 'Kryntel') {
       document.title = 'Student Dashboard | Kryntel';
     }
+  }, []);
+
+  useEffect(() => {
+    fetchData(['jobs', 'applications', 'payments']);
   }, []);
 
   useEffect(() => {
@@ -350,11 +358,24 @@ const StudentDashboard = () => {
       </aside>
 
       {/* DYNAMIC CHILD WORKSPACE CONTENT */}
-      <main className="lg:pl-[270px] min-h-screen pt-[64px] lg:pt-0 flex flex-col">
-        <div key={currentLocation.pathname} className="animate-fade-in p-4 md:p-8 flex-1 flex flex-col">
+      <main className="lg:pl-[270px] min-h-screen pt-[64px] lg:pt-0 flex flex-col relative overflow-hidden">
+        {payments.some(p => p.status === 'pending') && (
+          <div className="bg-amber-50 border-b border-amber-200 px-6 py-3 flex items-center justify-between z-30 shadow-sm animate-fade-in lg:mt-0 mt-[64px]">
+            <div className="flex items-center gap-3">
+              <span className="flex h-2 w-2 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+              </span>
+              <p className="text-sm font-bold text-amber-800 m-0">You have a pending placement fee invoice.</p>
+            </div>
+            <Link to="/student/payments" className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-4 py-1.5 rounded-lg no-underline transition-colors shadow-sm whitespace-nowrap">Pay Now</Link>
+          </div>
+        )}
+        <div key={currentLocation.pathname} className={`animate-fade-in p-4 md:p-8 flex-1 flex flex-col ${payments.some(p => p.status === 'pending') ? 'pt-4' : ''}`}>
           <Outlet context={{
             jobs,
             applications,
+            payments,
             selectedJob,
             setSelectedJob,
             resumeFile,

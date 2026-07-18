@@ -75,7 +75,7 @@ const StudentOverview = () => {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 hover:border-indigo-100 hover:shadow-md transition-all group relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
             <svg className="w-16 h-16 text-indigo-600" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>
@@ -90,30 +90,6 @@ const StudentOverview = () => {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 hover:border-violet-100 hover:shadow-md transition-all group relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-            <svg className="w-16 h-16 text-violet-600" fill="currentColor" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-          </div>
-          <p className="text-slate-500 text-sm font-bold uppercase tracking-wider mb-2">Upcoming Interviews</p>
-          <div className="flex items-end gap-3">
-            <h3 className="text-4xl font-black text-slate-900">{interviews}</h3>
-            {interviews > 0 ? (
-              <span className="text-amber-500 text-sm font-bold mb-1 flex items-center gap-1 animate-pulse">
-                Needs Prep!
-              </span>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 hover:border-emerald-100 hover:shadow-md transition-all group relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-            <svg className="w-16 h-16 text-emerald-600" fill="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-          </div>
-          <p className="text-slate-500 text-sm font-bold uppercase tracking-wider mb-2">Offers Received</p>
-          <div className="flex items-end gap-3">
-            <h3 className="text-4xl font-black text-slate-900">{offers}</h3>
-          </div>
-        </div>
 
         <div className="bg-gradient-to-br from-slate-900 to-indigo-950 p-6 rounded-3xl shadow-lg border border-indigo-500/20 text-white relative overflow-hidden">
           <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-indigo-500 rounded-full blur-3xl opacity-20"></div>

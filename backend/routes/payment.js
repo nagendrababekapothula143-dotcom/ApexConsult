@@ -117,6 +117,12 @@ router.get('/student', protect, async (req, res) => {
 
     let payments = response.Items || [];
     
+    // Map id to _id for frontend compatibility
+    payments = payments.map(p => {
+      p._id = p.id;
+      return p;
+    });
+
     // Sort by createdAt descending
     payments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 

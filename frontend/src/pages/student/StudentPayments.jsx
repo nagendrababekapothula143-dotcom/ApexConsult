@@ -42,7 +42,8 @@ const StudentPayments = () => {
   }, []);
 
   const handlePayment = async (payment) => {
-    setPaying(payment._id);
+    const paymentId = payment.id || payment._id;
+    setPaying(paymentId);
     
     const res = await loadRazorpayScript();
     if (!res) {
@@ -166,10 +167,10 @@ const StudentPayments = () => {
                         {payment.status === 'pending' && (
                           <button
                             onClick={() => handlePayment(payment)}
-                            disabled={paying === payment._id}
+                            disabled={paying === (payment.id || payment._id)}
                             className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-5 py-2 rounded-lg transition-all shadow-sm shadow-indigo-500/20 disabled:opacity-50"
                           >
-                            {paying === payment._id ? 'Opening...' : 'Pay Now'}
+                            {paying === (payment.id || payment._id) ? 'Opening...' : 'Pay Now'}
                           </button>
                         )}
                         {payment.status === 'completed' && (
