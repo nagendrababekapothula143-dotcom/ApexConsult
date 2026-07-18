@@ -96,12 +96,12 @@ const MaintenanceModal = () => {
             </div>
             
             <h2 className="text-3xl font-black text-slate-900 tracking-tight mb-4">
-              System Under Maintenance
+              Website is Under Maintenance
             </h2>
             
             <p className="text-slate-500 text-lg mb-8 leading-relaxed">
               We are currently performing scheduled upgrades to improve your experience. 
-              The system will be back online shortly. Please do not refresh the page.
+              The Website will be back online shortly. Please do not refresh the page.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 w-full">
