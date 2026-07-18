@@ -5,13 +5,13 @@ import EmptyState from '../../components/EmptyState';
 import TableSkeleton from '../../components/TableSkeleton';
 
 const AdminOverview = () => {
-  const { jobs = [], globalApplications = [], students = [], fetchData, loading } = useOutletContext() || {};
+  const { jobs = [], globalApplications = [], students = [], payments = [], fetchData, loading } = useOutletContext() || {};
   const applications = globalApplications || [];
   const navigate = useNavigate();
 
   useEffect(() => {
     document.title = 'Admin Overview | Kryntel Console';
-    if (fetchData) fetchData(['jobs', 'students', 'applications']);
+    if (fetchData) fetchData(['jobs', 'students', 'applications', 'payments']);
   }, []);
 
   const acceptedAppsCount = applications.filter((a) => a.status === 'accepted').length;
@@ -31,10 +31,10 @@ const AdminOverview = () => {
 
   const avgATSScore = calculateAvgScore();
 
-  // Calculate Total Revenue
-  const totalRevenue = applications
-    .filter((app) => app.status === 'accepted')
-    .reduce((sum, app) => sum + (Number(app.job?.placementFee) || 0), 0);
+  // Calculate Total Revenue from Completed Payments
+  const totalRevenue = payments
+    .filter((p) => p.status === 'completed')
+    .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
   // Get recent 3 actual submissions
   const recentApps = submittedApps.slice(0, 3);

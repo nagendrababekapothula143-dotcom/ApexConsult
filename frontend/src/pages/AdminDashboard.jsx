@@ -46,11 +46,7 @@ const AdminDashboard = () => {
   const [submittingJob, setSubmittingJob] = useState(false);
 
   // Mock structures
-  const [payments, setPayments] = useState([
-    { id: 'TXN-1082', student: 'Jane Student', amount: '$1,500', status: 'Completed', date: '2026-07-08' },
-    { id: 'TXN-1083', student: 'Mark Spencer', amount: '$1,200', status: 'Pending', date: '2026-07-09' },
-    { id: 'TXN-1084', student: 'Elena Rostova', amount: '$1,500', status: 'Completed', date: '2026-07-10' },
-  ]);
+  const [payments, setPayments] = useState([]);
   const [generatedLinks, setGeneratedLinks] = useState([
     { id: 'LNK-901', student: 'Mark Spencer', amount: '$1,200', url: 'https://apex.consulting/pay/lnk_901x82', status: 'Active' },
     { id: 'LNK-902', student: 'David Kim', amount: '$1,500', url: 'https://apex.consulting/pay/lnk_902a77', status: 'Expired' },
@@ -194,6 +190,9 @@ const AdminDashboard = () => {
       }
       if (resources.includes('recruiters')) {
         promises.push(api.get(`/auth/recruiters${t}`).then(res => setRecruiters(res.data.data)));
+      }
+      if (resources.includes('payments')) {
+        promises.push(api.get(`/payments${t}`).then(res => setPayments(res.data.data)));
       }
 
       await Promise.all(promises);
@@ -454,6 +453,7 @@ const AdminDashboard = () => {
           <ul className="flex flex-col gap-1.5 list-none m-0 p-0">
             <li>{renderNavLink('/admin', <Icons.Dashboard />, 'Overview', true)}</li>
             <li>{renderNavLink('/admin/students', <Icons.Students />, 'All Students')}</li>
+            <li>{renderNavLink('/admin/payments', <Icons.PaymentLinks />, 'Payments')}</li>
             <li>{renderNavLink('/admin/ats-resumes', <Icons.ATSResumes />, 'ATS Resumes')}</li>
             <li>{renderNavLink('/admin/post-jobs', <Icons.JobPlacements />, 'Post Jobs')}</li>
             <li>{renderNavLink('/admin/team', <Icons.TeamManagement />, 'Team Management')}</li>

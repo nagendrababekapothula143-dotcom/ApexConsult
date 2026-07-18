@@ -128,6 +128,23 @@ const initDynamoDB = async () => {
         }
       ],
       ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 }
+    },
+    {
+      TableName: 'consulting_payments',
+      KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+      AttributeDefinitions: [
+        { AttributeName: 'id', AttributeType: 'S' },
+        { AttributeName: 'studentId', AttributeType: 'S' }
+      ],
+      GlobalSecondaryIndexes: [
+        {
+          IndexName: 'student-index',
+          KeySchema: [{ AttributeName: 'studentId', KeyType: 'HASH' }],
+          Projection: { ProjectionType: 'ALL' },
+          ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 }
+        }
+      ],
+      ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 }
     }
   ];
 

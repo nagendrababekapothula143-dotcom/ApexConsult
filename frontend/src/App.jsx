@@ -13,7 +13,7 @@ const Home = lazy(() => import('./pages/Home'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
-const StudentOverview = lazy(() => import('./pages/student/StudentOverview'));
+
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const RecruiterDashboard = lazy(() => import('./pages/recruiter/RecruiterDashboard'));
 
@@ -21,14 +21,17 @@ const RecruiterDashboard = lazy(() => import('./pages/recruiter/RecruiterDashboa
 import AdminOverview from './pages/admin/AdminOverview';
 const AdminStudents = lazy(() => import('./pages/admin/AdminStudents'));
 const AdminStudentDetail = lazy(() => import('./pages/admin/AdminStudentDetail'));
+const AdminPayments = lazy(() => import('./pages/admin/AdminPayments'));
 const AdminATSResumes = lazy(() => import('./pages/admin/AdminATSResumes'));
 const AdminTeam = lazy(() => import('./pages/admin/AdminTeam'));
 const AdminPlacements = lazy(() => import('./pages/admin/AdminPlacements'));
 const AdminAuditLogs = lazy(() => import('./pages/admin/AdminAuditLogs'));
 
 // Sub-pages for student nested routing
-const StudentJobs = lazy(() => import('./pages/student/StudentJobs'));
+const StudentOverview = lazy(() => import('./pages/student/StudentOverview'));
 const StudentApplications = lazy(() => import('./pages/student/StudentApplications'));
+const StudentJobs = lazy(() => import('./pages/student/StudentJobs'));
+const StudentPayments = lazy(() => import('./pages/student/StudentPayments'));
 const StudentProfile = lazy(() => import('./pages/student/StudentProfile'));
 
 // Shared pages
@@ -116,6 +119,7 @@ function App() {
               <Route path="jobs" element={<StudentJobs />} />
               <Route path="jobs/:jobId" element={<StudentJobs />} />
               <Route path="applications" element={<StudentApplications />} />
+              <Route path="payments" element={<StudentPayments />} />
               <Route path="profile" element={<StudentProfile />} />
               <Route path="settings" element={<Settings />} />
             </Route>
@@ -130,6 +134,7 @@ function App() {
               <Route index element={<AdminOverview />} />
               <Route path="students" element={<AdminStudents />} />
               <Route path="students/:id" element={<AdminStudentDetail />} />
+              <Route path="payments" element={<AdminPayments />} />
               <Route path="ats-resumes" element={<AdminATSResumes />} />
               <Route path="post-jobs" element={<AdminPlacements />} />
 

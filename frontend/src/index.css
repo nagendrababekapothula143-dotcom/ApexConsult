@@ -66,3 +66,12 @@ select:focus-visible,
 [tabindex]:focus-visible {
   box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.2) !important;
 }
+
+/* Hide scrollbar for sidebars */
+.custom-scrollbar-dark::-webkit-scrollbar {
+  display: none;
+}
+.custom-scrollbar-dark {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
