@@ -59,6 +59,14 @@ const initDynamoDB = async () => {
       ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 }
     },
     {
+      TableName: 'consulting_settings',
+      KeySchema: [{ AttributeName: 'settingKey', KeyType: 'HASH' }],
+      AttributeDefinitions: [
+        { AttributeName: 'settingKey', AttributeType: 'S' }
+      ],
+      ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 }
+    },
+    {
       TableName: 'consulting_jobs',
       KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
       AttributeDefinitions: [

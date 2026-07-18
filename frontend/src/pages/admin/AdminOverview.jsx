@@ -11,6 +11,8 @@ const AdminOverview = () => {
   const navigate = useNavigate();
   const [systemMetrics, setSystemMetrics] = useState(null);
   const [healthLoading, setHealthLoading] = useState(true);
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [togglingMaintenance, setTogglingMaintenance] = useState(false);
 
   useEffect(() => {
     document.title = 'Admin Overview | Kryntel Console';
@@ -27,11 +29,34 @@ const AdminOverview = () => {
       }
     };
     
+    const fetchSettings = async () => {
+      try {
+        const res = await api.get('/system/settings');
+        setMaintenanceMode(res.data.maintenanceMode);
+      } catch (err) {
+        console.error('Failed to fetch settings', err);
+      }
+    };
+    
     fetchHealth();
+    fetchSettings();
     // Poll every 2 seconds for real-time updates
     const interval = setInterval(fetchHealth, 2000);
     return () => clearInterval(interval);
   }, []);
+
+  const toggleMaintenance = async () => {
+    try {
+      setTogglingMaintenance(true);
+      const res = await api.put('/system/settings', { maintenanceMode: !maintenanceMode });
+      setMaintenanceMode(res.data.maintenanceMode);
+    } catch (err) {
+      console.error('Failed to toggle maintenance mode', err);
+      alert('Failed to toggle maintenance mode.');
+    } finally {
+      setTogglingMaintenance(false);
+    }
+  };
 
   const acceptedAppsCount = applications.filter((a) => a.status === 'accepted').length;
 
@@ -153,7 +178,22 @@ const AdminOverview = () => {
 
       {/* System Health Monitor */}
       <div>
-        <h3 className="text-lg font-black text-slate-900 mb-4 tracking-tight">System Health</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-black text-slate-900 tracking-tight">System Health</h3>
+          
+          <button 
+            onClick={toggleMaintenance}
+            disabled={togglingMaintenance}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-all duration-300 ${
+              maintenanceMode 
+                ? 'bg-rose-100 text-rose-700 hover:bg-rose-200 border border-rose-200' 
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
+            }`}
+          >
+            <div className={`w-2 h-2 rounded-full ${maintenanceMode ? 'bg-rose-500 animate-pulse' : 'bg-slate-400'}`}></div>
+            {togglingMaintenance ? 'Updating...' : maintenanceMode ? 'Maintenance Mode: ON' : 'Maintenance Mode: OFF'}
+          </button>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* CPU Widget */}
           <div className="bg-white border border-slate-200/70 rounded-2xl p-5 shadow-sm">

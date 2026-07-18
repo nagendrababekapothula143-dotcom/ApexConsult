@@ -3,10 +3,8 @@ const router = express.Router();
 const os = require('os');
 const { protect, authorize } = require('../middleware/auth');
 const { DynamoDBClient, DescribeTableCommand } = require('@aws-sdk/client-dynamodb');
-
-const docClient = new DynamoDBClient({
-  region: process.env.AWS_REGION || 'us-east-1'
-});
+const { GetCommand, PutCommand } = require('@aws-sdk/lib-dynamodb');
+const { docClient, client } = require('../config/dynamodb');
 
 // @desc    Get system health metrics
 // @route   GET /api/system/health
@@ -32,7 +30,7 @@ router.get('/health', protect, authorize('admin', 'recruiter'), async (req, res)
     
     try {
       const command = new DescribeTableCommand({ TableName: 'consulting_users' });
-      const response = await docClient.send(command);
+      const response = await client.send(command);
       
       const table = response.Table;
       dbStatus = table.TableStatus === 'ACTIVE' ? 'Healthy' : table.TableStatus;
@@ -79,3 +77,54 @@ router.get('/health', protect, authorize('admin', 'recruiter'), async (req, res)
 });
 
 module.exports = router;
+
+// @desc    Get system settings (public so dashboards can poll it)
+// @route   GET /api/system/settings
+// @access  Public
+router.get('/settings', async (req, res) => {
+  try {
+    const command = new GetCommand({
+      TableName: 'consulting_settings',
+      Key: { settingKey: 'maintenanceMode' }
+    });
+    
+    const response = await docClient.send(command);
+    const maintenanceMode = response.Item ? response.Item.value : false;
+    
+    res.status(200).json({
+      success: true,
+      maintenanceMode
+    });
+  } catch (err) {
+    console.error('DynamoDB GetSettings error:', err);
+    res.status(500).json({ success: false, error: 'Server Error' });
+  }
+});
+
+// @desc    Update system settings
+// @route   PUT /api/system/settings
+// @access  Private/Admin
+router.put('/settings', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { maintenanceMode } = req.body;
+    
+    const command = new PutCommand({
+      TableName: 'consulting_settings',
+      Item: {
+        settingKey: 'maintenanceMode',
+        value: Boolean(maintenanceMode),
+        updatedAt: new Date().toISOString()
+      }
+    });
+    
+    await docClient.send(command);
+    
+    res.status(200).json({
+      success: true,
+      maintenanceMode: Boolean(maintenanceMode)
+    });
+  } catch (err) {
+    console.error('DynamoDB PutSettings error:', err);
+    res.status(500).json({ success: false, error: 'Server Error' });
+  }
+});
