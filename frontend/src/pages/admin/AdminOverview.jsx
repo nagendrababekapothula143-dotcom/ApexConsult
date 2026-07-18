@@ -28,7 +28,8 @@ const AdminOverview = () => {
     };
     
     fetchHealth();
-    const interval = setInterval(fetchHealth, 30000);
+    // Poll every 2 seconds for real-time updates
+    const interval = setInterval(fetchHealth, 2000);
     return () => clearInterval(interval);
   }, []);
 
