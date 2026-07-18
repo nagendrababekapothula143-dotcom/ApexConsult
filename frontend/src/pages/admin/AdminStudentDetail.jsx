@@ -5,7 +5,14 @@ import { getAvatarSource } from '../../services/api';
 const AdminStudentDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { students = [], globalApplications = [], loading } = useOutletContext() || {};
+  const { students = [], globalApplications = [], loading, fetchData } = useOutletContext() || {};
+
+  useEffect(() => {
+    // If we land on this page directly (e.g. refresh), data won't be loaded yet
+    if (students.length === 0 && fetchData) {
+      fetchData(['students', 'applications']);
+    }
+  }, [students.length, fetchData]);
 
   const student = useMemo(() => {
     return students.find(s => s._id === id);
