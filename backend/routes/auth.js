@@ -693,7 +693,7 @@ router.patch('/profile/:id', protect, async (req, res) => {
     };
 
     const allowedFields = [
-      'name', 'phone', 'university', 'major', 'location', 
+      'name', 'email', 'phone', 'university', 'major', 'location', 
       'linkedinUrl', 'portfolioUrl', 'education', 'experience', 
       'projects', 'technicalSkills', 'softSkills', 'certifications',
       'avatarUrl'
