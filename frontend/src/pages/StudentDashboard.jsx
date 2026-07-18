@@ -330,10 +330,17 @@ const StudentDashboard = () => {
         <div className="flex items-center justify-between pt-5 mt-auto border-t border-slate-800/50">
           <div className="flex items-center gap-3 pl-1">
             <div className="w-10 h-10 bg-gradient-to-tr from-indigo-600 to-violet-600 text-white rounded-full flex items-center justify-center font-bold text-sm overflow-hidden shrink-0 shadow-lg border border-indigo-500/30">
-              {user?.avatarUrl ? (
+              {user?.avatarUrl && !user.avatarUrl.includes('ui-avatars') ? (
                 <img src={getAvatarSource(user.avatarUrl)} alt={user.name} className="w-full h-full object-cover" />
               ) : (
-                <img src={`https://placehold.co/100x100?text=${(user?.name || "Student").charAt(0).toUpperCase()}`} alt="Avatar" className="w-full h-full object-cover" />
+                <span className="text-sm font-bold tracking-wider">
+                  {(() => {
+                    const parts = (user?.name || 'S').trim().split(' ').filter(Boolean);
+                    if (parts.length === 0) return 'S';
+                    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+                    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+                  })()}
+                </span>
               )}
             </div>
             <div>
@@ -360,7 +367,7 @@ const StudentDashboard = () => {
       {/* DYNAMIC CHILD WORKSPACE CONTENT */}
       <main className="lg:pl-[270px] min-h-screen pt-[64px] lg:pt-0 flex flex-col relative overflow-hidden">
         {payments.some(p => p.status === 'pending') && (
-          <div className="bg-amber-50 border-b border-amber-200 px-6 py-3 flex items-center justify-between z-30 shadow-sm animate-fade-in lg:mt-0 mt-[64px]">
+          <div className="bg-amber-50 border-b border-amber-200 px-6 py-3 flex items-center justify-between z-30 shadow-sm animate-fade-in">
             <div className="flex items-center gap-3">
               <span className="flex h-2 w-2 relative">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>

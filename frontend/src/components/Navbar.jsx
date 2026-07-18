@@ -9,8 +9,12 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Hide top navigation header in the Admin and Recruiter consoles to allow full-height layouts
-  if (location.pathname.startsWith('/admin') || location.pathname.startsWith('/recruiter')) {
+  // Hide top navigation header in the Admin, Recruiter, and Student consoles to allow full-height layouts
+  if (
+    location.pathname.startsWith('/admin') || 
+    location.pathname.startsWith('/recruiter') || 
+    location.pathname.startsWith('/student')
+  ) {
     return null;
   }
 

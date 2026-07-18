@@ -468,10 +468,14 @@ const AdminDashboard = () => {
         <div className="flex items-center justify-between pt-5 mt-auto border-t border-slate-800/50">
           <div className="flex items-center gap-3 pl-1">
             <div className="w-10 h-10 bg-gradient-to-tr from-indigo-600 to-violet-600 text-white rounded-full flex items-center justify-center font-bold text-sm overflow-hidden shrink-0 shadow-lg border border-indigo-500/30">
-              {user?.avatarUrl ? (
+              {user?.avatarUrl && !user.avatarUrl.includes('ui-avatars') ? (
                 <img src={getAvatarSource(user.avatarUrl)} alt={user.name} className="w-full h-full object-cover" />
               ) : (
-                <img src={`https://placehold.co/100x100?text=${(user?.name || "A").charAt(0).toUpperCase()}`} alt="Avatar" className="w-full h-full object-cover" />
+                (() => {
+                  const parts = (user?.name || 'A').trim().split(' ').filter(Boolean);
+                  const initial = parts.length === 0 ? 'A' : parts.length === 1 ? parts[0].charAt(0).toUpperCase() : (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+                  return <img src={`https://placehold.co/100x100?text=${initial}`} alt="Avatar" className="w-full h-full object-cover" />;
+                })()
               )}
             </div>
             <div>
@@ -551,7 +555,7 @@ const AdminDashboard = () => {
 
       {/* CREATE JOB MODAL OVERLAY */}
       {showJobModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-300">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[9999] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-300">
           <div className="bg-white/95 backdrop-blur-xl border border-slate-200/60 rounded-3xl w-full max-w-3xl max-h-[90vh] shadow-2xl relative flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
             
             {/* Modal Premium Header */}

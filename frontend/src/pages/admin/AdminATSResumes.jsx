@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import { AuthContext } from '../../context/AuthContext';
 import api, { getBaseUrl } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
@@ -37,6 +38,7 @@ const AdminATSResumes = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const [localLoading, setLocalLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     document.title = 'ATS Resumes | Kryntel Console';
@@ -68,22 +70,22 @@ const AdminATSResumes = () => {
     return url;
   };
 
-  const handleDelete = async () => {
+  const handleDeleteConfirm = async () => {
     const { applicationId } = modalConfig;
-    setModalConfig({ isOpen: false, applicationId: null });
-    setProcessingId(applicationId);
+    setIsDeleting(true);
     
     try {
       const res = await api.delete(`/applications/${applicationId}`);
       if (res.data.success) {
         toast.success('Application deleted successfully');
+        setModalConfig({ isOpen: false, applicationId: null });
         if (fetchData) await fetchData(['jobs', 'students', 'applications', 'admins', 'recruiters']);
       }
     } catch (err) {
       console.error(err);
       toast.error('Failed to delete application.');
     } finally {
-      setProcessingId(null);
+      setIsDeleting(false);
     }
   };
 
@@ -473,8 +475,8 @@ const AdminATSResumes = () => {
       </div>
 
       {/* CONFIRMATION MODAL */}
-      {modalConfig.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+      {modalConfig.isOpen && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 animate-in fade-in zoom-in-95 duration-200">
             <h3 className="text-lg font-bold text-slate-900 mb-2">Delete Submission</h3>
             <p className="text-sm text-slate-600 mb-6 leading-relaxed">
@@ -483,19 +485,26 @@ const AdminATSResumes = () => {
             <div className="flex justify-end gap-3">
               <button 
                 onClick={() => setModalConfig({ isOpen: false, applicationId: null })}
-                className="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer border-none"
+                className="px-4 py-2 text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors border-none cursor-pointer"
               >
                 Cancel
               </button>
               <button 
-                onClick={handleDelete}
-                className="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors cursor-pointer border-none"
+                onClick={handleDeleteConfirm}
+                className="px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm border-none cursor-pointer flex items-center justify-center min-w-[120px]"
+                disabled={isDeleting}
               >
-                Confirm Delete
+                {isDeleting ? (
+                  <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : 'Confirm Delete'}
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

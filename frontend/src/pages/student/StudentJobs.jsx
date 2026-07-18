@@ -770,7 +770,7 @@ const StudentJobs = () => {
 
       {/* AI TAILORING MODAL */}
       {showTailorModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
           <div className="bg-white/95 backdrop-blur-xl border border-white/20 rounded-3xl w-full max-w-4xl p-6 shadow-2xl relative max-h-[95vh] overflow-y-auto">
             <button
               onClick={() => setShowTailorModal(false)}
@@ -827,7 +827,7 @@ const StudentJobs = () => {
       )}
       {/* EXTERNAL APPLY CONFIRMATION MODAL */}
       {showConfirmModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
           <div className="bg-white/95 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl w-full max-w-md p-6 sm:p-8 relative">
             <button
               type="button"

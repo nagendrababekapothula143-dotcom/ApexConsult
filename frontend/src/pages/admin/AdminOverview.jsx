@@ -3,15 +3,33 @@ import { useOutletContext, useNavigate } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import EmptyState from '../../components/EmptyState';
 import TableSkeleton from '../../components/TableSkeleton';
+import api from '../../services/api';
 
 const AdminOverview = () => {
   const { jobs = [], globalApplications = [], students = [], payments = [], fetchData, loading } = useOutletContext() || {};
   const applications = globalApplications || [];
   const navigate = useNavigate();
+  const [systemMetrics, setSystemMetrics] = useState(null);
+  const [healthLoading, setHealthLoading] = useState(true);
 
   useEffect(() => {
     document.title = 'Admin Overview | Kryntel Console';
     if (fetchData) fetchData(['jobs', 'students', 'applications', 'payments']);
+    
+    const fetchHealth = async () => {
+      try {
+        const res = await api.get('/system/health');
+        setSystemMetrics(res.data.data);
+      } catch (err) {
+        console.error('Failed to fetch system metrics', err);
+      } finally {
+        setHealthLoading(false);
+      }
+    };
+    
+    fetchHealth();
+    const interval = setInterval(fetchHealth, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const acceptedAppsCount = applications.filter((a) => a.status === 'accepted').length;
@@ -128,6 +146,91 @@ const AdminOverview = () => {
               </div>
             )}
             <p className="text-xs text-indigo-200/80 font-medium">From {acceptedAppsCount} accepted placements</p>
+          </div>
+        </div>
+      </div>
+
+      {/* System Health Monitor */}
+      <div>
+        <h3 className="text-lg font-black text-slate-900 mb-4 tracking-tight">System Health</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* CPU Widget */}
+          <div className="bg-white border border-slate-200/70 rounded-2xl p-5 shadow-sm">
+            <div className="flex justify-between items-center mb-3">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                <svg className="w-4 h-4 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+                CPU Usage
+              </h4>
+              <span className="text-xs font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full">{systemMetrics?.cpu?.cores || 0} Cores</span>
+            </div>
+            {healthLoading ? (
+              <div className="h-8 bg-slate-100 rounded animate-pulse"></div>
+            ) : (
+              <div>
+                <div className="flex items-end gap-2 mb-2">
+                  <span className="text-3xl font-black text-slate-900 leading-none">{systemMetrics?.cpu?.usagePercent || 0}%</span>
+                  <span className="text-xs text-slate-400 font-medium mb-1">Load Avg: {(systemMetrics?.cpu?.loadAverage[0] || 0).toFixed(2)}</span>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                  <div className="bg-sky-500 h-2 rounded-full transition-all duration-500" style={{ width: `${systemMetrics?.cpu?.usagePercent || 0}%` }}></div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Memory Widget */}
+          <div className="bg-white border border-slate-200/70 rounded-2xl p-5 shadow-sm">
+            <div className="flex justify-between items-center mb-3">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                <svg className="w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                Memory
+              </h4>
+              <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">{systemMetrics?.memory?.totalGB || 0} GB</span>
+            </div>
+            {healthLoading ? (
+              <div className="h-8 bg-slate-100 rounded animate-pulse"></div>
+            ) : (
+              <div>
+                <div className="flex items-end gap-2 mb-2">
+                  <span className="text-3xl font-black text-slate-900 leading-none">{systemMetrics?.memory?.usagePercent || 0}%</span>
+                  <span className="text-xs text-slate-400 font-medium mb-1">{systemMetrics?.memory?.usedGB || 0} GB Used</span>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                  <div className="bg-purple-500 h-2 rounded-full transition-all duration-500" style={{ width: `${systemMetrics?.memory?.usagePercent || 0}%` }}></div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Database Widget */}
+          <div className="bg-white border border-slate-200/70 rounded-2xl p-5 shadow-sm">
+            <div className="flex justify-between items-center mb-3">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>
+                Database
+              </h4>
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${systemMetrics?.database?.status === 'Healthy' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                {systemMetrics?.database?.status || 'Unknown'}
+              </span>
+            </div>
+            {healthLoading ? (
+              <div className="h-8 bg-slate-100 rounded animate-pulse"></div>
+            ) : (
+              <div>
+                <div className="flex items-end gap-2 mb-2">
+                  <span className="text-3xl font-black text-slate-900 leading-none">
+                    {systemMetrics?.database?.billingMode === 'PAY_PER_REQUEST' ? 'Auto' : (systemMetrics?.database?.readCapacity || 0)}
+                  </span>
+                  <span className="text-xs text-slate-400 font-medium mb-1">
+                    {systemMetrics?.database?.billingMode === 'PAY_PER_REQUEST' ? 'Scaling Capacity' : 'RCU Provisioned'}
+                  </span>
+                </div>
+                <div className="text-xs font-medium text-slate-500 mt-2 border-t border-slate-100 pt-2 flex justify-between">
+                  <span>{systemMetrics?.database?.itemCount || 0} Total Items</span>
+                  <span>{((systemMetrics?.database?.sizeBytes || 0) / 1024).toFixed(1)} KB</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

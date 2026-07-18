@@ -250,7 +250,7 @@ const AdminPlacements = () => {
 
       {/* DELETE CONFIRMATION MODAL */}
       {deleteModalConfig.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
           <div className="bg-white/95 backdrop-blur-xl border border-slate-200/60 rounded-3xl shadow-2xl max-w-sm w-full p-8 animate-in fade-in zoom-in-95 duration-300">
             <h3 className="text-xl font-black text-slate-900 mb-3 tracking-tight">Delete Job Listing</h3>
             <p className="text-sm text-slate-500 mb-8 font-medium leading-relaxed">

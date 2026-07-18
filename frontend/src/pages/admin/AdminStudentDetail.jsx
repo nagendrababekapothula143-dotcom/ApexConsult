@@ -78,10 +78,15 @@ const AdminStudentDetail = () => {
           </button>
           
           <div className="w-14 h-14 bg-gradient-to-tr from-indigo-600 to-violet-600 text-white rounded-2xl flex items-center justify-center font-black text-xl overflow-hidden shrink-0 shadow-lg border border-white">
-            {student.avatarUrl ? (
+            {student.avatarUrl && !student.avatarUrl.includes('ui-avatars') ? (
               <img src={getAvatarSource(student.avatarUrl)} alt={student.name} className="w-full h-full object-cover" />
             ) : (
-              (student.name || 'S').charAt(0).toUpperCase()
+              (() => {
+                const parts = (student.name || 'S').trim().split(' ').filter(Boolean);
+                if (parts.length === 0) return 'S';
+                if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+                return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+              })()
             )}
           </div>
           <div>

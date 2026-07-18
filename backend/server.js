@@ -132,6 +132,7 @@ app.use('/api/jobs', require('./routes/jobs'));
 app.use('/api/applications', require('./routes/applications'));
 app.use('/api/audit-logs', require('./routes/audit'));
 app.use('/api/payments', require('./routes/payment'));
+app.use('/api/system', require('./routes/system'));
 
 // Basic Health Check Route
 app.get('/', (req, res) => {

@@ -13,7 +13,7 @@ const Loader = ({ text = "Loading...", fullScreen = false }) => {
 
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 z-50 min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="fixed inset-0 z-[9999] min-h-screen bg-slate-50 flex items-center justify-center">
         {content}
       </div>
     );
