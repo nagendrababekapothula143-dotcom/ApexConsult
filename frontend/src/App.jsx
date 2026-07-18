@@ -20,6 +20,7 @@ const RecruiterDashboard = lazy(() => import('./pages/recruiter/RecruiterDashboa
 // Sub-pages for admin nested routing
 import AdminOverview from './pages/admin/AdminOverview';
 const AdminStudents = lazy(() => import('./pages/admin/AdminStudents'));
+const AdminStudentDetail = lazy(() => import('./pages/admin/AdminStudentDetail'));
 const AdminATSResumes = lazy(() => import('./pages/admin/AdminATSResumes'));
 const AdminTeam = lazy(() => import('./pages/admin/AdminTeam'));
 const AdminPlacements = lazy(() => import('./pages/admin/AdminPlacements'));
@@ -128,6 +129,7 @@ function App() {
             >
               <Route index element={<AdminOverview />} />
               <Route path="students" element={<AdminStudents />} />
+              <Route path="students/:id" element={<AdminStudentDetail />} />
               <Route path="ats-resumes" element={<AdminATSResumes />} />
               <Route path="post-jobs" element={<AdminPlacements />} />
 

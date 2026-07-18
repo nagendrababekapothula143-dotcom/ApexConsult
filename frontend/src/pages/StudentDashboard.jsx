@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Outlet, NavLink, useNavigate, Link } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, Link, useLocation } from 'react-router-dom';
 import api, { getBaseUrl, getAvatarSource } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import { SocketContext } from '../context/SocketContext';
@@ -11,6 +11,7 @@ const StudentDashboard = () => {
   const { user, logout } = useContext(AuthContext);
   const socket = useContext(SocketContext);
   const navigate = useNavigate();
+  const currentLocation = useLocation();
   const toast = useToast();
 
   // Dynamic States
@@ -342,8 +343,8 @@ const StudentDashboard = () => {
       </aside>
 
       {/* DYNAMIC CHILD WORKSPACE CONTENT */}
-      <main className="lg:pl-[270px] min-h-screen pt-[64px] lg:pt-0">
-        <div className="p-4 md:p-8">
+      <main className="lg:pl-[270px] min-h-screen pt-[64px] lg:pt-0 flex flex-col">
+        <div key={currentLocation.pathname} className="animate-fade-in p-4 md:p-8 flex-1 flex flex-col">
           <Outlet context={{
             jobs,
             applications,

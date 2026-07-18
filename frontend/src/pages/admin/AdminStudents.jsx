@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
@@ -202,9 +202,9 @@ const AdminStudents = () => {
                 return (
                   <tr key={student._id} className="hover:bg-slate-50/80 transition-colors group">
                     <td className="p-5">
-                      <span className="font-mono text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100/50 whitespace-nowrap shadow-xs">
+                      <Link to={`/admin/students/${student._id}`} className="font-mono text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100/50 whitespace-nowrap shadow-xs hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer no-underline block w-fit">
                         {student.apexId || 'N/A'}
-                      </span>
+                      </Link>
                     </td>
                     <td className="p-5 max-w-0">
                       <div className="w-full truncate font-bold text-slate-900 group-hover:text-indigo-700 transition-colors" title={student.name}>

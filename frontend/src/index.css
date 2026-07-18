@@ -7,6 +7,11 @@
   --font-display: 'Inter', sans-serif;
 }
 
+/* Global Color Contrast Overrides to meet WCAG AA standards */
+.text-slate-400 {
+  color: #64748b !important; /* Re-mapped to slate-500 for better contrast on light backgrounds */
+}
+
 body {
   font-family: var(--font-sans);
   background-color: #f8fafc;
@@ -43,4 +48,21 @@ html.dark .no-invert {
 
 .animate-fade-in {
   animation: fadeIn 0.4s ease-in-out forwards;
+}
+
+/* Global Accessible Focus Indicators */
+*:focus-visible {
+  outline: 2px solid #4f46e5 !important; /* Indigo 600 */
+  outline-offset: 2px !important;
+  border-radius: inherit;
+}
+
+/* Specific focus visible styles for elements that might not inherit border-radius well */
+a:focus-visible, 
+button:focus-visible, 
+input:focus-visible, 
+textarea:focus-visible, 
+select:focus-visible, 
+[tabindex]:focus-visible {
+  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.2) !important;
 }
