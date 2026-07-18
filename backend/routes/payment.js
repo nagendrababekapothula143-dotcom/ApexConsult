@@ -7,14 +7,18 @@ const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, PutCommand, QueryCommand, ScanCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
 const { protect, authorize } = require('../middleware/auth');
 
-// Initialize AWS DynamoDB
-const client = new DynamoDBClient({
+// Initialize AWS DynamoDB safely
+const config = {
   region: process.env.AWS_REGION || 'eu-north-1',
-  credentials: {
+};
+if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
+  config.credentials = {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  }
-});
+  };
+}
+
+const client = new DynamoDBClient(config);
 const docClient = DynamoDBDocumentClient.from(client, {
   marshallOptions: { removeUndefinedValues: true, convertEmptyValues: true }
 });
