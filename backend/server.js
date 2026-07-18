@@ -17,9 +17,10 @@ const { Server } = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 
-// Socket.io initialization (Disabled on Vercel)
+// Socket.io initialization (Disabled in Serverless/Production)
 let io;
-if (!process.env.VERCEL) {
+const isServerless = process.env.VERCEL || process.env.NODE_ENV === 'production';
+if (!isServerless) {
   io = new Server(server, {
     cors: {
       origin: '*', // Allows all origins during development. Can restrict in prod.
@@ -31,7 +32,7 @@ if (!process.env.VERCEL) {
 // Store mapping of userId -> socketId
 const connectedUsers = new Map();
 
-if (!process.env.VERCEL && io) {
+if (!isServerless && io) {
   // Inject io into Express app so routes can access it via req.app.get('io')
   app.set('io', io);
 
@@ -156,14 +157,14 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-if (!process.env.VERCEL) {
+if (!isServerless) {
   try {
     require('child_process').execSync(`npx kill-port ${PORT}`, { stdio: 'ignore' });
   } catch (e) {}
 }
 
 initDynamoDB().then(() => {
-  if (!process.env.VERCEL) {
+  if (!isServerless) {
     // IMPORTANT: Use server.listen instead of app.listen for Socket.io
     server.listen(PORT, () => {
       console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
@@ -173,7 +174,7 @@ initDynamoDB().then(() => {
   }
 }).catch(err => {
   console.error('Failed to initialize AWS DynamoDB tables:', err);
-  if (!process.env.VERCEL) process.exit(1);
+  if (!isServerless) process.exit(1);
 });
 
 module.exports = app;
