@@ -320,15 +320,17 @@ const AdminStudents = () => {
       {/* EDIT STUDENT MODAL */}
       {editModalConfig.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-          <div className="bg-white/95 backdrop-blur-xl border border-slate-200/60 rounded-3xl shadow-2xl max-w-md w-full max-h-[95vh] overflow-y-auto p-8 animate-in fade-in zoom-in-95 duration-300 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            <div className="flex justify-between items-center mb-6">
+          <div className="bg-white/95 backdrop-blur-xl border border-slate-200/60 rounded-3xl shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+            {/* Header - Fixed */}
+            <div className="flex justify-between items-center p-6 sm:p-8 border-b border-slate-100 shrink-0">
               <h3 className="text-xl font-black text-slate-900 tracking-tight">Edit Student Profile</h3>
               <button onClick={() => setEditModalConfig({ isOpen: false, student: null, formData: { name: '', email: '', phone: '', linkedinUrl: '' } })} className="text-slate-400 hover:text-indigo-600 bg-slate-100 hover:bg-indigo-50 rounded-full p-2 transition-colors cursor-pointer border-none" aria-label="Close modal">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
               </button>
             </div>
 
-            <form onSubmit={handleEditSubmit} className="space-y-5">
+            {/* Form Body - Scrollable without visible scrollbar */}
+            <form onSubmit={handleEditSubmit} className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Full Name</label>
                 <input
@@ -377,7 +379,8 @@ const AdminStudents = () => {
                 />
               </div>
 
-              <div className="pt-6 flex justify-end gap-3">
+              {/* Footer Buttons */}
+              <div className="pt-4 flex justify-end gap-3 sticky bottom-0 bg-white/95 pb-2">
                 <button 
                   type="button"
                   onClick={() => setEditModalConfig({ isOpen: false, student: null, formData: { name: '', email: '', phone: '', linkedinUrl: '' } })}
