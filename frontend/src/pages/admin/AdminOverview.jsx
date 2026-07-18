@@ -83,7 +83,7 @@ const AdminOverview = () => {
             <h4 className="text-[13px] font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-blue-500"></span> Active Positions
             </h4>
-            {loading ? <div className="h-10 w-16 bg-slate-100 rounded animate-pulse mb-1"></div> : <div className="text-4xl font-black text-slate-900 mb-1 tracking-tight">{jobs.length}</div>}
+            {loading ? <div className="text-4xl font-black text-slate-200 mb-1 tracking-tight animate-pulse">0</div> : <div className="text-4xl font-black text-slate-900 mb-1 tracking-tight">{jobs.length}</div>}
             <p className="text-xs text-slate-400 font-medium">Sourced consulting firms</p>
           </div>
         </div>
@@ -96,7 +96,7 @@ const AdminOverview = () => {
             <h4 className="text-[13px] font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-violet-500"></span> Registered Candidates
             </h4>
-            {loading ? <div className="h-10 w-16 bg-slate-100 rounded animate-pulse mb-1"></div> : <div className="text-4xl font-black text-slate-900 mb-1 tracking-tight">{students.length}</div>}
+            {loading ? <div className="text-4xl font-black text-slate-200 mb-1 tracking-tight animate-pulse">0</div> : <div className="text-4xl font-black text-slate-900 mb-1 tracking-tight">{students.length}</div>}
             <p className="text-xs text-slate-400 font-medium">Vetted student candidates</p>
           </div>
         </div>
@@ -109,7 +109,7 @@ const AdminOverview = () => {
             <h4 className="text-[13px] font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Total Submissions
             </h4>
-            {loading ? <div className="h-10 w-16 bg-slate-100 rounded animate-pulse mb-1"></div> : <div className="text-4xl font-black text-slate-900 mb-1 tracking-tight">{submittedApps.length}</div>}
+            {loading ? <div className="text-4xl font-black text-slate-200 mb-1 tracking-tight animate-pulse">0</div> : <div className="text-4xl font-black text-slate-900 mb-1 tracking-tight">{submittedApps.length}</div>}
             <p className="text-xs text-slate-400 font-medium">Uploaded resume files</p>
           </div>
         </div>
@@ -121,7 +121,7 @@ const AdminOverview = () => {
               <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span> Total Revenue
             </h4>
             {loading ? (
-              <div className="h-10 w-32 bg-indigo-700/50 rounded animate-pulse mb-1"></div>
+              <div className="text-4xl font-black mb-1 tracking-tight text-indigo-400 drop-shadow-md animate-pulse">$0</div>
             ) : (
               <div className="text-4xl font-black mb-1 tracking-tight text-white drop-shadow-md">
                 ${totalRevenue.toLocaleString()}
