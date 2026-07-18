@@ -99,7 +99,8 @@ app.use(cors({
     // Exact production domains
     const allowedOrigins = [
       'https://apexconsult.onrender.com', 
-      'https://apexconsulting-kohl.vercel.app'
+      'https://apexconsulting-kohl.vercel.app',
+      'https://apex-consult-nine.vercel.app'
     ];
     
     if (allowedOrigins.indexOf(origin) !== -1) {

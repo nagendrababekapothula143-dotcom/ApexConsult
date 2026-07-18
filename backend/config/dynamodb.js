@@ -3,11 +3,14 @@ const { DynamoDBDocumentClient } = require('@aws-sdk/lib-dynamodb');
 
 const config = {
   region: process.env.AWS_REGION || 'eu-north-1',
-  credentials: {
+};
+
+if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
+  config.credentials = {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  }
-};
+  };
+}
 
 const client = new DynamoDBClient(config);
 const docClient = DynamoDBDocumentClient.from(client, {
