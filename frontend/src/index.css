@@ -31,3 +31,16 @@ html.dark [style*="background-image"],
 html.dark .no-invert {
   filter: invert(1) hue-rotate(180deg);
 }
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-in-out forwards;
+}

@@ -15,7 +15,7 @@ const AdminStudents = () => {
   const toast = useToast();
   const [processingId, setProcessingId] = useState(null);
   const [modalConfig, setModalConfig] = useState({ isOpen: false, type: '', studentId: null, currentStatus: '' });
-  const [editModalConfig, setEditModalConfig] = useState({ isOpen: false, student: null, formData: { name: '', phone: '', university: '', major: '' } });
+  const [editModalConfig, setEditModalConfig] = useState({ isOpen: false, student: null, formData: { name: '', email: '', phone: '', linkedinUrl: '' } });
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [savingEdit, setSavingEdit] = useState(false);
@@ -68,9 +68,9 @@ const AdminStudents = () => {
       student,
       formData: {
         name: student.name || '',
+        email: student.email || '',
         phone: student.phone || '',
-        university: student.university || '',
-        major: student.major || ''
+        linkedinUrl: student.linkedinUrl || ''
       }
     });
   };
@@ -88,13 +88,13 @@ const AdminStudents = () => {
     try {
       await api.patch(`/auth/profile/${editModalConfig.student._id}`, {
         name: editModalConfig.formData.name,
+        email: editModalConfig.formData.email,
         phone: editModalConfig.formData.phone,
-        university: editModalConfig.formData.university,
-        major: editModalConfig.formData.major
+        linkedinUrl: editModalConfig.formData.linkedinUrl
       });
 
       toast.success('Student profile updated successfully!');
-      setEditModalConfig({ isOpen: false, student: null, formData: { name: '', phone: '', university: '', major: '' } });
+      setEditModalConfig({ isOpen: false, student: null, formData: { name: '', email: '', phone: '', linkedinUrl: '' } });
       if (fetchData) await fetchData(['jobs', 'students', 'applications', 'admins', 'recruiters']);
     } catch (err) {
       console.error(err);
@@ -320,10 +320,10 @@ const AdminStudents = () => {
       {/* EDIT STUDENT MODAL */}
       {editModalConfig.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-          <div className="bg-white/95 backdrop-blur-xl border border-slate-200/60 rounded-3xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-8 animate-in fade-in zoom-in-95 duration-300 custom-scrollbar">
+          <div className="bg-white/95 backdrop-blur-xl border border-slate-200/60 rounded-3xl shadow-2xl max-w-md w-full p-8 animate-in fade-in zoom-in-95 duration-300">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-black text-slate-900 tracking-tight">Edit Student Profile</h3>
-              <button onClick={() => setEditModalConfig({ isOpen: false, student: null, formData: { name: '', phone: '', university: '', major: '' } })} className="text-slate-400 hover:text-indigo-600 bg-slate-100 hover:bg-indigo-50 rounded-full p-2 transition-colors cursor-pointer border-none" aria-label="Close modal">
+              <button onClick={() => setEditModalConfig({ isOpen: false, student: null, formData: { name: '', email: '', phone: '', linkedinUrl: '' } })} className="text-slate-400 hover:text-indigo-600 bg-slate-100 hover:bg-indigo-50 rounded-full p-2 transition-colors cursor-pointer border-none" aria-label="Close modal">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
               </button>
             </div>
@@ -335,6 +335,18 @@ const AdminStudents = () => {
                   type="text"
                   name="name"
                   value={editModalConfig.formData.name}
+                  onChange={handleEditChange}
+                  className="bg-white/50 border border-slate-200/80 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium placeholder-slate-400 shadow-sm"
+                  required
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Email Address</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={editModalConfig.formData.email}
                   onChange={handleEditChange}
                   className="bg-white/50 border border-slate-200/80 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium placeholder-slate-400 shadow-sm"
                   required
@@ -354,23 +366,13 @@ const AdminStudents = () => {
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">University</label>
+                <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">LinkedIn URL</label>
                 <input
-                  type="text"
-                  name="university"
-                  value={editModalConfig.formData.university}
+                  type="url"
+                  name="linkedinUrl"
+                  value={editModalConfig.formData.linkedinUrl}
                   onChange={handleEditChange}
-                  className="bg-white/50 border border-slate-200/80 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium placeholder-slate-400 shadow-sm"
-                />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Major</label>
-                <input
-                  type="text"
-                  name="major"
-                  value={editModalConfig.formData.major}
-                  onChange={handleEditChange}
+                  placeholder="https://linkedin.com/in/username"
                   className="bg-white/50 border border-slate-200/80 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium placeholder-slate-400 shadow-sm"
                 />
               </div>
@@ -378,7 +380,7 @@ const AdminStudents = () => {
               <div className="pt-6 flex justify-end gap-3">
                 <button 
                   type="button"
-                  onClick={() => setEditModalConfig({ isOpen: false, student: null, formData: { name: '', phone: '', university: '', major: '' } })}
+                  onClick={() => setEditModalConfig({ isOpen: false, student: null, formData: { name: '', email: '', phone: '', linkedinUrl: '' } })}
                   className="px-5 py-2.5 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer border-none"
                 >
                   Cancel

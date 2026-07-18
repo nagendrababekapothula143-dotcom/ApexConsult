@@ -513,8 +513,7 @@ const AdminDashboard = () => {
         </div>
 
         <div className="p-6 md:p-10 flex-1 flex flex-col max-w-7xl mx-auto w-full">
-
-            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 flex-1 flex flex-col">
+            <div key={currentLocation.pathname} className="animate-fade-in flex-1 flex flex-col">
               <Outlet context={{
               loading,
               jobs,
