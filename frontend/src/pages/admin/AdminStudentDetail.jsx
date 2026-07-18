@@ -15,15 +15,16 @@ const AdminStudentDetail = () => {
   }, [students.length, fetchData]);
 
   const student = useMemo(() => {
-    return students.find(s => s._id === id);
+    return students.find(s => s._id === id || s.apexId === id);
   }, [students, id]);
 
   const studentApps = useMemo(() => {
+    if (!student) return [];
     return globalApplications.filter(app => {
       const appId = typeof app.student === 'object' ? app.student?._id : app.student;
-      return appId === id || app.studentId === id;
+      return appId === student._id || app.studentId === student._id;
     }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  }, [globalApplications, id]);
+  }, [globalApplications, student]);
 
   useEffect(() => {
     if (student) {

@@ -108,7 +108,8 @@ const AdminStudents = () => {
   const handleExportCSV = () => {
     // Format data for CSV
     const csvData = students.map(s => ({
-      ID: s._id,
+      'Database ID': s._id,
+      'Student ID': s.apexId || 'N/A',
       Name: s.name,
       Email: s.email,
       Phone: s.phone || 'N/A',
@@ -141,7 +142,7 @@ const AdminStudents = () => {
           <p className="text-sm text-slate-500">View registered student profiles and track resume submissions.</p>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <button 
+          <button
             onClick={handleExportCSV}
             className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-2 cursor-pointer"
           >
@@ -153,21 +154,21 @@ const AdminStudents = () => {
             Export
           </button>
           <div className="relative">
-          <input
-            type="text"
-            placeholder="Search by name, email, or APX ID..."
-            aria-label="Search students"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full sm:w-80 pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-xs placeholder-slate-400"
-          />
-          <svg className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-        </div>
+            <input
+              type="text"
+              placeholder="Search by name, email, or APX ID..."
+              aria-label="Search students"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full sm:w-80 pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-xs placeholder-slate-400"
+            />
+            <svg className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
         </div>
       </div>
-      
+
       <div className="bg-white border border-slate-200/70 rounded-3xl shadow-sm overflow-x-auto custom-scrollbar relative">
         <table className="w-full table-fixed border-collapse text-left relative min-w-[800px]">
           <thead className="sticky top-0 z-10 bg-white/90 backdrop-blur-md border-b border-slate-200/60 shadow-xs">
@@ -190,10 +191,10 @@ const AdminStudents = () => {
             ) : filteredStudents.length === 0 ? (
               <tr>
                 <td colSpan="6" className="p-8">
-                  <EmptyState 
-                    title="No students found" 
-                    description={searchQuery ? 'No students matched your search criteria.' : 'No student profiles found in the database.'} 
-                    icon="search" 
+                  <EmptyState
+                    title="No students found"
+                    description={searchQuery ? 'No students matched your search criteria.' : 'No student profiles found in the database.'}
+                    icon="search"
                   />
                 </td>
               </tr>
@@ -202,7 +203,7 @@ const AdminStudents = () => {
                 return (
                   <tr key={student._id} className="hover:bg-slate-50/80 transition-colors group">
                     <td className="p-5">
-                      <Link to={`/admin/students/${student._id}`} className="font-mono text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100/50 whitespace-nowrap shadow-xs hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer no-underline block w-fit">
+                      <Link to={`/admin/students/${student.apexId || student._id}`} className="font-mono text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100/50 whitespace-nowrap shadow-xs hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer no-underline block w-fit">
                         {student.apexId || 'N/A'}
                       </Link>
                     </td>
@@ -234,7 +235,7 @@ const AdminStudents = () => {
                     <td className="p-5">
                       <div className="flex justify-center gap-2 items-center flex-nowrap whitespace-nowrap">
                         <div className="relative flex justify-center">
-                          <button 
+                          <button
                             disabled={processingId === student._id}
                             onClick={() => setModalConfig({ isOpen: true, type: 'status', studentId: student._id, currentStatus: student.status || 'active' })}
                             className={`peer p-2 rounded-lg border transition-colors cursor-pointer flex items-center justify-center ${student.status === 'inactive' ? 'bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}`}
@@ -251,7 +252,7 @@ const AdminStudents = () => {
                           </div>
                         </div>
                         <div className="relative flex justify-center">
-                          <button 
+                          <button
                             disabled={processingId === student._id}
                             onClick={() => openEditModal(student)}
                             className="peer p-2 rounded-lg bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer flex items-center justify-center"
@@ -264,19 +265,19 @@ const AdminStudents = () => {
                           </div>
                         </div>
                         {user?.role === 'admin' && (
-                        <div className="relative flex justify-center">
-                          <button 
-                            disabled={processingId === student._id}
-                            onClick={() => setModalConfig({ isOpen: true, type: 'delete', studentId: student._id })}
-                            className="peer p-2 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors cursor-pointer flex items-center justify-center"
-                            aria-label="Delete Student"
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                          </button>
-                          <div className="absolute bottom-full right-0 mb-2 opacity-0 peer-hover:opacity-100 transition-opacity bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg whitespace-nowrap pointer-events-none z-10">
-                            Delete Student
+                          <div className="relative flex justify-center">
+                            <button
+                              disabled={processingId === student._id}
+                              onClick={() => setModalConfig({ isOpen: true, type: 'delete', studentId: student._id })}
+                              className="peer p-2 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors cursor-pointer flex items-center justify-center"
+                              aria-label="Delete Student"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
+                            <div className="absolute bottom-full right-0 mb-2 opacity-0 peer-hover:opacity-100 transition-opacity bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg whitespace-nowrap pointer-events-none z-10">
+                              Delete Student
+                            </div>
                           </div>
-                        </div>
                         )}
                       </div>
                     </td>
@@ -296,18 +297,18 @@ const AdminStudents = () => {
               {modalConfig.type === 'delete' ? 'Delete Student' : 'Change Status'}
             </h3>
             <p className="text-sm text-slate-500 mb-8 font-medium leading-relaxed">
-              {modalConfig.type === 'delete' 
+              {modalConfig.type === 'delete'
                 ? 'Are you sure you want to permanently delete this student? This action cannot be undone.'
                 : `Are you sure you want to mark this student as ${modalConfig.currentStatus === 'inactive' ? 'Active' : 'Inactive'}?`}
             </p>
             <div className="flex justify-end gap-3">
-              <button 
+              <button
                 onClick={() => setModalConfig({ isOpen: false, type: '', studentId: null, currentStatus: '' })}
                 className="px-5 py-2.5 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={modalConfig.type === 'delete' ? handleDelete : handleStatusToggle}
                 className={`px-5 py-2.5 text-sm font-bold text-white rounded-xl shadow-lg transition-all active:scale-[0.98] cursor-pointer ${modalConfig.type === 'delete' ? 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 shadow-red-200' : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-indigo-200'}`}
               >
@@ -385,14 +386,14 @@ const AdminStudents = () => {
 
               {/* Footer Buttons - Fixed */}
               <div className="p-6 sm:p-8 pt-4 flex justify-end gap-3 border-t border-slate-100 shrink-0 bg-slate-50/50">
-                <button 
+                <button
                   type="button"
                   onClick={() => setEditModalConfig({ isOpen: false, student: null, formData: { name: '', email: '', phone: '', linkedinUrl: '' } })}
                   className="px-5 py-2.5 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer border-none"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   type="submit"
                   disabled={savingEdit}
                   className="px-5 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-lg shadow-indigo-200 hover:shadow-indigo-300 rounded-xl transition-all cursor-pointer border-none disabled:opacity-50 active:scale-[0.98]"
