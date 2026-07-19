@@ -1,4 +1,5 @@
 import React, { useEffect, useContext, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useOutletContext } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -171,8 +172,8 @@ const AdminTeam = () => {
       </div>
 
       {/* Create Recruiter Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
+      {showCreateModal && createPortal(
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4" style={{ zIndex: 99999 }}>
           <div className="bg-white/95 backdrop-blur-xl rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl p-8 border border-slate-200/60 custom-scrollbar animate-in fade-in zoom-in-95 duration-300">
             <h2 className="text-xl font-black text-slate-900 mb-2 tracking-tight">Create Recruiter Account</h2>
             <p className="text-sm text-slate-500 mb-8 font-medium">Create a secure login for a new recruiter to access the portal.</p>
@@ -231,12 +232,15 @@ const AdminTeam = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
+
+
       {/* Delete Confirmation Modal */}
-      {deleteModalData.isOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
+      {deleteModalData.isOpen && createPortal(
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4" style={{ zIndex: 99999 }}>
           <div className="bg-white/95 backdrop-blur-xl border border-slate-200/60 rounded-3xl shadow-2xl max-w-sm w-full p-8 animate-in fade-in zoom-in-95 duration-300">
             <h2 className="text-xl font-black text-slate-900 mb-3 tracking-tight">Delete Recruiter?</h2>
             <p className="text-sm text-slate-500 mb-8 font-medium leading-relaxed">
@@ -261,7 +265,8 @@ const AdminTeam = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

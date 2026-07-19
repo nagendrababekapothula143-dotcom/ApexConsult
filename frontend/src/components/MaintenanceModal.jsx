@@ -81,7 +81,7 @@ const MaintenanceModal = () => {
 
   if (isOpen) {
     return createPortal(
-      <div className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4">
+      <div className="fixed inset-0 flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4" style={{ zIndex: 999999 }}>
         <div className="bg-white rounded-3xl shadow-2xl p-10 max-w-lg w-full text-center relative overflow-hidden">
           
           {/* Animated background element */}
