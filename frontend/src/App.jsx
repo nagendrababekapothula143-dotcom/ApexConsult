@@ -8,6 +8,7 @@ import { ToastProvider } from './context/ToastContext';
 import OfflineScreen from './components/OfflineScreen';
 import ScrollToTop from './components/ScrollToTop';
 import MaintenanceModal from './components/MaintenanceModal';
+import { Analytics } from '@vercel/analytics/react';
 
 // Lazy load pages for Code Splitting
 const Home = lazy(() => import('./pages/Home'));
@@ -157,6 +158,7 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
+        <Analytics />
         </ToastProvider>
         </Router>
       </SocketProvider>
