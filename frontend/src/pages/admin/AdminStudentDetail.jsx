@@ -156,25 +156,60 @@ const AdminStudentDetail = () => {
           </div>
 
           <div className="bg-white rounded-3xl border border-slate-200/70 p-6 shadow-sm">
-            <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-5">Education</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">University</p>
-                <p className="text-sm font-bold text-slate-900">{student.university || <span className="text-slate-400 italic font-medium">Not provided</span>}</p>
+            <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-5">Education History</h3>
+            {student.education && student.education.length > 0 ? (
+              <div className="space-y-4">
+                {student.education.map((edu, idx) => (
+                  <div key={idx} className="border-b border-slate-100 last:border-0 pb-4 last:pb-0">
+                    <p className="text-sm font-bold text-slate-900">{edu.degree}</p>
+                    <p className="text-xs font-semibold text-indigo-600">{edu.university}</p>
+                    <div className="flex justify-between text-[11px] text-slate-500 font-medium mt-1">
+                      <span>Graduating: {edu.endDate || 'Present'}</span>
+                      {edu.gpa && <span>GPA: {edu.gpa}</span>}
+                    </div>
+                  </div>
+                ))}
               </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">Major / Degree</p>
-                  <p className="text-sm font-bold text-slate-900">{student.major || student.degree || <span className="text-slate-400 italic font-medium">Not provided</span>}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">Graduation Year</p>
-                  <p className="text-sm font-bold text-slate-900">{student.graduationYear || <span className="text-slate-400 italic font-medium">Not provided</span>}</p>
-                </div>
+            ) : (
+              <p className="text-sm font-semibold text-slate-400 italic m-0">Not provided</p>
+            )}
+          </div>
+
+          <div className="bg-white rounded-3xl border border-slate-200/70 p-6 shadow-sm">
+            <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-5">Experience</h3>
+            {student.experience && student.experience.length > 0 ? (
+              <div className="space-y-4">
+                {student.experience.map((exp, idx) => (
+                  <div key={idx} className="border-b border-slate-100 last:border-0 pb-4 last:pb-0">
+                    <p className="text-sm font-bold text-slate-900">{exp.title}</p>
+                    <p className="text-xs font-semibold text-indigo-600">{exp.company}</p>
+                    <p className="text-[11px] text-slate-500 font-medium mt-1">{exp.startDate || 'N/A'} - {exp.endDate || 'Present'}</p>
+                  </div>
+                ))}
               </div>
-            </div>
+            ) : (
+              <p className="text-sm font-semibold text-slate-400 italic m-0">Not provided</p>
+            )}
+          </div>
+
+          <div className="bg-white rounded-3xl border border-slate-200/70 p-6 shadow-sm">
+            <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-5">Academic Projects</h3>
+            {student.projects && student.projects.length > 0 ? (
+              <div className="space-y-4">
+                {student.projects.map((proj, idx) => (
+                  <div key={idx} className="border-b border-slate-100 last:border-0 pb-4 last:pb-0">
+                    <p className="text-sm font-bold text-slate-900">{proj.name}</p>
+                    {proj.technologies && proj.technologies.length > 0 && (
+                      <p className="text-[11px] text-slate-500 font-medium mt-1">
+                        <span className="font-bold">Tech:</span> {proj.technologies.join(', ')}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm font-semibold text-slate-400 italic m-0">Not provided</p>
+            )}
           </div>
         </div>
 
