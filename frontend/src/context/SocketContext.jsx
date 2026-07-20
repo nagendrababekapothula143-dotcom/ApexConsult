@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { AuthContext } from './AuthContext';
+import { getBaseUrl } from '../services/api';
 
 export const SocketContext = createContext();
 
@@ -12,16 +13,8 @@ export const SocketProvider = ({ children }) => {
     // Only connect socket if user is logged in
     const userId = user?._id || user?.id;
     if (user && userId) {
-      let socketUrl = 'https://apexconsult.onrender.com';
-      const hostname = window.location.hostname;
-      if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        socketUrl = 'http://localhost:5000';
-      }
-      
-      const envUrl = import.meta.env.VITE_API_URL;
-      if (envUrl) {
-        socketUrl = envUrl.replace('/api', '');
-      }
+      // Use our central API URL logic which correctly handles the Android emulator
+      const socketUrl = getBaseUrl().replace('/api', '');
         
       const newSocket = io(socketUrl, {
         transports: ['websocket', 'polling']

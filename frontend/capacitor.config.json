@@ -1,5 +1,8 @@
 {
   "appId": "com.apex.consulting",
   "appName": "ApexConsulting",
-  "webDir": "dist"
+  "webDir": "dist",
+  "server": {
+    "cleartext": true
+  }
 }

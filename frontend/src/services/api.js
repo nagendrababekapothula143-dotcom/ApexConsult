@@ -1,6 +1,12 @@
 import axios from 'axios';
+import { Capacitor } from '@capacitor/core';
 
 export const getBaseUrl = () => {
+  // If running on Android emulator natively, use the host loopback IP 10.0.2.2
+  if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android') {
+    return 'http://10.0.2.2:5000/api';
+  }
+
   // Try to use environment variable if explicitly set
   const envUrl = import.meta.env.VITE_API_URL;
   if (envUrl) {
