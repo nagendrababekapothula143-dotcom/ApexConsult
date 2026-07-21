@@ -27,6 +27,7 @@ const AdminATSResumes = lazy(() => import('./pages/admin/AdminATSResumes'));
 const AdminTeam = lazy(() => import('./pages/admin/AdminTeam'));
 const AdminPlacements = lazy(() => import('./pages/admin/AdminPlacements'));
 const AdminAuditLogs = lazy(() => import('./pages/admin/AdminAuditLogs'));
+const AdminFeedback = lazy(() => import('./pages/admin/AdminFeedback'));
 
 // Sub-pages for student nested routing
 const StudentOverview = lazy(() => import('./pages/student/StudentOverview'));
@@ -142,6 +143,7 @@ function App() {
 
               <Route path="team" element={<AdminTeam />} />
               <Route path="audit-logs" element={<AdminAuditLogs />} />
+              <Route path="feedbacks" element={<AdminFeedback />} />
               <Route path="settings" element={<Settings />} />
             </Route>
 

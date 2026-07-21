@@ -6,6 +6,7 @@ import { SocketContext } from '../context/SocketContext';
 import { useToast } from '../context/ToastContext';
 
 import Loader from '../components/Loader';
+import FeedbackModal from '../components/FeedbackModal';
 
 const StudentDashboard = () => {
   const { user, logout } = useContext(AuthContext);
@@ -26,6 +27,7 @@ const StudentDashboard = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [actionError, setActionError] = useState('');
   const [actionSuccess, setActionSuccess] = useState('');
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
   const fetchData = async (resources = [], isSilent = false) => {
     try {
@@ -405,6 +407,16 @@ const StudentDashboard = () => {
 
       {/* Persistent Chat Widget */}
 
+      {/* Floating Feedback Button */}
+      <button
+        onClick={() => setShowFeedbackModal(true)}
+        className="fixed bottom-6 right-6 bg-slate-900 hover:bg-slate-800 text-white shadow-lg px-4 py-3 rounded-full font-bold flex items-center gap-2 transition-transform hover:scale-105 z-40 cursor-pointer border-none"
+      >
+        <span className="text-xl leading-none">💬</span>
+        <span className="text-sm">Feedback</span>
+      </button>
+
+      <FeedbackModal isOpen={showFeedbackModal} onClose={() => setShowFeedbackModal(false)} />
     </div>
   );
 };
