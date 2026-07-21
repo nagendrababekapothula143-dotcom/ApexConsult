@@ -11,22 +11,59 @@ const { docClient, client } = require('../config/dynamodb');
 // @access  Private/Admin
 router.get('/health', protect, authorize('admin', 'recruiter'), async (req, res) => {
   try {
-    // 1. CPU Metrics
+    const fs = require('fs');
+    const path = require('path');
+    
+    // 1. Backend Health Metrics
     const cpus = os.cpus();
-    const loadavg = os.loadavg(); // Returns [1m, 5m, 15m] load
+    const loadavg = os.loadavg();
     const coreCount = cpus.length;
-    // CPU load percentage (approximate based on 1m load / cores)
     const cpuUsagePercent = Math.min(100, Math.round((loadavg[0] / coreCount) * 100));
-
-    // 2. Memory Metrics
     const totalMem = os.totalmem();
     const freeMem = os.freemem();
     const usedMem = totalMem - freeMem;
     const memUsagePercent = Math.round((usedMem / totalMem) * 100);
+    
+    const backendHealth = {
+      status: cpuUsagePercent < 90 && memUsagePercent < 90 ? 'Healthy' : 'Degraded',
+      cpuUsage: cpuUsagePercent,
+      memoryUsage: memUsagePercent,
+      uptime: Math.round(process.uptime())
+    };
 
-    // 3. Database Metrics (DynamoDB)
+    // 2. S3 Free Tier Metrics (Calculated from local uploads folder for now)
+    const getDirSize = (dirPath) => {
+      let size = 0;
+      try {
+        if (fs.existsSync(dirPath)) {
+          const files = fs.readdirSync(dirPath);
+          for (let i = 0; i < files.length; i++) {
+            const filePath = path.join(dirPath, files[i]);
+            const stats = fs.statSync(filePath);
+            if (stats.isFile()) size += stats.size;
+            else if (stats.isDirectory()) size += getDirSize(filePath);
+          }
+        }
+      } catch (e) {
+        console.error('Error calculating directory size:', e);
+      }
+      return size;
+    };
+    
+    const uploadsPath = path.join(__dirname, '../uploads');
+    const s3UsedBytes = getDirSize(uploadsPath);
+    const s3TotalBytes = 5 * 1024 * 1024 * 1024; // 5 GB Free Tier
+
+    const s3Metrics = {
+      usedBytes: s3UsedBytes,
+      totalBytes: s3TotalBytes,
+      usagePercent: Math.min(100, (s3UsedBytes / s3TotalBytes) * 100)
+    };
+
+    // 3. Database Metrics (DynamoDB Free Tier)
     let dbStatus = 'Unknown';
     let dbMetrics = {};
+    const dynamodbTotalBytes = 25 * 1024 * 1024 * 1024; // 25 GB Free Tier
     
     try {
       const command = new DescribeTableCommand({ TableName: 'consulting_users' });
@@ -36,11 +73,13 @@ router.get('/health', protect, authorize('admin', 'recruiter'), async (req, res)
       dbStatus = table.TableStatus === 'ACTIVE' ? 'Healthy' : table.TableStatus;
       
       dbMetrics = {
-        itemCount: table.ItemCount,
-        sizeBytes: table.TableSizeBytes,
+        itemCount: table.ItemCount || 0,
+        sizeBytes: table.TableSizeBytes || 0,
         billingMode: table.BillingModeSummary?.BillingMode || 'PROVISIONED',
         readCapacity: table.ProvisionedThroughput?.ReadCapacityUnits || 0,
         writeCapacity: table.ProvisionedThroughput?.WriteCapacityUnits || 0,
+        totalBytes: dynamodbTotalBytes,
+        usagePercent: Math.min(100, ((table.TableSizeBytes || 0) / dynamodbTotalBytes) * 100)
       };
     } catch (dbErr) {
       console.error('DynamoDB DescribeTable error:', dbErr);
@@ -50,22 +89,12 @@ router.get('/health', protect, authorize('admin', 'recruiter'), async (req, res)
     res.status(200).json({
       success: true,
       data: {
-        cpu: {
-          usagePercent: cpuUsagePercent,
-          cores: coreCount,
-          model: cpus[0].model,
-          loadAverage: loadavg
-        },
-        memory: {
-          usagePercent: memUsagePercent,
-          totalGB: (totalMem / (1024 ** 3)).toFixed(2),
-          usedGB: (usedMem / (1024 ** 3)).toFixed(2)
-        },
+        backend: backendHealth,
+        s3: s3Metrics,
         database: {
           status: dbStatus,
           ...dbMetrics
         },
-        uptimeSeconds: Math.round(process.uptime()),
         timestamp: new Date().toISOString()
       }
     });

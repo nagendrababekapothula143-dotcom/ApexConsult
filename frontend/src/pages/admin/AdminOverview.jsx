@@ -267,63 +267,15 @@ const AdminOverview = () => {
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* CPU Widget */}
+          {/* Backend Health Widget */}
           <div className="bg-white border border-slate-200/70 rounded-2xl p-5 shadow-sm">
             <div className="flex justify-between items-center mb-3">
               <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                <svg className="w-4 h-4 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
-                CPU Usage
+                <svg className="w-4 h-4 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/></svg>
+                Backend Health
               </h4>
-              <span className="text-xs font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full">{systemMetrics?.cpu?.cores || 0} Cores</span>
-            </div>
-            {healthLoading ? (
-              <div className="h-8 bg-slate-100 rounded animate-pulse"></div>
-            ) : (
-              <div>
-                <div className="flex items-end gap-2 mb-2">
-                  <span className="text-3xl font-black text-slate-900 leading-none">{systemMetrics?.cpu?.usagePercent || 0}%</span>
-                  <span className="text-xs text-slate-400 font-medium mb-1">Load Avg: {(systemMetrics?.cpu?.loadAverage[0] || 0).toFixed(2)}</span>
-                </div>
-                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                  <div className="bg-sky-500 h-2 rounded-full transition-all duration-500" style={{ width: `${systemMetrics?.cpu?.usagePercent || 0}%` }}></div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Memory Widget */}
-          <div className="bg-white border border-slate-200/70 rounded-2xl p-5 shadow-sm">
-            <div className="flex justify-between items-center mb-3">
-              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                <svg className="w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-                Memory
-              </h4>
-              <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">{systemMetrics?.memory?.totalGB || 0} GB</span>
-            </div>
-            {healthLoading ? (
-              <div className="h-8 bg-slate-100 rounded animate-pulse"></div>
-            ) : (
-              <div>
-                <div className="flex items-end gap-2 mb-2">
-                  <span className="text-3xl font-black text-slate-900 leading-none">{systemMetrics?.memory?.usagePercent || 0}%</span>
-                  <span className="text-xs text-slate-400 font-medium mb-1">{systemMetrics?.memory?.usedGB || 0} GB Used</span>
-                </div>
-                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                  <div className="bg-purple-500 h-2 rounded-full transition-all duration-500" style={{ width: `${systemMetrics?.memory?.usagePercent || 0}%` }}></div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Database Widget */}
-          <div className="bg-white border border-slate-200/70 rounded-2xl p-5 shadow-sm">
-            <div className="flex justify-between items-center mb-3">
-              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>
-                Database
-              </h4>
-              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${systemMetrics?.database?.status === 'Healthy' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-                {systemMetrics?.database?.status || 'Unknown'}
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${systemMetrics?.backend?.status === 'Healthy' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                {systemMetrics?.backend?.status || 'Unknown'}
               </span>
             </div>
             {healthLoading ? (
@@ -331,16 +283,64 @@ const AdminOverview = () => {
             ) : (
               <div>
                 <div className="flex items-end gap-2 mb-2">
-                  <span className="text-3xl font-black text-slate-900 leading-none">
-                    {systemMetrics?.database?.billingMode === 'PAY_PER_REQUEST' ? 'Auto' : (systemMetrics?.database?.readCapacity || 0)}
-                  </span>
-                  <span className="text-xs text-slate-400 font-medium mb-1">
-                    {systemMetrics?.database?.billingMode === 'PAY_PER_REQUEST' ? 'Scaling Capacity' : 'RCU Provisioned'}
-                  </span>
+                  <span className="text-3xl font-black text-slate-900 leading-none">{systemMetrics?.backend?.cpuUsage || 0}%</span>
+                  <span className="text-xs text-slate-400 font-medium mb-1">CPU Load</span>
                 </div>
                 <div className="text-xs font-medium text-slate-500 mt-2 border-t border-slate-100 pt-2 flex justify-between">
-                  <span>{systemMetrics?.database?.itemCount || 0} Total Items</span>
-                  <span>{((systemMetrics?.database?.sizeBytes || 0) / 1024).toFixed(1)} KB</span>
+                  <span>{systemMetrics?.backend?.memoryUsage || 0}% Memory</span>
+                  <span>Uptime: {Math.floor((systemMetrics?.backend?.uptime || 0) / 3600)}h {Math.floor(((systemMetrics?.backend?.uptime || 0) % 3600) / 60)}m</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* S3 Free Tier Limit Widget */}
+          <div className="bg-white border border-slate-200/70 rounded-2xl p-5 shadow-sm">
+            <div className="flex justify-between items-center mb-3">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                <svg className="w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                S3 Free Tier Limit
+              </h4>
+              <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">5 GB Total</span>
+            </div>
+            {healthLoading ? (
+              <div className="h-8 bg-slate-100 rounded animate-pulse"></div>
+            ) : (
+              <div>
+                <div className="flex items-end gap-2 mb-2">
+                  <span className="text-3xl font-black text-slate-900 leading-none">{(systemMetrics?.s3?.usagePercent || 0).toFixed(1)}%</span>
+                  <span className="text-xs text-slate-400 font-medium mb-1">{((systemMetrics?.s3?.usedBytes || 0) / (1024 ** 2)).toFixed(2)} MB Used</span>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                  <div className={`h-2 rounded-full transition-all duration-500 ${(systemMetrics?.s3?.usagePercent || 0) > 80 ? 'bg-rose-500' : 'bg-purple-500'}`} style={{ width: `${systemMetrics?.s3?.usagePercent || 0}%` }}></div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* DynamoDB Free Tier Limit Widget */}
+          <div className="bg-white border border-slate-200/70 rounded-2xl p-5 shadow-sm">
+            <div className="flex justify-between items-center mb-3">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>
+                DynamoDB Limit
+              </h4>
+              <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">25 GB Total</span>
+            </div>
+            {healthLoading ? (
+              <div className="h-8 bg-slate-100 rounded animate-pulse"></div>
+            ) : (
+              <div>
+                <div className="flex items-end gap-2 mb-2">
+                  <span className="text-3xl font-black text-slate-900 leading-none">
+                    {(systemMetrics?.database?.usagePercent || 0).toFixed(4)}%
+                  </span>
+                  <span className="text-xs text-slate-400 font-medium mb-1">
+                    {((systemMetrics?.database?.sizeBytes || 0) / 1024).toFixed(1)} KB Used
+                  </span>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                  <div className={`h-2 rounded-full transition-all duration-500 ${(systemMetrics?.database?.usagePercent || 0) > 80 ? 'bg-rose-500' : 'bg-emerald-500'}`} style={{ width: `${Math.max(1, systemMetrics?.database?.usagePercent || 0)}%` }}></div>
                 </div>
               </div>
             )}
