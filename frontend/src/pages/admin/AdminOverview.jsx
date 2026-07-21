@@ -309,7 +309,9 @@ const AdminOverview = () => {
               <div>
                 <div className="flex items-end gap-2 mb-2">
                   <span className="text-3xl font-black text-slate-900 leading-none">{(systemMetrics?.s3?.usagePercent || 0).toFixed(1)}%</span>
-                  <span className="text-xs text-slate-400 font-medium mb-1">{((systemMetrics?.s3?.usedBytes || 0) / (1024 ** 2)).toFixed(2)} MB Used</span>
+                  <span className="text-xs text-slate-400 font-medium mb-1">
+                    {(systemMetrics?.s3?.usedBytes || 0) > 1024 ** 3 ? `${((systemMetrics?.s3?.usedBytes || 0) / (1024 ** 3)).toFixed(2)} GB` : `${((systemMetrics?.s3?.usedBytes || 0) / (1024 ** 2)).toFixed(2)} MB`} Used
+                  </span>
                 </div>
                 <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
                   <div className={`h-2 rounded-full transition-all duration-500 ${(systemMetrics?.s3?.usagePercent || 0) > 80 ? 'bg-rose-500' : 'bg-purple-500'}`} style={{ width: `${systemMetrics?.s3?.usagePercent || 0}%` }}></div>
