@@ -335,7 +335,7 @@ const AdminOverview = () => {
               <div>
                 <div className="flex items-end gap-2 mb-2">
                   <span className="text-3xl font-black text-slate-900 leading-none">
-                    {(systemMetrics?.database?.usagePercent || 0).toFixed(4)}%
+                    {(systemMetrics?.database?.usagePercent || 0).toFixed(1)}%
                   </span>
                   <span className="text-xs text-slate-400 font-medium mb-1">
                     {((systemMetrics?.database?.sizeBytes || 0) / 1024).toFixed(1)} KB Used
