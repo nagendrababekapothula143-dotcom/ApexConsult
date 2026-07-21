@@ -7,9 +7,8 @@ const cookieParser = require('cookie-parser');
 const compression = require('compression');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const { initDynamoDB } = require('./config/dynamodb');
-
-
+const { initDynamoDB, docClient } = require('./config/dynamodb');
+const { ScanCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
 
 const http = require('http');
 const { Server } = require('socket.io');
@@ -118,6 +117,10 @@ app.use(compression()); // Compress all JSON responses
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
+// Feature 86: Rate Limiting Dashboard (Track violations)
+const rateLimitViolations = [];
+app.set('rateLimitViolations', rateLimitViolations);
+
 // Global Rate Limiting
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -125,6 +128,20 @@ const globalLimiter = rateLimit({
   message: 'Too many requests from this IP, please try again after 15 minutes',
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req, res, next, options) => {
+    let cleanIp = req.ip || req.connection.remoteAddress || 'Unknown IP';
+    if (cleanIp.startsWith('::ffff:')) cleanIp = cleanIp.substring(7);
+    
+    // Add violation to memory array (keep last 50)
+    rateLimitViolations.unshift({
+      ip: cleanIp,
+      path: req.originalUrl,
+      timestamp: new Date().toISOString()
+    });
+    if (rateLimitViolations.length > 50) rateLimitViolations.pop();
+
+    res.status(options.statusCode).send(options.message);
+  }
 });
 app.use('/api/', globalLimiter);
 
@@ -155,6 +172,49 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Feature 83: Data Retention Policies (Delete inactive users > 3 years old)
+const setupDataRetentionJob = () => {
+  const runRetentionPolicy = async () => {
+    try {
+      console.log('Running data retention policy check...');
+      const threeYearsAgo = new Date();
+      threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
+      
+      const scanParams = {
+        TableName: 'consulting_users',
+        FilterExpression: 'lastLogin < :threeYearsAgo AND #role = :studentRole',
+        ExpressionAttributeNames: { '#role': 'role' },
+        ExpressionAttributeValues: { 
+          ':threeYearsAgo': threeYearsAgo.toISOString(),
+          ':studentRole': 'student'
+        }
+      };
+      
+      const data = await docClient.send(new ScanCommand(scanParams));
+      
+      if (data.Items && data.Items.length > 0) {
+        console.log(`Found ${data.Items.length} inactive users for deletion.`);
+        for (const user of data.Items) {
+          await docClient.send(new DeleteCommand({
+            TableName: 'consulting_users',
+            Key: { id: user.id }
+          }));
+          console.log(`Deleted inactive user: ${user.id}`);
+        }
+      }
+    } catch (err) {
+      console.error('Data retention job failed:', err);
+    }
+  };
+
+  // Run once immediately on startup, then every 24 hours (86400000 ms)
+  runRetentionPolicy();
+  setInterval(runRetentionPolicy, 86400000);
+};
+
+setupDataRetentionJob();
+
+// Start Server
 const PORT = process.env.PORT || 5000;
 
 if (!isServerless) {

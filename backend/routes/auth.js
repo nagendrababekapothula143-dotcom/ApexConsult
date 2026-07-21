@@ -11,8 +11,8 @@ const crypto = require('crypto');
 const { logAuditAction } = require('../utils/auditLogger');
 const router = express.Router();
 
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'consulting_jwt_secret_key_987654321_abcdef', {
+const generateToken = (id, sessionId) => {
+  return jwt.sign({ id, sessionId }, process.env.JWT_SECRET || 'consulting_jwt_secret_key_987654321_abcdef', {
     expiresIn: '30d',
   });
 };
@@ -255,7 +255,9 @@ router.post('/register', async (req, res) => {
       { role: newUser.role, email: newUser.email }
     );
 
-    const token = generateToken(userId);
+    const sessionId = crypto.randomUUID();
+    const token = generateToken(userId, sessionId);
+    
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -327,9 +329,42 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
+    // Feature 87: Session Management
+    const sessionId = crypto.randomUUID();
+    
+    let cleanIp = req.ip || req.connection.remoteAddress || 'Unknown IP';
+    if (cleanIp.startsWith('::ffff:')) {
+      cleanIp = cleanIp.substring(7);
+    }
+    if (cleanIp === '::1') {
+      cleanIp = '127.0.0.1 (Localhost)';
+    }
 
+    const newSession = {
+      sessionId,
+      userAgent: req.headers['user-agent'] || 'Unknown Device',
+      ip: cleanIp,
+      createdAt: new Date().toISOString(),
+      lastActive: new Date().toISOString()
+    };
 
-    const token = generateToken(user.id);
+    let updatedSessions = user.sessions || [];
+    // Keep max 5 sessions per user to avoid DynamoDB document size limits
+    updatedSessions.push(newSession);
+    if (updatedSessions.length > 5) {
+      updatedSessions = updatedSessions.slice(-5);
+    }
+
+    await docClient.send(new UpdateCommand({
+      TableName: 'consulting_users',
+      Key: { id: user.id },
+      UpdateExpression: 'SET sessions = :sessions',
+      ExpressionAttributeValues: {
+        ':sessions': updatedSessions
+      }
+    }));
+
+    const token = generateToken(user.id, sessionId);
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -862,6 +897,55 @@ router.post('/profile/bookmark/:jobId', protect, authorize('student'), async (re
   } catch (error) {
     console.error('Toggle bookmark error:', error);
     res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// @desc    Get active sessions for current user
+// @route   GET /api/auth/sessions
+// @access  Private
+router.get('/sessions', protect, async (req, res) => {
+  try {
+    const sessions = req.user.sessions || [];
+    res.status(200).json({ success: true, data: sessions });
+  } catch (error) {
+    console.error('Get sessions error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// @desc    Revoke a specific session
+// @route   DELETE /api/auth/sessions/:sessionId
+// @access  Private
+router.delete('/sessions/:sessionId', protect, async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    let sessions = req.user.sessions || [];
+    
+    const filteredSessions = sessions.filter(s => s.sessionId !== sessionId);
+    
+    if (sessions.length === filteredSessions.length) {
+      return res.status(404).json({ success: false, message: 'Session not found' });
+    }
+
+    const { UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+    const { docClient } = require('../config/dynamodb');
+    
+    await docClient.send(new UpdateCommand({
+      TableName: 'consulting_users',
+      Key: { id: req.user.id },
+      UpdateExpression: 'SET sessions = :sessions',
+      ExpressionAttributeValues: {
+        ':sessions': filteredSessions
+      }
+    }));
+
+    const { logAuditAction } = require('../utils/auditLogger');
+    await logAuditAction(req.user.id, req.user.name, 'REVOKE_SESSION', 'Revoked a session', { revokedSessionId: sessionId });
+
+    res.status(200).json({ success: true, message: 'Session revoked successfully' });
+  } catch (error) {
+    console.error('Revoke session error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 

@@ -36,6 +36,16 @@ const protect = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Your account has been deactivated. Please contact support.' });
     }
 
+    // Feature 87: Session Management
+    // Only check sessions if this JWT has a sessionId (for backward compatibility with old tokens)
+    if (decoded.sessionId) {
+      const activeSessions = result.Item.sessions || [];
+      const sessionExists = activeSessions.find(s => s.sessionId === decoded.sessionId);
+      if (!sessionExists) {
+        return res.status(401).json({ success: false, message: 'Session has been revoked or expired. Please log in again.' });
+      }
+    }
+
     req.user = result.Item;
     next();
   } catch (error) {
@@ -57,4 +67,22 @@ const authorize = (...roles) => {
   };
 };
 
-module.exports = { protect, authorize };
+// Feature 82: Granular Role-Based Access Control (RBAC)
+const requirePermission = (permission) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Not authenticated.' });
+    }
+    // Super admins implicitly have all permissions
+    if (req.user.role === 'admin' && req.user.isSuperAdmin) {
+      return next();
+    }
+    const userPermissions = req.user.permissions || [];
+    if (!userPermissions.includes(permission)) {
+      return res.status(403).json({ success: false, message: `Missing required permission: ${permission}` });
+    }
+    next();
+  };
+};
+
+module.exports = { protect, authorize, requirePermission };

@@ -11,9 +11,13 @@ const AdminOverview = () => {
   const navigate = useNavigate();
   const [systemMetrics, setSystemMetrics] = useState(null);
   const [healthLoading, setHealthLoading] = useState(true);
+  const [backups, setBackups] = useState([]);
+  const [backupsLoading, setBackupsLoading] = useState(true);
+  const [triggeringBackup, setTriggeringBackup] = useState(false);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [scheduledMaintenanceTime, setScheduledMaintenanceTime] = useState('');
   const [togglingMaintenance, setTogglingMaintenance] = useState(false);
+  const [rateLimits, setRateLimits] = useState(null);
 
   useEffect(() => {
     document.title = 'Admin Overview | Kryntel Console';
@@ -49,10 +53,54 @@ const AdminOverview = () => {
     
     fetchHealth();
     fetchSettings();
-    // Poll every 2 seconds for real-time updates
-    const interval = setInterval(fetchHealth, 2000);
+    fetchBackups();
+    fetchRateLimits();
+    const interval = setInterval(() => {
+      fetchHealth();
+      fetchRateLimits();
+    }, 30000); // refresh every 30s
     return () => clearInterval(interval);
   }, []);
+
+  const fetchRateLimits = async () => {
+    try {
+      const res = await api.get('/system/rate-limits');
+      if (res.data.success) {
+        setRateLimits(res.data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch rate limits', err);
+    }
+  };
+
+  const fetchBackups = async () => {
+    try {
+      setBackupsLoading(true);
+      const res = await api.get('/system/backups');
+      if (res.data.success) {
+        setBackups(res.data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch backups', err);
+    } finally {
+      setBackupsLoading(false);
+    }
+  };
+
+  const handleCreateBackup = async () => {
+    try {
+      setTriggeringBackup(true);
+      // We will back up the core users table for now
+      await api.post('/system/backups', { tableName: 'consulting_users' });
+      toast.success('Database backup initiated successfully!');
+      fetchBackups();
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to trigger database backup');
+    } finally {
+      setTriggeringBackup(false);
+    }
+  };
 
   const toggleMaintenance = async (isScheduled = false, clearSchedule = false) => {
     try {
@@ -350,6 +398,115 @@ const AdminOverview = () => {
         </div>
       </div>
 
+      {/* Feature 86: Rate Limiting Dashboard */}
+      <div className="mt-8 bg-white border border-slate-200/70 rounded-3xl p-6 sm:p-10 shadow-sm">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <div>
+            <h3 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+              <svg className="w-5 h-5 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+              Security & Rate Limiting
+            </h3>
+            <p className="text-sm text-slate-500 font-medium mt-1">
+              Global limit config: {rateLimits?.config?.maxRequests || 10000} requests per {((rateLimits?.config?.windowMs || 900000) / 60000)} minutes
+            </p>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto rounded-2xl border border-slate-200/60">
+          <table className="w-full border-collapse text-left text-sm">
+            <thead className="bg-slate-50 border-b border-slate-200/60 text-[11px] font-extrabold text-slate-500 uppercase tracking-widest">
+              <tr>
+                <th className="p-4">Blocked IP Address</th>
+                <th className="p-4">Endpoint</th>
+                <th className="p-4 text-right">Time of Violation</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {!rateLimits ? (
+                <tr>
+                  <td colSpan="3" className="p-8 text-center text-slate-400">Loading security logs...</td>
+                </tr>
+              ) : rateLimits.violations.length === 0 ? (
+                <tr>
+                  <td colSpan="3" className="p-8 text-center text-emerald-600 font-medium">No active rate limit violations. Systems secure.</td>
+                </tr>
+              ) : (
+                rateLimits.violations.map((violation, idx) => (
+                  <tr key={idx} className="hover:bg-rose-50/30 transition-colors">
+                    <td className="p-4 font-bold text-rose-600 truncate max-w-[200px]">{violation.ip}</td>
+                    <td className="p-4 text-slate-500 font-medium truncate max-w-[200px]">{violation.path}</td>
+                    <td className="p-4 text-right text-slate-500 font-medium">
+                      {new Date(violation.timestamp).toLocaleString()}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Feature 88: Database Backups UI */}
+      <div className="mt-8 bg-white border border-slate-200/70 rounded-3xl p-6 sm:p-10 shadow-sm">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <div>
+            <h3 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+              <svg className="w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" /></svg>
+              Database Backups
+            </h3>
+            <p className="text-sm text-slate-500 font-medium mt-1">Manage manual DynamoDB snapshots for disaster recovery.</p>
+          </div>
+          <button
+            onClick={handleCreateBackup}
+            disabled={triggeringBackup}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md shadow-indigo-200 transition-all cursor-pointer disabled:opacity-50"
+          >
+            {triggeringBackup ? 'Triggering...' : 'Create Manual Backup'}
+          </button>
+        </div>
+
+        <div className="overflow-x-auto rounded-2xl border border-slate-200/60">
+          <table className="w-full border-collapse text-left text-sm">
+            <thead className="bg-slate-50 border-b border-slate-200/60 text-[11px] font-extrabold text-slate-500 uppercase tracking-widest">
+              <tr>
+                <th className="p-4">Backup Name</th>
+                <th className="p-4">Table</th>
+                <th className="p-4">Status</th>
+                <th className="p-4">Size</th>
+                <th className="p-4 text-right">Created</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {backupsLoading ? (
+                <tr>
+                  <td colSpan="5" className="p-8 text-center text-slate-400">Loading backups...</td>
+                </tr>
+              ) : backups.length === 0 ? (
+                <tr>
+                  <td colSpan="5" className="p-8 text-center text-slate-400 font-medium">No backups found. Create one to get started.</td>
+                </tr>
+              ) : (
+                backups.map((backup) => (
+                  <tr key={backup.BackupArn} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-4 font-bold text-slate-700 truncate max-w-[200px]" title={backup.BackupName}>{backup.BackupName}</td>
+                    <td className="p-4 text-slate-500 font-medium">{backup.TableName}</td>
+                    <td className="p-4">
+                      <span className={`text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full ${backup.BackupStatus === 'AVAILABLE' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                        {backup.BackupStatus}
+                      </span>
+                    </td>
+                    <td className="p-4 text-slate-500 font-medium">{(backup.BackupSizeBytes / 1024).toFixed(1)} KB</td>
+                    <td className="p-4 text-right text-slate-500 font-medium">
+                      {new Date(backup.BackupCreationDateTime).toLocaleString()}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {/* Main Charts & Analytics row */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch mt-8">
         
@@ -406,7 +563,59 @@ const AdminOverview = () => {
           </div>
         </div>
 
-
+        {/* Feature 52: Database Growth Charts */}
+        <div className="lg:col-span-12 bg-white border border-slate-200/70 rounded-3xl p-6 sm:p-10 shadow-sm mt-8">
+          <h3 className="text-lg font-black text-slate-900 mb-1 tracking-tight">Database Storage Growth</h3>
+          <p className="text-sm text-slate-500 mb-8 font-medium">DynamoDB volume utilization over the last 30 days (Simulated)</p>
+          
+          <div className="h-[240px] w-full mt-4">
+            {healthLoading ? (
+              <div className="w-full h-full bg-slate-50 rounded-xl animate-pulse border border-slate-100"></div>
+            ) : systemMetrics?.database?.history && systemMetrics.database.history.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={systemMetrics.database.history} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorDbGrowth" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis 
+                    dataKey="date" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fontSize: 10, fill: '#94a3b8' }} 
+                    dy={10} 
+                  />
+                  <YAxis 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fontSize: 10, fill: '#94a3b8' }} 
+                  />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px -5px rgba(0,0,0,0.1)' }}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="sizeKB" 
+                    name="Size (KB)"
+                    stroke="#10b981" 
+                    strokeWidth={3}
+                    fillOpacity={1} 
+                    fill="url(#colorDbGrowth)" 
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyState 
+                title="No Data" 
+                description="Not enough historic database metrics available." 
+                icon="database" 
+              />
+            )}
+          </div>
+        </div>
 
       </div>
 

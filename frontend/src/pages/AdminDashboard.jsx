@@ -7,12 +7,14 @@ import Loader from '../components/Loader';
 
 import ThemeToggle from '../components/ThemeToggle';
 import GlobalProfileModal from '../components/GlobalProfileModal';
+import { useTranslation } from '../i18n.jsx';
 
 const AdminDashboard = () => {
   const { user, logout } = useContext(AuthContext);
   const socket = useContext(SocketContext);
   const navigate = useNavigate();
   const currentLocation = useLocation();
+  const { t } = useTranslation();
   
   // Shared Dynamic States
   const [jobs, setJobs] = useState([]);
@@ -451,14 +453,14 @@ const AdminDashboard = () => {
           <div className="mt-2">
 
           <ul className="flex flex-col gap-1.5 list-none m-0 p-0">
-            <li>{renderNavLink('/admin', <Icons.Dashboard />, 'Overview', true)}</li>
-            <li>{renderNavLink('/admin/students', <Icons.Students />, 'All Students')}</li>
-            <li>{renderNavLink('/admin/payments', <Icons.PaymentLinks />, 'Payments')}</li>
+            <li>{renderNavLink('/admin', <Icons.Dashboard />, t('dashboard'), true)}</li>
+            <li>{renderNavLink('/admin/students', <Icons.Students />, t('students'))}</li>
+            <li>{renderNavLink('/admin/payments', <Icons.PaymentLinks />, t('payments'))}</li>
             <li>{renderNavLink('/admin/ats-resumes', <Icons.ATSResumes />, 'ATS Resumes')}</li>
-            <li>{renderNavLink('/admin/post-jobs', <Icons.JobPlacements />, 'Post Jobs')}</li>
+            <li>{renderNavLink('/admin/post-jobs', <Icons.JobPlacements />, t('jobs'))}</li>
             <li>{renderNavLink('/admin/team', <Icons.TeamManagement />, 'Team Management')}</li>
             <li>{renderNavLink('/admin/audit-logs', <Icons.AuditLogs />, 'Audit Logs')}</li>
-            <li>{renderNavLink('/admin/settings', <Icons.Settings />, 'Settings')}</li>
+            <li>{renderNavLink('/admin/settings', <Icons.Settings />, t('settings'))}</li>
           </ul>
 
           </div>

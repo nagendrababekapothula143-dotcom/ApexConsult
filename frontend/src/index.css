@@ -22,6 +22,12 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
 }
 
+/* Feature 98: Keyboard Navigation Global Outlines */
+*:focus-visible {
+  outline: 3px solid #3b82f6 !important;
+  outline-offset: 2px !important;
+}
+
 /* Global Dark Mode via CSS Filters */
 html.dark {
   filter: invert(1) hue-rotate(180deg);

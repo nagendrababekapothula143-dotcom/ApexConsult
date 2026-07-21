@@ -1,10 +1,12 @@
 import React, { useContext, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { useTranslation } from '../i18n.jsx';
 import ThemeToggle from './ThemeToggle';
 
 const Navbar = () => {
   const { user, logout } = useContext(AuthContext);
+  const { language, changeLanguage } = useTranslation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -92,7 +94,17 @@ const Navbar = () => {
               </li>
             </>
           )}
-          <li className="pl-2 border-l border-slate-200 dark:border-slate-800 flex items-center">
+          <li className="pl-2 border-l border-slate-200 dark:border-slate-800 flex items-center gap-2">
+            <select
+              value={language}
+              onChange={(e) => changeLanguage(e.target.value)}
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs rounded-md px-2 py-1 outline-none cursor-pointer"
+            >
+              <option value="en">EN</option>
+              <option value="es">ES</option>
+              <option value="fr">FR</option>
+              <option value="hi">HI</option>
+            </select>
             <ThemeToggle />
           </li>
         </ul>

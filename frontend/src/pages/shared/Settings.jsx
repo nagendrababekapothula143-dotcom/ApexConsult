@@ -11,10 +11,44 @@ const Settings = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // Session Management State
+  const [sessions, setSessions] = useState([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [revokingId, setRevokingId] = useState(null);
 
   useEffect(() => {
     document.title = 'Settings | Kryntel';
+    fetchSessions();
   }, []);
+
+  const fetchSessions = async () => {
+    try {
+      setSessionsLoading(true);
+      const res = await api.get('/auth/sessions');
+      if (res.data.success) {
+        setSessions(res.data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch sessions', err);
+    } finally {
+      setSessionsLoading(false);
+    }
+  };
+
+  const handleRevokeSession = async (sessionId) => {
+    try {
+      setRevokingId(sessionId);
+      await api.delete(`/auth/sessions/${sessionId}`);
+      toast.success('Session revoked successfully');
+      setSessions(sessions.filter(s => s.sessionId !== sessionId));
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to revoke session');
+    } finally {
+      setRevokingId(null);
+    }
+  };
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
@@ -107,6 +141,57 @@ const Settings = () => {
             </button>
           </div>
         </form>
+      </div>
+
+      {/* Feature 87: Active Sessions UI */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+        <h2 className="text-lg font-bold text-slate-900 mb-1 flex items-center gap-2">
+          <span className="text-xl">💻</span> Active Sessions
+        </h2>
+        <p className="text-xs text-slate-500 mb-5">Manage and revoke active logins across your devices.</p>
+
+        <div className="overflow-x-auto border border-slate-200/60 rounded-xl">
+          <table className="w-full border-collapse text-left text-sm">
+            <thead className="bg-slate-50 border-b border-slate-200/60 text-[11px] font-extrabold text-slate-500 uppercase tracking-widest">
+              <tr>
+                <th className="p-4">Device & Browser</th>
+                <th className="p-4">IP Address</th>
+                <th className="p-4">Last Active</th>
+                <th className="p-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {sessionsLoading ? (
+                <tr>
+                  <td colSpan="4" className="p-6 text-center text-slate-400">Loading sessions...</td>
+                </tr>
+              ) : sessions.length === 0 ? (
+                <tr>
+                  <td colSpan="4" className="p-6 text-center text-slate-400">No active sessions found.</td>
+                </tr>
+              ) : (
+                sessions.map((session) => (
+                  <tr key={session.sessionId} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-4 font-medium text-slate-700 max-w-[200px] truncate" title={session.userAgent}>
+                      {session.userAgent.substring(0, 40)}{session.userAgent.length > 40 ? '...' : ''}
+                    </td>
+                    <td className="p-4 text-slate-500 font-medium">{session.ip}</td>
+                    <td className="p-4 text-slate-500 font-medium">{new Date(session.lastActive).toLocaleString()}</td>
+                    <td className="p-4 text-right">
+                      <button
+                        onClick={() => handleRevokeSession(session.sessionId)}
+                        disabled={revokingId === session.sessionId}
+                        className="text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-md transition-colors disabled:opacity-50 cursor-pointer"
+                      >
+                        {revokingId === session.sessionId ? 'Revoking...' : 'Revoke'}
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
