@@ -47,6 +47,24 @@ const AdminPlacements = () => {
     }
   };
 
+  const [updatingPlacement, setUpdatingPlacement] = useState(null);
+
+  const handleAdminPlacementUpdate = async (appId, status) => {
+    try {
+      setUpdatingPlacement(appId);
+      const res = await api.patch(`/applications/${appId}/placement`, { placementStatus: status });
+      if (res.data.success) {
+        toast.success(`Placement status updated to ${status === 'placed' ? 'Placed' : 'Not Placed'}`);
+        if (fetchData) await fetchData(['applications']);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to update placement status.');
+    } finally {
+      setUpdatingPlacement(null);
+    }
+  };
+
   const [localLoading, setLocalLoading] = useState(true);
 
   useEffect(() => {
@@ -205,9 +223,16 @@ const AdminPlacements = () => {
                                   <h4 className="font-bold text-slate-900 text-sm mb-0.5">{app.student?.name}</h4>
                                   <span className="text-xs text-slate-500 block truncate max-w-[150px]">{app.student?.email}</span>
                                 </div>
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${getStatusBadgeClass(app.status)}`}>
-                                  {app.status.replace('_', ' ')}
-                                </span>
+                                <div className="flex flex-col items-end gap-1">
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${getStatusBadgeClass(app.status)}`}>
+                                    {app.status.replace('_', ' ')}
+                                  </span>
+                                  {app.placementStatus && (
+                                    <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider ${app.placementStatus === 'placed' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                                      {app.placementStatus === 'placed' ? 'Placed (Self-Report)' : 'Not Placed'}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                               
                               <div className="flex flex-col gap-1">
@@ -234,6 +259,26 @@ const AdminPlacements = () => {
                                   </svg>
                                   View Resume
                                 </a>
+                                
+                                {/* Admin Placement Override */}
+                                {!app.placementStatus && user?.role === 'admin' && (
+                                  <div className="flex gap-2 w-full mt-2">
+                                    <button 
+                                      onClick={() => handleAdminPlacementUpdate(app._id, 'placed')}
+                                      disabled={updatingPlacement === app._id}
+                                      className="flex-1 text-[10px] font-bold px-2 py-1.5 rounded-md bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors disabled:opacity-50 border-none cursor-pointer"
+                                    >
+                                      Mark Placed
+                                    </button>
+                                    <button 
+                                      onClick={() => handleAdminPlacementUpdate(app._id, 'not_placed')}
+                                      disabled={updatingPlacement === app._id}
+                                      className="flex-1 text-[10px] font-bold px-2 py-1.5 rounded-md bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors disabled:opacity-50 border-none cursor-pointer"
+                                    >
+                                      Mark Failed
+                                    </button>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           ))}

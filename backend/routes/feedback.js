@@ -1,11 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { PutCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
+const { db } = require('../config/firebase');
 const { v4: uuidv4 } = require('uuid');
 const { protect, authorize } = require('../middleware/auth');
-const { docClient } = require('../config/dynamodb');
-
-// @desc    Submit new feedback
 // @route   POST /api/feedback
 // @access  Private (Students)
 router.post('/', protect, async (req, res) => {
@@ -25,12 +22,7 @@ router.post('/', protect, async (req, res) => {
       createdAt: new Date().toISOString()
     };
 
-    const command = new PutCommand({
-      TableName: 'consulting_feedback',
-      Item: feedback
-    });
-
-    await docClient.send(command);
+    await db.collection('consulting_feedback').doc(feedback.id).set(feedback);
 
     res.status(201).json({ success: true, data: feedback });
   } catch (error) {
@@ -44,14 +36,11 @@ router.post('/', protect, async (req, res) => {
 // @access  Private (Admin)
 router.get('/', protect, authorize('admin'), async (req, res) => {
   try {
-    const command = new ScanCommand({
-      TableName: 'consulting_feedback'
-    });
-
-    const response = await docClient.send(command);
+    const snapshot = await db.collection('consulting_feedback').get();
+    let items = snapshot.docs.map(doc => doc.data());
     
     // Sort by newest first
-    const items = (response.Items || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     res.status(200).json({ success: true, data: items });
   } catch (error) {

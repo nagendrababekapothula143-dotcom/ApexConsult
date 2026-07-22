@@ -7,8 +7,7 @@ const cookieParser = require('cookie-parser');
 const compression = require('compression');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const { initDynamoDB, docClient } = require('./config/dynamodb');
-const { ScanCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
+const { db } = require('./config/firebase');
 
 const http = require('http');
 const { Server } = require('socket.io');
@@ -181,27 +180,20 @@ const setupDataRetentionJob = () => {
       const threeYearsAgo = new Date();
       threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
       
-      const scanParams = {
-        TableName: 'consulting_users',
-        FilterExpression: 'lastLogin < :threeYearsAgo AND #role = :studentRole',
-        ExpressionAttributeNames: { '#role': 'role' },
-        ExpressionAttributeValues: { 
-          ':threeYearsAgo': threeYearsAgo.toISOString(),
-          ':studentRole': 'student'
-        }
-      };
+      const snapshot = await db.collection('consulting_users')
+        .where('role', '==', 'student')
+        .where('lastLogin', '<', threeYearsAgo.toISOString())
+        .get();
       
-      const data = await docClient.send(new ScanCommand(scanParams));
-      
-      if (data.Items && data.Items.length > 0) {
-        console.log(`Found ${data.Items.length} inactive users for deletion.`);
-        for (const user of data.Items) {
-          await docClient.send(new DeleteCommand({
-            TableName: 'consulting_users',
-            Key: { id: user.id }
-          }));
-          console.log(`Deleted inactive user: ${user.id}`);
-        }
+      if (!snapshot.empty) {
+        console.log(`Found ${snapshot.size} inactive users for deletion.`);
+        const batch = db.batch();
+        snapshot.forEach(doc => {
+          batch.delete(doc.ref);
+          console.log(`Queued inactive user for deletion: ${doc.id}`);
+        });
+        await batch.commit();
+        console.log('Deleted inactive users successfully.');
       }
     } catch (err) {
       console.error('Data retention job failed:', err);
@@ -224,18 +216,13 @@ if (!isServerless) {
   } catch (e) {}
 }
 
-initDynamoDB().then(() => {
-  if (!isServerless) {
-    // IMPORTANT: Use server.listen instead of app.listen for Socket.io
-    server.listen(PORT, () => {
-      console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-    });
-  } else {
-    console.log(`Server running in Serverless mode on Vercel`);
-  }
-}).catch(err => {
-  console.error('Failed to initialize AWS DynamoDB tables:', err);
-  if (!isServerless) process.exit(1);
-});
+if (!isServerless) {
+  // IMPORTANT: Use server.listen instead of app.listen for Socket.io
+  server.listen(PORT, () => {
+    console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+  });
+} else {
+  console.log(`Server running in Serverless mode on Vercel`);
+}
 
 module.exports = app;

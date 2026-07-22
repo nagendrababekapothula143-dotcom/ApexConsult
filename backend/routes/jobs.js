@@ -1,7 +1,6 @@
 const express = require('express');
 const crypto = require('crypto');
-const { docClient } = require('../config/dynamodb');
-const { ScanCommand, GetCommand, PutCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
+const { db } = require('../config/firebase');
 const { protect, authorize } = require('../middleware/auth');
 const router = express.Router();
 
@@ -21,20 +20,20 @@ router.get('/', async (req, res) => {
       return res.status(200).json(jobsCache.get('defaultPage'));
     }
 
-    const params = {
-      TableName: 'consulting_jobs',
-      Limit: limit
-    };
+    let jobsQuery = db.collection('consulting_jobs').orderBy('createdAt', 'desc').limit(limit);
 
-    if (lastKey) {
-      params.ExclusiveStartKey = lastKey;
+    if (lastKey && lastKey.id) {
+      const docRef = await db.collection('consulting_jobs').doc(lastKey.id).get();
+      if (docRef.exists) {
+        jobsQuery = jobsQuery.startAfter(docRef);
+      }
     }
 
-    const result = await docClient.send(new ScanCommand(params));
+    const resultSnapshot = await jobsQuery.get();
 
-    let jobs = (result.Items || []).map(job => ({
-      ...job,
-      _id: job.id // Map id to _id for frontend compatibility
+    let jobs = resultSnapshot.docs.map(doc => ({
+      ...doc.data(),
+      _id: doc.id
     }));
 
     // Filter out expired jobs unless includeExpired=true is passed
@@ -43,15 +42,20 @@ router.get('/', async (req, res) => {
       jobs = jobs.filter(job => !job.expiresAt || job.expiresAt > now);
     }
     
-    // Note: DynamoDB Scan sorts by arbitrary partition key order unless we sort in memory.
-    // In production with pagination, a GSI with a sort key on createdAt should be used.
+    // Sort in memory just in case
     jobs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    let nextLastKey = null;
+    if (resultSnapshot.docs.length === limit) {
+      const lastDoc = resultSnapshot.docs[resultSnapshot.docs.length - 1];
+      nextLastKey = encodeURIComponent(JSON.stringify({ id: lastDoc.id }));
+    }
 
     const responseData = { 
       success: true, 
       count: jobs.length, 
       data: jobs,
-      lastEvaluatedKey: result.LastEvaluatedKey ? encodeURIComponent(JSON.stringify(result.LastEvaluatedKey)) : null
+      lastEvaluatedKey: nextLastKey
     };
 
     // Cache the first page
@@ -71,18 +75,15 @@ router.get('/', async (req, res) => {
 // @access  Public
 router.get('/:id', async (req, res) => {
   try {
-    const result = await docClient.send(new GetCommand({
-      TableName: 'consulting_jobs',
-      Key: { id: req.params.id }
-    }));
+    const docRef = await db.collection('consulting_jobs').doc(req.params.id).get();
 
-    if (!result.Item) {
+    if (!docRef.exists) {
       return res.status(404).json({ success: false, message: 'Job listing not found' });
     }
 
     const job = {
-      ...result.Item,
-      _id: result.Item.id
+      ...docRef.data(),
+      _id: docRef.id
     };
 
     res.status(200).json({ success: true, data: job });
@@ -126,10 +127,7 @@ router.post('/', protect, authorize('admin'), async (req, res) => {
       placementFee: Number(placementFee) || 0,
     };
 
-    await docClient.send(new PutCommand({
-      TableName: 'consulting_jobs',
-      Item: newJob
-    }));
+    await db.collection('consulting_jobs').doc(newJobId).set(newJob);
 
     // Invalidate cache
     jobsCache.del('defaultPage');
@@ -151,16 +149,13 @@ router.post('/', protect, authorize('admin'), async (req, res) => {
 // @access  Private (Admin only)
 router.put('/:id', protect, authorize('admin'), async (req, res) => {
   try {
-    const getRes = await docClient.send(new GetCommand({
-      TableName: 'consulting_jobs',
-      Key: { id: req.params.id }
-    }));
+    const docRef = await db.collection('consulting_jobs').doc(req.params.id).get();
 
-    if (!getRes.Item) {
+    if (!docRef.exists) {
       return res.status(404).json({ success: false, message: 'Job listing not found' });
     }
 
-    const job = getRes.Item;
+    const job = docRef.data();
 
     // Verify ownership or admin scope
     if (job.createdBy !== req.user.id && req.user.role !== 'admin') {
@@ -177,10 +172,7 @@ router.put('/:id', protect, authorize('admin'), async (req, res) => {
       id: job.id // Lock id
     };
 
-    await docClient.send(new PutCommand({
-      TableName: 'consulting_jobs',
-      Item: updatedJob
-    }));
+    await db.collection('consulting_jobs').doc(job.id).set(updatedJob);
 
     // Invalidate cache
     jobsCache.del('defaultPage');
@@ -202,26 +194,20 @@ router.put('/:id', protect, authorize('admin'), async (req, res) => {
 // @access  Private (Admin only)
 router.delete('/:id', protect, authorize('admin'), async (req, res) => {
   try {
-    const result = await docClient.send(new GetCommand({
-      TableName: 'consulting_jobs',
-      Key: { id: req.params.id }
-    }));
+    const docRef = await db.collection('consulting_jobs').doc(req.params.id).get();
 
-    if (!result.Item) {
+    if (!docRef.exists) {
       return res.status(404).json({ success: false, message: 'Job listing not found' });
     }
 
-    const job = result.Item;
+    const job = docRef.data();
 
     // Verify ownership
     if (job.createdBy !== req.user.id && req.user.role !== 'admin') {
       return res.status(401).json({ success: false, message: 'Not authorized to delete this listing' });
     }
 
-    await docClient.send(new DeleteCommand({
-      TableName: 'consulting_jobs',
-      Key: { id: req.params.id }
-    }));
+    await db.collection('consulting_jobs').doc(req.params.id).delete();
 
     // Invalidate cache
     jobsCache.del('defaultPage');

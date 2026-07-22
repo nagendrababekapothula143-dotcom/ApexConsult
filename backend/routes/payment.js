@@ -3,25 +3,7 @@ const router = express.Router();
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
-const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
-const { DynamoDBDocumentClient, PutCommand, QueryCommand, ScanCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
-const { protect, authorize } = require('../middleware/auth');
-
-// Initialize AWS DynamoDB safely
-const config = {
-  region: process.env.AWS_REGION || 'eu-north-1',
-};
-if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
-  config.credentials = {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  };
-}
-
-const client = new DynamoDBClient(config);
-const docClient = DynamoDBDocumentClient.from(client, {
-  marshallOptions: { removeUndefinedValues: true, convertEmptyValues: true }
-});
+const { db } = require('../config/firebase');
 
 const TABLE_NAME = 'consulting_payments';
 const USERS_TABLE = 'consulting_users';
@@ -36,14 +18,10 @@ const razorpay = new Razorpay({
 const getUserDetails = async (userId) => {
   if (!userId) return null;
   try {
-    const res = await docClient.send(new QueryCommand({
-      TableName: USERS_TABLE,
-      KeyConditionExpression: 'id = :id',
-      ExpressionAttributeValues: { ':id': userId }
-    }));
-    if (res.Items && res.Items.length > 0) {
-      const u = res.Items[0];
-      return { _id: u.id, name: u.name, email: u.email, apexId: u.apexId };
+    const doc = await db.collection(USERS_TABLE).doc(userId).get();
+    if (doc.exists) {
+      const u = doc.data();
+      return { _id: doc.id, name: u.name, email: u.email, apexId: u.apexId };
     }
   } catch (err) {
     console.error('Error fetching user details:', err);
@@ -86,10 +64,7 @@ router.post('/create-order', protect, authorize('admin', 'recruiter'), async (re
       completedAt: null
     };
 
-    await docClient.send(new PutCommand({
-      TableName: TABLE_NAME,
-      Item: payment
-    }));
+    await db.collection(TABLE_NAME).doc(paymentId).set(payment);
 
     // Populate student object manually for frontend
     payment.student = await getUserDetails(studentId);
@@ -110,16 +85,8 @@ router.post('/create-order', protect, authorize('admin', 'recruiter'), async (re
 // @access  Private/Student
 router.get('/student', protect, async (req, res) => {
   try {
-    const response = await docClient.send(new QueryCommand({
-      TableName: TABLE_NAME,
-      IndexName: 'student-index',
-      KeyConditionExpression: 'studentId = :sid',
-      ExpressionAttributeValues: {
-        ':sid': req.user.id
-      }
-    }));
-
-    let payments = response.Items || [];
+    const snapshot = await db.collection(TABLE_NAME).where('studentId', '==', req.user.id).get();
+    let payments = snapshot.docs.map(doc => doc.data());
     
     // Map id to _id for frontend compatibility
     payments = payments.map(p => {
@@ -142,11 +109,8 @@ router.get('/student', protect, async (req, res) => {
 // @access  Private/Admin
 router.get('/', protect, authorize('admin', 'recruiter'), async (req, res) => {
   try {
-    const response = await docClient.send(new ScanCommand({
-      TableName: TABLE_NAME
-    }));
-
-    let payments = response.Items || [];
+    const snapshot = await db.collection(TABLE_NAME).get();
+    let payments = snapshot.docs.map(doc => doc.data());
 
     // Populate student data
     payments = await Promise.all(payments.map(async (p) => {
@@ -179,29 +143,16 @@ router.post('/verify', protect, async (req, res) => {
       .digest("hex");
 
     if (razorpay_signature === expectedSign) {
-      // Find the payment by order id. Scan is okay since order id is unique, but could be optimized.
-      const scanRes = await docClient.send(new ScanCommand({
-        TableName: TABLE_NAME,
-        FilterExpression: 'razorpayOrderId = :rid',
-        ExpressionAttributeValues: { ':rid': razorpay_order_id }
-      }));
+      const scanRes = await db.collection(TABLE_NAME).where('razorpayOrderId', '==', razorpay_order_id).get();
 
-      if (scanRes.Items && scanRes.Items.length > 0) {
-        const paymentId = scanRes.Items[0].id;
+      if (!scanRes.empty) {
+        const paymentId = scanRes.docs[0].id;
         
-        await docClient.send(new UpdateCommand({
-          TableName: TABLE_NAME,
-          Key: { id: paymentId },
-          UpdateExpression: 'set #status = :s, razorpayPaymentId = :rpi, completedAt = :ca',
-          ExpressionAttributeNames: {
-            '#status': 'status'
-          },
-          ExpressionAttributeValues: {
-            ':s': 'completed',
-            ':rpi': razorpay_payment_id,
-            ':ca': new Date().toISOString()
-          }
-        }));
+        await db.collection(TABLE_NAME).doc(paymentId).update({
+          status: 'completed',
+          razorpayPaymentId: razorpay_payment_id,
+          completedAt: new Date().toISOString()
+        });
 
         res.status(200).json({ success: true, message: 'Payment verified successfully' });
       } else {

@@ -3,8 +3,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const multer = require('multer');
 const pdf = require('pdf-parse');
-const { docClient } = require('../config/dynamodb');
-const { ScanCommand, GetCommand, PutCommand, QueryCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
+const { db } = require('../config/firebase');
 const { protect, authorize } = require('../middleware/auth');
 const handleUpload = require('../middleware/upload');
 const { v4: uuidv4 } = require('uuid');
@@ -22,11 +21,8 @@ const uploadTemp = multer({
 // @access  Private (Admin & Recruiter)
 router.get('/', protect, authorize('admin', 'recruiter'), async (req, res) => {
   try {
-    const appsResult = await docClient.send(new ScanCommand({
-      TableName: 'consulting_applications'
-    }));
-
-    const rawApps = appsResult.Items || [];
+    const appsSnapshot = await db.collection('consulting_applications').get();
+    const rawApps = appsSnapshot.docs.map(doc => doc.data());
     const studentCache = {};
     const jobCache = {};
 
@@ -37,11 +33,8 @@ router.get('/', protect, authorize('admin', 'recruiter'), async (req, res) => {
         if (studentCache[app.student]) {
           student = studentCache[app.student];
         } else {
-          const studentRes = await docClient.send(new GetCommand({
-            TableName: 'consulting_users',
-            Key: { id: app.student }
-          }));
-          student = studentRes.Item || null;
+          const studentDoc = await db.collection('consulting_users').doc(app.student).get();
+          student = studentDoc.exists ? studentDoc.data() : null;
           studentCache[app.student] = student;
         }
 
@@ -50,11 +43,8 @@ router.get('/', protect, authorize('admin', 'recruiter'), async (req, res) => {
         if (jobCache[app.job]) {
           job = jobCache[app.job];
         } else {
-          const jobRes = await docClient.send(new GetCommand({
-            TableName: 'consulting_jobs',
-            Key: { id: app.job }
-          }));
-          job = jobRes.Item || null;
+          const jobDoc = await db.collection('consulting_jobs').doc(app.job).get();
+          job = jobDoc.exists ? jobDoc.data() : null;
           jobCache[app.job] = job;
         }
 
@@ -100,16 +90,13 @@ router.post('/tailor', protect, authorize('student'), uploadTemp, async (req, re
 
   try {
     // 1. Fetch Job
-    const jobRes = await docClient.send(new GetCommand({
-      TableName: 'consulting_jobs',
-      Key: { id: jobId }
-    }));
+    const jobDoc = await db.collection('consulting_jobs').doc(jobId).get();
 
-    if (!jobRes.Item) {
+    if (!jobDoc.exists) {
       return res.status(404).json({ success: false, message: 'Job listing not found' });
     }
 
-    const job = jobRes.Item;
+    const job = jobDoc.data();
 
     // 2. Extract Text
     let rawText = '';
@@ -259,36 +246,24 @@ router.post('/', protect, authorize('student'), handleUpload, async (req, res) =
 
   try {
     // Check if the job exists
-    const jobRes = await docClient.send(new GetCommand({
-      TableName: 'consulting_jobs',
-      Key: { id: jobId }
-    }));
+    const jobDoc = await db.collection('consulting_jobs').doc(jobId).get();
 
-    if (!jobRes.Item) {
+    if (!jobDoc.exists) {
       return res.status(404).json({ success: false, message: 'Job listing not found' });
     }
 
-    const job = jobRes.Item;
+    const job = jobDoc.data();
 
     const studentId = req.user.id || req.user._id;
 
 
     // Check if user already applied using Query on student-index GSI
-    const checkRes = await docClient.send(new QueryCommand({
-      TableName: 'consulting_applications',
-      IndexName: 'student-index',
-      KeyConditionExpression: 'student = :student',
-      FilterExpression: '#jobAlias = :job',
-      ExpressionAttributeNames: {
-        '#jobAlias': 'job'
-      },
-      ExpressionAttributeValues: {
-        ':student': studentId,
-        ':job': jobId
-      }
-    }));
+    const checkSnapshot = await db.collection('consulting_applications')
+      .where('student', '==', studentId)
+      .where('job', '==', jobId)
+      .get();
 
-    if (checkRes.Items && checkRes.Items.length > 0) {
+    if (!checkSnapshot.empty) {
       return res.status(400).json({ success: false, message: 'You have already applied for this job' });
     }
 
@@ -378,10 +353,7 @@ router.post('/', protect, authorize('student'), handleUpload, async (req, res) =
     };
 
     // Save to DynamoDB
-    await docClient.send(new PutCommand({
-      TableName: 'consulting_applications',
-      Item: newApp
-    }));
+    await db.collection('consulting_applications').doc(newAppId).set(newApp);
 
     // Notify admins via Socket.io
     const io = req.app.get('io');
@@ -428,14 +400,11 @@ router.get('/student', protect, authorize('student'), async (req, res) => {
   try {
     const studentId = req.user.id || req.user._id;
 
-    const result = await docClient.send(new QueryCommand({
-      TableName: 'consulting_applications',
-      IndexName: 'student-index',
-      KeyConditionExpression: 'student = :student',
-      ExpressionAttributeValues: { ':student': studentId }
-    }));
+    const resultSnapshot = await db.collection('consulting_applications')
+      .where('student', '==', studentId)
+      .get();
 
-    const rawApps = result.Items || [];
+    const rawApps = resultSnapshot.docs.map(doc => doc.data());
     const jobCache = {};
 
     const populatedApps = await Promise.all(
@@ -444,11 +413,8 @@ router.get('/student', protect, authorize('student'), async (req, res) => {
         if (jobCache[app.job]) {
           job = jobCache[app.job];
         } else {
-          const jobRes = await docClient.send(new GetCommand({
-            TableName: 'consulting_jobs',
-            Key: { id: app.job }
-          }));
-          job = jobRes.Item || null;
+          const jobDoc = await db.collection('consulting_jobs').doc(app.job).get();
+          job = jobDoc.exists ? jobDoc.data() : null;
           jobCache[app.job] = job;
         }
 
@@ -485,24 +451,17 @@ router.get('/student', protect, authorize('student'), async (req, res) => {
 router.get('/job/:jobId', protect, authorize('admin', 'recruiter'), async (req, res) => {
   try {
     // Check if job exists
-    const jobRes = await docClient.send(new GetCommand({
-      TableName: 'consulting_jobs',
-      Key: { id: req.params.jobId }
-    }));
+    const jobDoc = await db.collection('consulting_jobs').doc(req.params.jobId).get();
 
-    if (!jobRes.Item) {
+    if (!jobDoc.exists) {
       return res.status(404).json({ success: false, message: 'Job listing not found' });
     }
 
-    const result = await docClient.send(new QueryCommand({
-      TableName: 'consulting_applications',
-      IndexName: 'job-index',
-      KeyConditionExpression: '#jobAlias = :job',
-      ExpressionAttributeNames: { '#jobAlias': 'job' },
-      ExpressionAttributeValues: { ':job': req.params.jobId }
-    }));
+    const resultSnapshot = await db.collection('consulting_applications')
+      .where('job', '==', req.params.jobId)
+      .get();
 
-    const rawApps = result.Items || [];
+    const rawApps = resultSnapshot.docs.map(doc => doc.data());
     const studentCache = {};
 
     const populatedApps = await Promise.all(
@@ -557,23 +516,17 @@ router.patch('/:id', protect, authorize('admin', 'recruiter'), async (req, res) 
   }
 
   try {
-    const getRes = await docClient.send(new GetCommand({
-      TableName: 'consulting_applications',
-      Key: { id: req.params.id }
-    }));
+    const appDoc = await db.collection('consulting_applications').doc(req.params.id).get();
 
-    if (!getRes.Item) {
+    if (!appDoc.exists) {
       return res.status(404).json({ success: false, message: 'Application not found' });
     }
 
-    const application = getRes.Item;
+    const application = appDoc.data();
     application.status = status;
 
     // Save updated application
-    await docClient.send(new PutCommand({
-      TableName: 'consulting_applications',
-      Item: application
-    }));
+    await db.collection('consulting_applications').doc(application.id).set(application);
 
     const responseApp = {
       ...application,
@@ -594,7 +547,54 @@ router.patch('/:id', protect, authorize('admin', 'recruiter'), async (req, res) 
   }
 });
 
+// @desc    Update application placement status (Student self-report or Admin manual update)
+// @route   PATCH /api/applications/:id/placement
+// @access  Private (Student, Admin)
+router.patch('/:id/placement', protect, authorize('student', 'admin'), async (req, res) => {
+  const { placementStatus } = req.body;
 
+  if (!placementStatus || !['placed', 'not_placed'].includes(placementStatus)) {
+    return res.status(400).json({ success: false, message: 'Please provide a valid placementStatus (placed or not_placed)' });
+  }
+
+  try {
+    const appDoc = await db.collection('consulting_applications').doc(req.params.id).get();
+
+    if (!appDoc.exists) {
+      return res.status(404).json({ success: false, message: 'Application not found' });
+    }
+
+    const application = appDoc.data();
+
+    // Verify ownership if not admin
+    if (req.user.role !== 'admin' && application.student !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized to update this application' });
+    }
+
+    application.placementStatus = placementStatus;
+    application.placementReportedAt = new Date().toISOString();
+
+    // Save updated application
+    await db.collection('consulting_applications').doc(application.id).set(application);
+
+    const responseApp = {
+      ...application,
+      _id: application.id
+    };
+
+    if (responseApp.resumeKey) {
+      const signed = await getPresignedUrl(responseApp.resumeKey);
+      if (signed) {
+        responseApp.resumeUrl = signed;
+      }
+    }
+
+    res.status(200).json({ success: true, data: responseApp });
+  } catch (error) {
+    console.error('Update placement status error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
 // @desc    Delete application
 // @route   DELETE /api/applications/:id
@@ -603,25 +603,20 @@ router.delete('/:id', protect, authorize('admin'), async (req, res) => {
   try {
     const appId = req.params.id;
 
-    // Optional: First get the application to find its resumeKey so we can delete from S3
-    const getRes = await docClient.send(new GetCommand({
-      TableName: 'consulting_applications',
-      Key: { id: appId }
-    }));
+    const getDoc = await db.collection('consulting_applications').doc(appId).get();
 
-    if (!getRes.Item) {
+    if (!getDoc.exists) {
       return res.status(404).json({ success: false, message: 'Application not found' });
     }
 
-    // Delete from DynamoDB
-    await docClient.send(new DeleteCommand({
-      TableName: 'consulting_applications',
-      Key: { id: appId }
-    }));
+    const appData = getDoc.data();
+
+    // Delete from Firestore
+    await db.collection('consulting_applications').doc(appId).delete();
 
     // Delete the S3 object if resumeKey exists
-    if (getRes.Item.resumeKey) {
-      await deleteS3Object(getRes.Item.resumeKey);
+    if (appData.resumeKey) {
+      await deleteS3Object(appData.resumeKey);
     }
     
     res.status(200).json({ success: true, message: 'Application deleted successfully' });
@@ -638,13 +633,11 @@ router.get('/recruiter', protect, authorize('recruiter'), async (req, res) => {
   try {
     const recruiterId = req.user.id || req.user._id;
 
-    const result = await docClient.send(new ScanCommand({
-      TableName: 'consulting_applications',
-      FilterExpression: 'recruiterId = :recruiterId',
-      ExpressionAttributeValues: { ':recruiterId': recruiterId }
-    }));
+    const resultSnapshot = await db.collection('consulting_applications')
+      .where('recruiterId', '==', recruiterId)
+      .get();
 
-    const rawApps = result.Items || [];
+    const rawApps = resultSnapshot.docs.map(doc => doc.data());
     const jobCache = {};
     const studentCache = {};
 
@@ -654,11 +647,8 @@ router.get('/recruiter', protect, authorize('recruiter'), async (req, res) => {
         if (jobCache[app.job]) {
           job = jobCache[app.job];
         } else {
-          const jobRes = await docClient.send(new GetCommand({
-            TableName: 'consulting_jobs',
-            Key: { id: app.job }
-          }));
-          job = jobRes.Item || null;
+          const jobDoc = await db.collection('consulting_jobs').doc(app.job).get();
+          job = jobDoc.exists ? jobDoc.data() : null;
           jobCache[app.job] = job;
         }
 
@@ -666,11 +656,8 @@ router.get('/recruiter', protect, authorize('recruiter'), async (req, res) => {
         if (studentCache[app.student]) {
           student = studentCache[app.student];
         } else {
-          const studentRes = await docClient.send(new GetCommand({
-            TableName: 'consulting_users',
-            Key: { id: app.student }
-          }));
-          student = studentRes.Item || null;
+          const studentDoc = await db.collection('consulting_users').doc(app.student).get();
+          student = studentDoc.exists ? studentDoc.data() : null;
           studentCache[app.student] = student;
         }
 
@@ -707,33 +694,24 @@ router.patch('/:id/assign-recruiter', protect, authorize('admin'), async (req, r
   try {
     const { recruiterId } = req.body;
     
-    const getRes = await docClient.send(new GetCommand({
-      TableName: 'consulting_applications',
-      Key: { id: req.params.id }
-    }));
+    const appDoc = await db.collection('consulting_applications').doc(req.params.id).get();
 
-    if (!getRes.Item) {
+    if (!appDoc.exists) {
       return res.status(404).json({ success: false, message: 'Application not found' });
     }
 
-    const application = getRes.Item;
+    const application = appDoc.data();
     application.recruiterId = recruiterId || null;
 
     let recruiterName = 'Unknown Recruiter';
     if (recruiterId) {
-      const recRes = await docClient.send(new GetCommand({
-        TableName: 'consulting_users',
-        Key: { id: recruiterId }
-      }));
-      if (recRes.Item && recRes.Item.name) {
-        recruiterName = recRes.Item.name;
+      const recDoc = await db.collection('consulting_users').doc(recruiterId).get();
+      if (recDoc.exists && recDoc.data().name) {
+        recruiterName = recDoc.data().name;
       }
     }
 
-    await docClient.send(new PutCommand({
-      TableName: 'consulting_applications',
-      Item: application
-    }));
+    await db.collection('consulting_applications').doc(application.id).set(application);
 
     // Log the assignment action
     await logAuditAction(
@@ -780,16 +758,13 @@ router.post('/:id/upload-resume', protect, authorize('recruiter'), handleUpload,
 
     const appId = req.params.id;
 
-    const getRes = await docClient.send(new GetCommand({
-      TableName: 'consulting_applications',
-      Key: { id: appId }
-    }));
+    const appDoc = await db.collection('consulting_applications').doc(appId).get();
 
-    if (!getRes.Item) {
+    if (!appDoc.exists) {
       return res.status(404).json({ success: false, message: 'Application not found' });
     }
 
-    const application = getRes.Item;
+    const application = appDoc.data();
 
     // Verify this recruiter is actually assigned
     if (application.recruiterId !== (req.user.id || req.user._id)) {
@@ -800,19 +775,13 @@ router.post('/:id/upload-resume', protect, authorize('recruiter'), handleUpload,
     application.resumeKey = req.file.key;
     application.status = 'application sent'; // Move out of recruiter_requested state
 
-    await docClient.send(new PutCommand({
-      TableName: 'consulting_applications',
-      Item: application
-    }));
+    await db.collection('consulting_applications').doc(application.id).set(application);
 
     let studentName = application.studentName || 'Student';
     if (application.student) {
-      const studentRes = await docClient.send(new GetCommand({
-        TableName: 'consulting_users',
-        Key: { id: application.student }
-      }));
-      if (studentRes.Item && studentRes.Item.name) {
-        studentName = studentRes.Item.name;
+      const studentDoc = await db.collection('consulting_users').doc(application.student).get();
+      if (studentDoc.exists && studentDoc.data().name) {
+        studentName = studentDoc.data().name;
       }
     }
 

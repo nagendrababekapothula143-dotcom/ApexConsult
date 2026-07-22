@@ -19,6 +19,28 @@ const AdminOverview = () => {
   const [togglingMaintenance, setTogglingMaintenance] = useState(false);
   const [rateLimits, setRateLimits] = useState(null);
 
+  const [widgetVisibility, setWidgetVisibility] = useState(() => {
+    const saved = localStorage.getItem('kryntel_admin_widgets');
+    return saved ? JSON.parse(saved) : {
+      quickStats: true,
+      systemHealth: true,
+      securityLimits: true,
+      maintenance: true,
+      appTrends: true,
+      dbGrowth: true,
+      recentQueue: true
+    };
+  });
+  const [showWidgetMenu, setShowWidgetMenu] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('kryntel_admin_widgets', JSON.stringify(widgetVisibility));
+  }, [widgetVisibility]);
+
+  const toggleWidget = (key) => {
+    setWidgetVisibility(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
   useEffect(() => {
     document.title = 'Admin Overview | Kryntel Console';
     if (fetchData) fetchData(['jobs', 'students', 'applications', 'payments']);
@@ -200,12 +222,61 @@ const AdminOverview = () => {
   return (
     <div className="space-y-8">
       {/* Header (Always Visible) */}
-      <div>
-        <h2 className="text-2xl font-extrabold text-slate-900 mb-0.5">Recruitment Hub</h2>
-        <p className="text-sm text-slate-500">Live monitoring of consulting placement pipeline and resume submissions.</p>
+      <div className="flex justify-between items-start sm:items-center flex-col sm:flex-row gap-4 relative">
+        <div>
+          <h2 className="text-2xl font-extrabold text-slate-900 mb-0.5">Recruitment Hub</h2>
+          <p className="text-sm text-slate-500">Live monitoring of consulting placement pipeline and resume submissions.</p>
+        </div>
+        
+        <div className="relative">
+          <button
+            onClick={() => setShowWidgetMenu(!showWidgetMenu)}
+            className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+            Customize
+          </button>
+          
+          {showWidgetMenu && (
+            <div className="absolute right-0 top-full mt-2 w-64 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50">
+                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Dashboard Widgets</h4>
+              </div>
+              <div className="p-2 space-y-1 max-h-[300px] overflow-y-auto">
+                {[
+                  { id: 'quickStats', label: 'Quick Metrics Grid' },
+                  { id: 'systemHealth', label: 'System Health CPU' },
+                  { id: 'securityLimits', label: 'Security & Limits' },
+                  { id: 'maintenance', label: 'Maintenance & Backups' },
+                  { id: 'appTrends', label: 'Application Trends' },
+                  { id: 'dbGrowth', label: 'Database Storage' },
+                  { id: 'recentQueue', label: 'Recent Queue' }
+                ].map((widget) => (
+                  <label key={widget.id} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
+                    <span className="text-sm font-medium text-slate-700">{widget.label}</span>
+                    <div className="relative inline-block w-10 h-5 align-middle select-none">
+                      <input 
+                        type="checkbox" 
+                        checked={widgetVisibility[widget.id]}
+                        onChange={() => toggleWidget(widget.id)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:bg-indigo-600 transition-colors"></div>
+                      <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Stats Cards grid */}
+      {widgetVisibility.quickStats && (
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         <div className="bg-white border border-slate-200/70 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow duration-300 relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -249,22 +320,18 @@ const AdminOverview = () => {
         <div className="bg-gradient-to-br from-indigo-900 via-indigo-800 to-violet-900 border border-indigo-700/50 rounded-2xl p-6 shadow-xl text-white relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500 rounded-full blur-3xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
           <div className="relative z-10">
-            <h4 className="text-[13px] font-bold text-indigo-300 uppercase tracking-widest mb-3 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span> Total Revenue
+            <h4 className="text-[13px] font-bold text-indigo-200 uppercase tracking-widest mb-3 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-indigo-400"></span> Confirmed Revenue
             </h4>
-            {loading ? (
-              <div className="text-4xl font-black mb-1 tracking-tight text-indigo-400 drop-shadow-md animate-pulse">₹0</div>
-            ) : (
-              <div className="text-4xl font-black mb-1 tracking-tight text-white drop-shadow-md">
-                ₹{totalRevenue.toLocaleString()}
-              </div>
-            )}
-            <p className="text-xs text-indigo-200/80 font-medium">From {acceptedAppsCount} accepted placements</p>
+            {loading ? <div className="text-4xl font-black text-indigo-300 mb-1 tracking-tight animate-pulse">0</div> : <div className="text-4xl font-black text-white mb-1 tracking-tight">${totalRevenue.toLocaleString()}</div>}
+            <p className="text-xs text-indigo-300/80 font-medium">Total successful payments</p>
           </div>
         </div>
       </div>
+      )}
 
       {/* System Health Monitor */}
+      {widgetVisibility.systemHealth && (
       <div>
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
           <h3 className="text-lg font-black text-slate-900 tracking-tight">System Health</h3>
@@ -397,8 +464,10 @@ const AdminOverview = () => {
           </div>
         </div>
       </div>
+      )}
 
       {/* Feature 86: Rate Limiting Dashboard */}
+      {widgetVisibility.securityLimits && (
       <div className="mt-8 bg-white border border-slate-200/70 rounded-3xl p-6 sm:p-10 shadow-sm">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <div>
@@ -445,8 +514,10 @@ const AdminOverview = () => {
           </table>
         </div>
       </div>
+      )}
 
       {/* Feature 88: Database Backups UI */}
+      {widgetVisibility.maintenance && (
       <div className="mt-8 bg-white border border-slate-200/70 rounded-3xl p-6 sm:p-10 shadow-sm">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <div>
@@ -506,11 +577,13 @@ const AdminOverview = () => {
           </table>
         </div>
       </div>
+      )}
 
       {/* Main Charts & Analytics row */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch mt-8">
         
         {/* Pipeline Analytics Chart */}
+        {widgetVisibility.appTrends && (
         <div className="lg:col-span-12 bg-white border border-slate-200/70 rounded-3xl p-6 sm:p-10 shadow-sm">
           <h3 className="text-lg font-black text-slate-900 mb-1 tracking-tight">Pipeline Activity Traffic</h3>
           <p className="text-sm text-slate-500 mb-8 font-medium">Visual resume submission volume mapping matching timeline</p>
@@ -562,8 +635,10 @@ const AdminOverview = () => {
             )}
           </div>
         </div>
+        )}
 
         {/* Feature 52: Database Growth Charts */}
+        {widgetVisibility.dbGrowth && (
         <div className="lg:col-span-12 bg-white border border-slate-200/70 rounded-3xl p-6 sm:p-10 shadow-sm mt-8">
           <h3 className="text-lg font-black text-slate-900 mb-1 tracking-tight">Database Storage Growth</h3>
           <p className="text-sm text-slate-500 mb-8 font-medium">DynamoDB volume utilization over the last 30 days (Simulated)</p>
@@ -616,10 +691,12 @@ const AdminOverview = () => {
             )}
           </div>
         </div>
+        )}
 
       </div>
 
       {/* Bottom Queue: Latest Applicants */}
+      {widgetVisibility.recentQueue && (
       <div className="bg-white border border-slate-200/60 rounded-2xl p-4 sm:p-8 shadow-xs space-y-4">
         <div className="flex justify-between items-center">
           <div>
@@ -665,7 +742,12 @@ const AdminOverview = () => {
                     </p>
                   </div>
                   <div className="flex items-center gap-4">
-                    <div className="text-right">
+                    <div className="text-right flex flex-col items-end gap-1">
+                      {app.placementStatus && (
+                        <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider ${app.placementStatus === 'placed' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                          {app.placementStatus === 'placed' ? 'Placed (Self-Reported)' : 'Not Placed'}
+                        </span>
+                      )}
                       <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider ${
                         score >= 80 ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
                       }`}>
@@ -679,6 +761,7 @@ const AdminOverview = () => {
           )}
         </div>
       </div>
+      )}
     </div>
   );
 };

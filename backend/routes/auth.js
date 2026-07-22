@@ -1,7 +1,6 @@
 const express = require('express');
 
-const { docClient } = require('../config/dynamodb');
-const { QueryCommand, PutCommand, ScanCommand, GetCommand, UpdateCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
+const { db } = require('../config/firebase');
 const { s3Client, bucketName } = require('../config/s3');
 const { PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { protect, authorize } = require('../middleware/auth');
@@ -62,15 +61,9 @@ router.post('/recruiters', protect, authorize('admin'), async (req, res) => {
   try {
     const formattedEmail = email.toLowerCase().trim();
 
-    // 1. Check if user already exists in DynamoDB
-    const existing = await docClient.send(new QueryCommand({
-      TableName: 'consulting_users',
-      IndexName: 'email-index',
-      KeyConditionExpression: 'email = :email',
-      ExpressionAttributeValues: { ':email': formattedEmail }
-    }));
+    const existing = await db.collection('consulting_users').where('email', '==', formattedEmail).get();
 
-    if (existing.Items && existing.Items.length > 0) {
+    if (!existing.empty) {
       return res.status(400).json({ success: false, message: 'User with this email already exists' });
     }
 
@@ -79,7 +72,7 @@ router.post('/recruiters', protect, authorize('admin'), async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // 3. Create user in DynamoDB
+    // 3. Create user in Firestore
     const apexId = 'KRY' + Math.floor(1000000 + Math.random() * 9000000);
     const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
 
@@ -94,10 +87,7 @@ router.post('/recruiters', protect, authorize('admin'), async (req, res) => {
       createdAt: new Date().toISOString()
     };
 
-    await docClient.send(new PutCommand({
-      TableName: 'consulting_users',
-      Item: newUser
-    }));
+    await db.collection('consulting_users').doc(newUser.id).set(newUser);
 
     res.status(201).json({
       success: true,
@@ -122,18 +112,16 @@ router.post('/recruiters', protect, authorize('admin'), async (req, res) => {
 // @access  Private
 router.get('/recruiters', protect, async (req, res) => {
   try {
-    const recruiters = await docClient.send(new ScanCommand({
-      TableName: 'consulting_users',
-      FilterExpression: '#role = :role',
-      ExpressionAttributeNames: { '#role': 'role' },
-      ExpressionAttributeValues: { ':role': 'recruiter' }
-    }));
+    const recruitersSnapshot = await db.collection('consulting_users').where('role', '==', 'recruiter').get();
     
-    // Map _id for frontend compatibility
-    const mappedRecruiters = (recruiters.Items || []).map(r => ({
-      ...r,
-      _id: r.id
-    }));
+    const mappedRecruiters = [];
+    recruitersSnapshot.forEach(doc => {
+      const r = doc.data();
+      mappedRecruiters.push({
+        ...r,
+        _id: r.id
+      });
+    });
 
     res.status(200).json({ success: true, data: mappedRecruiters });
   } catch (err) {
@@ -150,24 +138,19 @@ router.delete('/recruiters/:id', protect, authorize('admin'), async (req, res) =
     const userId = req.params.id;
 
     // 1. Fetch user to confirm they exist and are a recruiter
-    const user = await docClient.send(new GetCommand({
-      TableName: 'consulting_users',
-      Key: { id: userId }
-    }));
+    const userDoc = await db.collection('consulting_users').doc(userId).get();
 
-    if (!user.Item) {
+    if (!userDoc.exists) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    if (user.Item.role !== 'recruiter') {
+    const userData = userDoc.data();
+    if (userData.role !== 'recruiter') {
       return res.status(403).json({ success: false, message: 'You can only delete recruiter accounts.' });
     }
 
-    // 2. Delete from DynamoDB
-    await docClient.send(new DeleteCommand({
-      TableName: 'consulting_users',
-      Key: { id: userId }
-    }));
+    // 2. Delete from Firestore
+    await db.collection('consulting_users').doc(userId).delete();
 
     res.status(200).json({ success: true, message: 'Recruiter successfully deleted' });
   } catch (err) {
@@ -189,15 +172,10 @@ router.post('/register', async (req, res) => {
   try {
     const formattedEmail = email.toLowerCase().trim();
 
-    // Check if user exists using GSI
-    const existing = await docClient.send(new QueryCommand({
-      TableName: 'consulting_users',
-      IndexName: 'email-index',
-      KeyConditionExpression: 'email = :email',
-      ExpressionAttributeValues: { ':email': formattedEmail }
-    }));
+    // Check if user exists using Firestore
+    const existing = await db.collection('consulting_users').where('email', '==', formattedEmail).get();
 
-    if (existing.Items && existing.Items.length > 0) {
+    if (!existing.empty) {
       return res.status(400).json({ success: false, message: 'User already exists' });
     }
 
@@ -239,11 +217,8 @@ router.post('/register', async (req, res) => {
       createdAt: new Date().toISOString()
     };
 
-    // Save to DynamoDB
-    await docClient.send(new PutCommand({
-      TableName: 'consulting_users',
-      Item: newUser
-    }));
+    // Save to Firestore
+    await db.collection('consulting_users').doc(newUser.id).set(newUser);
 
     usersCache.del('students');
 
@@ -296,29 +271,21 @@ router.post('/login', async (req, res) => {
     const formattedEmail = email.toLowerCase().trim();
 
     // Find user by email
-    const existing = await docClient.send(new QueryCommand({
-      TableName: 'consulting_users',
-      IndexName: 'email-index',
-      KeyConditionExpression: 'email = :email',
-      ExpressionAttributeValues: { ':email': formattedEmail }
-    }));
+    const existing = await db.collection('consulting_users').where('email', '==', formattedEmail).get();
 
-    if (!existing.Items || existing.Items.length === 0) {
+    if (existing.empty) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
-    const user = existing.Items[0];
+    const user = existing.docs[0].data();
 
-    // Handle legacy users (from Firebase) who don't have a password in DynamoDB
+    // Handle legacy users (from Firebase) who don't have a password
     if (!user.password) {
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash('password123', salt);
       
-      // Update them in DynamoDB with the fallback password
-      await docClient.send(new PutCommand({
-        TableName: 'consulting_users',
-        Item: { ...user, password: hashedPassword }
-      }));
+      // Update them in Firestore with the fallback password
+      await db.collection('consulting_users').doc(user.id).update({ password: hashedPassword });
 
       return res.status(401).json({ success: false, message: 'Your account was migrated from our old system. Your temporary password is: password123. Please log in with that and change it immediately.' });
     }
@@ -355,14 +322,9 @@ router.post('/login', async (req, res) => {
       updatedSessions = updatedSessions.slice(-5);
     }
 
-    await docClient.send(new UpdateCommand({
-      TableName: 'consulting_users',
-      Key: { id: user.id },
-      UpdateExpression: 'SET sessions = :sessions',
-      ExpressionAttributeValues: {
-        ':sessions': updatedSessions
-      }
-    }));
+    await db.collection('consulting_users').doc(user.id).update({
+      sessions: updatedSessions
+    });
 
     const token = generateToken(user.id, sessionId);
     res.cookie('token', token, {
@@ -437,28 +399,17 @@ router.get('/students', protect, authorize('admin', 'recruiter'), async (req, re
       return res.status(200).json(usersCache.get('students'));
     }
 
-    const result = await docClient.send(new ScanCommand({
-      TableName: 'consulting_users',
-      FilterExpression: '#role = :role',
-      ExpressionAttributeNames: { '#role': 'role' },
-      ExpressionAttributeValues: { ':role': 'student' }
-    }));
+    const resultSnapshot = await db.collection('consulting_users').where('role', '==', 'student').get();
 
-    const { UpdateCommand } = require('@aws-sdk/lib-dynamodb');
-    
-    const students = await Promise.all((result.Items || []).map(async (student) => {
+    const students = await Promise.all(resultSnapshot.docs.map(async (doc) => {
+      const student = doc.data();
       let currentApexId = student.apexId;
       
       // Retroactively assign apexId to legacy students
       if (!currentApexId) {
         currentApexId = 'KRY' + Math.floor(1000000 + Math.random() * 9000000);
         try {
-          await docClient.send(new UpdateCommand({
-            TableName: 'consulting_users',
-            Key: { id: student.id },
-            UpdateExpression: 'set apexId = :apexId',
-            ExpressionAttributeValues: { ':apexId': currentApexId }
-          }));
+          await db.collection('consulting_users').doc(student.id).update({ apexId: currentApexId });
         } catch (updateErr) {
           console.error('Failed to retroactively assign apexId:', updateErr);
         }
@@ -523,17 +474,15 @@ router.get('/recruiters', protect, authorize('admin', 'recruiter'), async (req, 
       return res.status(200).json(usersCache.get('recruiters'));
     }
 
-    const result = await docClient.send(new ScanCommand({
-      TableName: 'consulting_users',
-      FilterExpression: '#role = :role',
-      ExpressionAttributeNames: { '#role': 'role' },
-      ExpressionAttributeValues: { ':role': 'recruiter' }
-    }));
+    const resultSnapshot = await db.collection('consulting_users').where('role', '==', 'recruiter').get();
 
-    const recruiters = (result.Items || []).map(recruiter => ({
-      ...recruiter,
-      _id: recruiter.id // Maintain compatibility with frontend
-    })).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const recruiters = resultSnapshot.docs.map(doc => {
+      const recruiter = doc.data();
+      return {
+        ...recruiter,
+        _id: recruiter.id
+      };
+    }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     const responseData = { success: true, count: recruiters.length, data: recruiters };
     usersCache.set('recruiters', responseData);
@@ -551,32 +500,33 @@ router.get('/recruiters', protect, authorize('admin', 'recruiter'), async (req, 
 router.delete('/students/:id', protect, authorize('admin'), async (req, res) => {
   try {
     const studentId = req.params.id;
-    
-    const { DeleteCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
-    const { deleteS3Object } = require('../config/s3');
-    
-    // 1. Delete from DynamoDB
-    await docClient.send(new DeleteCommand({
-      TableName: 'consulting_users',
-      Key: { id: studentId }
-    }));
+    // 1. Delete from Firestore
+    await db.collection('consulting_users').doc(studentId).delete();
 
     // 3. Delete all applications & S3 resumes for this student
-    const appsResult = await docClient.send(new ScanCommand({
-      TableName: 'consulting_applications',
-      FilterExpression: 'student = :studentId OR studentId = :studentId',
-      ExpressionAttributeValues: { ':studentId': studentId }
-    }));
+    const appsSnapshot = await db.collection('consulting_applications')
+      .where('student', '==', studentId)
+      .get();
+      
+    // (Also handle 'studentId' just in case)
+    const appsSnapshot2 = await db.collection('consulting_applications')
+      .where('studentId', '==', studentId)
+      .get();
 
-    if (appsResult.Items && appsResult.Items.length > 0) {
-      for (const app of appsResult.Items) {
+    const allApps = [...appsSnapshot.docs, ...appsSnapshot2.docs];
+    // Deduplicate by ID
+    const uniqueApps = Array.from(new Set(allApps.map(a => a.id)))
+      .map(id => {
+        return allApps.find(a => a.id === id);
+      });
+
+    if (uniqueApps.length > 0) {
+      for (const doc of uniqueApps) {
+        const app = doc.data();
         if (app.resumeKey) {
           await deleteS3Object(app.resumeKey);
         }
-        await docClient.send(new DeleteCommand({
-          TableName: 'consulting_applications',
-          Key: { id: app.id }
-        }));
+        await db.collection('consulting_applications').doc(app.id).delete();
       }
     }
 
@@ -609,10 +559,8 @@ router.patch('/update-password', protect, async (req, res) => {
     const { GetCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
     
     // Get user from DB
-    const result = await docClient.send(new GetCommand({
-      TableName: 'consulting_users',
-      Key: { id: userId }
-    }));
+    const resultDoc = await db.collection('consulting_users').doc(userId).get();
+    const result = { Item: resultDoc.exists ? resultDoc.data() : null };
 
     if (!result.Item) {
       return res.status(404).json({ success: false, message: 'User not found' });
@@ -637,13 +585,10 @@ router.patch('/update-password', protect, async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedNewPassword = await bcrypt.hash(newPassword, salt);
 
-    // Update DynamoDB
-    await docClient.send(new UpdateCommand({
-      TableName: 'consulting_users',
-      Key: { id: userId },
-      UpdateExpression: 'set password = :pwd',
-      ExpressionAttributeValues: { ':pwd': hashedNewPassword }
-    }));
+    // Update Firestore
+    await db.collection('consulting_users').doc(userId).update({
+      password: hashedNewPassword
+    });
 
     await logAuditAction(
       userId,
@@ -668,14 +613,9 @@ router.patch('/students/:id/status', protect, authorize('admin'), async (req, re
     const studentId = req.params.id;
     const { status } = req.body; // 'active' or 'inactive'
     
-    const { UpdateCommand } = require('@aws-sdk/lib-dynamodb');
-    await docClient.send(new UpdateCommand({
-      TableName: 'consulting_users',
-      Key: { id: studentId },
-      UpdateExpression: 'set #status = :status',
-      ExpressionAttributeNames: { '#status': 'status' },
-      ExpressionAttributeValues: { ':status': status || 'active' }
-    }));
+    await db.collection('consulting_users').doc(studentId).update({
+      status: status || 'active'
+    });
 
     // Clear cache
     usersCache.del('students');
@@ -754,50 +694,28 @@ router.patch('/profile/:id', protect, async (req, res) => {
       }
     }
 
-    let updateExprSet = [];
-    let updateExprRemove = [];
-    let exprAttrNames = {};
-    let exprAttrVals = {};
+    const firestoreUpdate = {};
+    let hasUpdates = false;
 
     allowedFields.forEach(field => {
       if (req.body[field] !== undefined) {
         const cleaned = cleanEmptyStrings(req.body[field]);
         if (cleaned === undefined) {
-          updateExprRemove.push(`#${field}`);
-          exprAttrNames[`#${field}`] = field;
+          firestoreUpdate[field] = require('firebase-admin').firestore.FieldValue.delete();
         } else {
-          updateExprSet.push(`#${field} = :${field}`);
-          exprAttrNames[`#${field}`] = field;
-          exprAttrVals[`:${field}`] = cleaned;
+          firestoreUpdate[field] = cleaned;
         }
+        hasUpdates = true;
       }
     });
 
-    let updateExpr = '';
-    if (updateExprSet.length > 0) {
-      updateExpr += 'SET ' + updateExprSet.join(', ');
-    }
-    if (updateExprRemove.length > 0) {
-      updateExpr += (updateExpr ? ' ' : '') + 'REMOVE ' + updateExprRemove.join(', ');
-    }
-
-    if (!updateExpr) {
+    if (!hasUpdates) {
       return res.status(400).json({ success: false, message: 'No fields provided for update' });
     }
 
-    const params = {
-      TableName: 'consulting_users',
-      Key: { id: userIdToUpdate },
-      UpdateExpression: updateExpr,
-      ExpressionAttributeNames: exprAttrNames,
-      ReturnValues: 'ALL_NEW'
-    };
-
-    if (Object.keys(exprAttrVals).length > 0) {
-      params.ExpressionAttributeValues = exprAttrVals;
-    }
-
-    const result = await docClient.send(new UpdateCommand(params));
+    await db.collection('consulting_users').doc(userIdToUpdate).update(firestoreUpdate);
+    const resultDoc = await db.collection('consulting_users').doc(userIdToUpdate).get();
+    const result = { Attributes: resultDoc.exists ? resultDoc.data() : null };
 
     // Clear caches
     usersCache.del('students');
@@ -822,15 +740,9 @@ router.patch('/profile/:id/role', protect, authorize('admin'), async (req, res) 
       return res.status(400).json({ success: false, message: 'Invalid role provided' });
     }
 
-    const { UpdateCommand } = require('@aws-sdk/lib-dynamodb');
-    
-    await docClient.send(new UpdateCommand({
-      TableName: 'consulting_users',
-      Key: { id: userIdToUpdate },
-      UpdateExpression: 'set #role = :role',
-      ExpressionAttributeNames: { '#role': 'role' },
-      ExpressionAttributeValues: { ':role': role }
-    }));
+    await db.collection('consulting_users').doc(userIdToUpdate).update({
+      role: role
+    });
 
     // Clear caches
     usersCache.del('students');
@@ -853,10 +765,8 @@ router.post('/profile/bookmark/:jobId', protect, authorize('student'), async (re
     const userId = req.user.id || req.user._id;
 
     // Get current user to check bookmarks array
-    const userRes = await docClient.send(new GetCommand({
-      TableName: 'consulting_users',
-      Key: { id: userId }
-    }));
+    const userDoc = await db.collection('consulting_users').doc(userId).get();
+    const userRes = { Item: userDoc.exists ? userDoc.data() : null };
 
     if (!userRes.Item) {
       return res.status(404).json({ success: false, message: 'User not found' });
@@ -875,13 +785,9 @@ router.post('/profile/bookmark/:jobId', protect, authorize('student'), async (re
       isBookmarked = true;
     }
 
-
-    await docClient.send(new UpdateCommand({
-      TableName: 'consulting_users',
-      Key: { id: userId },
-      UpdateExpression: 'set bookmarkedJobs = :bookmarkedJobs',
-      ExpressionAttributeValues: { ':bookmarkedJobs': newBookmarks }
-    }));
+    await db.collection('consulting_users').doc(userId).update({
+      bookmarkedJobs: newBookmarks
+    });
 
     // Update req.user in memory for this request if needed
     req.user.bookmarkedJobs = newBookmarks;
@@ -927,17 +833,9 @@ router.delete('/sessions/:sessionId', protect, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Session not found' });
     }
 
-    const { UpdateCommand } = require('@aws-sdk/lib-dynamodb');
-    const { docClient } = require('../config/dynamodb');
-    
-    await docClient.send(new UpdateCommand({
-      TableName: 'consulting_users',
-      Key: { id: req.user.id },
-      UpdateExpression: 'SET sessions = :sessions',
-      ExpressionAttributeValues: {
-        ':sessions': filteredSessions
-      }
-    }));
+    await db.collection('consulting_users').doc(req.user.id).update({
+      sessions: filteredSessions
+    });
 
     const { logAuditAction } = require('../utils/auditLogger');
     await logAuditAction(req.user.id, req.user.name, 'REVOKE_SESSION', 'Revoked a session', { revokedSessionId: sessionId });
