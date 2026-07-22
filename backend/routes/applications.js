@@ -21,6 +21,14 @@ const uploadTemp = multer({
 // @access  Private (Admin & Recruiter)
 router.get('/', protect, authorize('admin', 'recruiter'), async (req, res) => {
   try {
+    const cacheKey = 'all_applications';
+    const cache = require('../utils/cache');
+    const cachedData = cache.get(cacheKey);
+    
+    if (cachedData) {
+      return res.status(200).json({ success: true, count: cachedData.length, data: cachedData, cached: true });
+    }
+
     const appsSnapshot = await db.collection('consulting_applications').get();
     const rawApps = appsSnapshot.docs.map(doc => doc.data());
     const studentCache = {};
@@ -66,6 +74,8 @@ router.get('/', protect, authorize('admin', 'recruiter'), async (req, res) => {
     );
 
     populatedApps.sort((a, b) => new Date(b.appliedAt) - new Date(a.appliedAt));
+    
+    cache.set(cacheKey, populatedApps, 30); // Cache for 30 seconds
 
     res.status(200).json({ success: true, count: populatedApps.length, data: populatedApps });
   } catch (error) {

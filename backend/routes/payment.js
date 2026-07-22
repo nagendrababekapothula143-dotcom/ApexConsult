@@ -110,6 +110,14 @@ router.get('/student', protect, async (req, res) => {
 // @access  Private/Admin
 router.get('/', protect, authorize('admin', 'recruiter'), async (req, res) => {
   try {
+    const cacheKey = 'all_payments';
+    const cache = require('../utils/cache');
+    const cachedData = cache.get(cacheKey);
+
+    if (cachedData) {
+      return res.status(200).json({ success: true, data: cachedData, cached: true });
+    }
+
     const snapshot = await db.collection(TABLE_NAME).get();
     let payments = snapshot.docs.map(doc => doc.data());
 
@@ -122,6 +130,8 @@ router.get('/', protect, authorize('admin', 'recruiter'), async (req, res) => {
 
     // Sort by createdAt descending
     payments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    cache.set(cacheKey, payments, 30); // Cache for 30 seconds
 
     res.status(200).json({ success: true, data: payments });
   } catch (err) {

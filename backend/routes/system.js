@@ -154,21 +154,68 @@ router.get('/rate-limits', protect, authorize('admin'), async (req, res) => {
 });
 
 
+// @desc    Get dashboard stats
+// @route   GET /api/system/stats
+// @access  Private/Admin
+router.get('/stats', protect, authorize('admin', 'recruiter'), async (req, res) => {
+  try {
+    const cacheKey = 'dashboard_stats';
+    const cache = require('../utils/cache');
+    const cachedStats = cache.get(cacheKey);
+    
+    if (cachedStats) {
+      return res.status(200).json({ success: true, data: cachedStats });
+    }
+
+    const [usersCount, jobsCount, applicationsCount] = await Promise.all([
+      db.collection('consulting_users').where('role', '==', 'student').count().get(),
+      db.collection('consulting_jobs').count().get(),
+      db.collection('consulting_applications').count().get()
+    ]);
+
+    const stats = {
+      totalStudents: usersCount.data().count,
+      activeJobs: jobsCount.data().count,
+      totalApplications: applicationsCount.data().count,
+      revenue: 0 // Replace with actual revenue calculation if needed
+    };
+
+    cache.set(cacheKey, stats, 120); // Cache stats for 2 minutes
+
+    res.status(200).json({ success: true, data: stats });
+  } catch (err) {
+    console.error('Fetch Stats error:', err);
+    res.status(500).json({ success: false, error: 'Server Error' });
+  }
+});
+
 // @desc    Get system settings (public so dashboards can poll it)
 // @route   GET /api/system/settings
 // @access  Public
 router.get('/settings', async (req, res) => {
   try {
+    const cacheKey = 'system_settings';
+    const cache = require('../utils/cache');
+    const cachedSettings = cache.get(cacheKey);
+
+    if (cachedSettings) {
+      return res.status(200).json(cachedSettings);
+    }
+
     const doc = await db.collection('consulting_settings').doc('maintenanceMode').get();
     
     const maintenanceMode = doc.exists ? doc.data().value : false;
     const scheduledMaintenanceTime = doc.exists ? doc.data().scheduledMaintenanceTime : null;
-    
-    res.status(200).json({
+
+    const response = {
       success: true,
       maintenanceMode,
       scheduledMaintenanceTime
-    });
+    };
+
+    cache.set(cacheKey, response, 60); // Cache for 1 minute
+
+    return res.status(200).json(response);
   } catch (err) {
     console.error('Firestore GetSettings error:', err);
     res.status(500).json({ success: false, error: 'Server Error' });
@@ -188,6 +235,9 @@ router.put('/settings', protect, authorize('admin'), async (req, res) => {
       scheduledMaintenanceTime: scheduledMaintenanceTime || null,
       updatedAt: new Date().toISOString()
     });
+
+    const cache = require('../utils/cache');
+    cache.del('system_settings'); // Invalidate cache
     
     res.status(200).json({
       success: true,
