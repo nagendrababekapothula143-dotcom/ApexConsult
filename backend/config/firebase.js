@@ -44,9 +44,14 @@ try {
   console.error('Firebase Admin Initialization Error:', error.message);
 }
 
-const db = getFirestore(app);
-const auth = getAuth(app);
-const bucket = getStorage(app).bucket();
+let db, auth, bucket;
+try {
+  db = getFirestore(app);
+  auth = getAuth(app);
+  bucket = getStorage(app).bucket();
+} catch (err) {
+  console.error("Failed to initialize Firebase services. Please check Vercel environment variables.", err.message);
+}
 
 module.exports = {
   admin: { auth: () => auth, firestore: () => db, storage: () => getStorage(app) }, // backwards compatibility mock
