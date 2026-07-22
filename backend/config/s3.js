@@ -1,40 +1,19 @@
-const { S3Client, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
-const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+const { bucket } = require('./firebase');
 
-let s3Client = null;
-
-const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
-const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
-const region = process.env.AWS_REGION;
-const bucketName = process.env.AWS_BUCKET_NAME;
-
-if (accessKeyId && secretAccessKey && bucketName) {
-  try {
-    s3Client = new S3Client({
-      region: region || 'us-east-1',
-      credentials: {
-        accessKeyId,
-        secretAccessKey,
-      },
-    });
-    console.log('AWS S3 Client initialized successfully.');
-  } catch (error) {
-    console.error('Error initializing AWS S3 Client:', error.message);
-  }
-} else {
-  console.log('AWS credentials or bucket name missing. S3 client will fallback to local storage uploads.');
-}
+const bucketName = process.env.FIREBASE_STORAGE_BUCKET || 'apex-consulting.appspot.com';
 
 const getPresignedUrl = async (key) => {
-  if (!s3Client || !key) return null;
+  if (!bucket || !key) return null;
   try {
-    const command = new GetObjectCommand({
-      Bucket: bucketName,
-      Key: key,
-      ResponseContentDisposition: 'attachment'
-    });
+    const file = bucket.file(key);
+    
     // Link expires in 1 hour (3600 seconds)
-    return await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+    const [url] = await file.getSignedUrl({
+      version: 'v4',
+      action: 'read',
+      expires: Date.now() + 3600 * 1000,
+    });
+    return url;
   } catch (error) {
     console.error(`Error generating signed URL for key ${key}:`, error.message);
     return null;
@@ -42,23 +21,20 @@ const getPresignedUrl = async (key) => {
 };
 
 const deleteS3Object = async (key) => {
-  if (!s3Client || !key) return false;
+  if (!bucket || !key) return false;
   try {
-    const command = new DeleteObjectCommand({
-      Bucket: bucketName,
-      Key: key,
-    });
-    await s3Client.send(command);
-    console.log(`Successfully deleted S3 object with key: ${key}`);
+    const file = bucket.file(key);
+    await file.delete();
+    console.log(`Successfully deleted storage object with key: ${key}`);
     return true;
   } catch (error) {
-    console.error(`Error deleting S3 object with key ${key}:`, error.message);
+    console.error(`Error deleting storage object with key ${key}:`, error.message);
     return false;
   }
 };
 
 module.exports = {
-  s3Client,
+  s3Client: bucket, // Export bucket as s3Client for backwards compatibility
   bucketName,
   getPresignedUrl,
   deleteS3Object,

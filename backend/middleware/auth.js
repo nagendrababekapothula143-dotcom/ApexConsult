@@ -1,6 +1,4 @@
-const jwt = require('jsonwebtoken');
-const { docClient } = require('../config/dynamodb');
-const { GetCommand } = require('@aws-sdk/lib-dynamodb');
+const { db, auth } = require('../config/firebase');
 
 const protect = async (req, res, next) => {
   let token;
@@ -19,34 +17,41 @@ const protect = async (req, res, next) => {
   }
 
   try {
-    // Verify custom JWT token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'consulting_jwt_secret_key_987654321_abcdef');
+    // Verify Firebase ID token
+    let decoded;
+    try {
+      // In case we are still testing with old custom JWTs (fallback)
+      const jwt = require('jsonwebtoken');
+      decoded = jwt.verify(token, process.env.JWT_SECRET || 'consulting_jwt_secret_key_987654321_abcdef');
+    } catch (jwtErr) {
+      // If not a valid old JWT, try Firebase Auth
+      decoded = await auth.verifyIdToken(token);
+      decoded.id = decoded.uid; // map uid to id for backwards compatibility
+    }
     
-    // Check if user exists in DynamoDB
-    let result = await docClient.send(new GetCommand({
-      TableName: 'consulting_users',
-      Key: { id: decoded.id }
-    }));
+    // Check if user exists in Firestore
+    const userDoc = await db.collection('consulting_users').doc(decoded.id).get();
 
-    if (!result.Item) {
+    if (!userDoc.exists) {
       return res.status(401).json({ success: false, message: 'The user belonging to this token no longer exists.' });
     }
+    
+    const user = userDoc.data();
 
-    if (result.Item.status === 'inactive') {
+    if (user.status === 'inactive') {
       return res.status(403).json({ success: false, message: 'Your account has been deactivated. Please contact support.' });
     }
 
-    // Feature 87: Session Management
-    // Only check sessions if this JWT has a sessionId (for backward compatibility with old tokens)
+    // Session check for old tokens
     if (decoded.sessionId) {
-      const activeSessions = result.Item.sessions || [];
+      const activeSessions = user.sessions || [];
       const sessionExists = activeSessions.find(s => s.sessionId === decoded.sessionId);
       if (!sessionExists) {
         return res.status(401).json({ success: false, message: 'Session has been revoked or expired. Please log in again.' });
       }
     }
 
-    req.user = result.Item;
+    req.user = user;
     next();
   } catch (error) {
     console.error('Token verification error:', error);

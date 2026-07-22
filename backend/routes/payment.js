@@ -4,6 +4,7 @@ const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const { db } = require('../config/firebase');
+const { protect, authorize } = require('../middleware/auth');
 
 const TABLE_NAME = 'consulting_payments';
 const USERS_TABLE = 'consulting_users';

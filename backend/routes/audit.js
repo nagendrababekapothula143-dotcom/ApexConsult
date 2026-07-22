@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { docClient } = require('../config/dynamodb');
-const { ScanCommand } = require('@aws-sdk/lib-dynamodb');
+const { db } = require('../config/firebase');
 const { protect, authorize } = require('../middleware/auth');
 
 // @route   GET /api/audit-logs
@@ -9,14 +8,12 @@ const { protect, authorize } = require('../middleware/auth');
 // @access  Private/Admin
 router.get('/', protect, authorize('admin'), async (req, res) => {
   try {
-    const command = new ScanCommand({
-      TableName: 'consulting_audit_logs'
-    });
+    const snapshot = await db.collection('consulting_audit_logs').get();
     
-    const response = await docClient.send(command);
+    const items = snapshot.docs.map(doc => doc.data());
     
     // Sort by timestamp descending
-    const logs = response.Items.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const logs = items.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     
     res.json({ success: true, data: logs });
   } catch (err) {

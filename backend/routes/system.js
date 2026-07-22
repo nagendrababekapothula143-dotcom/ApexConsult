@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const os = require('os');
 const { protect, authorize } = require('../middleware/auth');
-const { S3Client, ListObjectsV2Command } = require('@aws-sdk/client-s3');
+// no aws sdk import
 const { db } = require('../config/firebase');
 
 // @desc    Get system health metrics

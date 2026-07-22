@@ -1,6 +1,5 @@
 const crypto = require('crypto');
-const { PutCommand } = require('@aws-sdk/lib-dynamodb');
-const { docClient } = require('../config/dynamodb');
+const { db } = require('../config/firebase');
 
 /**
  * Logs an action to the audit table.
@@ -23,10 +22,7 @@ const logAuditAction = async (actorId, actorName, action, targetId, details = {}
       timestamp: new Date().toISOString()
     };
 
-    await docClient.send(new PutCommand({
-      TableName: 'consulting_audit_logs',
-      Item: logEntry
-    }));
+    await db.collection('consulting_audit_logs').doc(logEntry.id).set(logEntry);
 
     console.log(`[AUDIT LOG] ${action} by ${actorName} on target ${targetId}`);
   } catch (error) {

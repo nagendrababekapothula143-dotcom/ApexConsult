@@ -1,8 +1,8 @@
 const express = require('express');
 
 const { db } = require('../config/firebase');
-const { s3Client, bucketName } = require('../config/s3');
-const { PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { bucket } = require('../config/firebase');
+const { deleteS3Object } = require('../config/s3');
 const { protect, authorize } = require('../middleware/auth');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
@@ -24,24 +24,26 @@ const generateToken = (id, sessionId) => {
 router.get('/avatar/:key', async (req, res) => {
   const key = req.params.key;
   if (!key) return res.status(400).send('No key provided');
-  if (!s3Client) return res.status(500).send('S3 not configured');
+  if (!bucket) return res.status(500).send('Storage not configured');
 
   try {
-    const command = new GetObjectCommand({
-      Bucket: bucketName,
-      Key: `avatars/${key}`
-    });
-    const response = await s3Client.send(command);
+    const file = bucket.file(`avatars/${key}`);
+    const [exists] = await file.exists();
+    if (!exists) {
+      return res.status(404).send('Avatar not found');
+    }
+
+    const [metadata] = await file.getMetadata();
     
-    res.setHeader('Content-Type', response.ContentType || 'image/png');
-    if (response.ContentLength) {
-      res.setHeader('Content-Length', response.ContentLength);
+    res.setHeader('Content-Type', metadata.contentType || 'image/png');
+    if (metadata.size) {
+      res.setHeader('Content-Length', metadata.size);
     }
     res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache 1 year
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'); // Allow embedding from Vercel
     
-    // Pipe the S3 stream directly to the Express response
-    response.Body.pipe(res);
+    // Pipe the Storage stream directly to the Express response
+    file.createReadStream().pipe(res);
   } catch (error) {
     // Suppress console error for missing avatars to prevent log spam
     res.status(404).send('Avatar not found');
@@ -186,19 +188,15 @@ router.post('/register', async (req, res) => {
 
     let avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=random`;
 
-    if (req.body.avatarBase64 && s3Client) {
+    if (req.body.avatarBase64 && bucket) {
       try {
         const base64Data = req.body.avatarBase64.replace(/^data:image\/\w+;base64,/, '');
         const buffer = Buffer.from(base64Data, 'base64');
         const key = `avatars/${userId}-${Date.now()}.png`;
 
-        await s3Client.send(new PutObjectCommand({
-          Bucket: bucketName,
-          Key: key,
-          Body: buffer,
-          ContentEncoding: 'base64',
-          ContentType: 'image/png'
-        }));
+        await bucket.file(key).save(buffer, {
+          metadata: { contentType: 'image/png' }
+        });
 
         avatarUrl = `S3_KEY:${key.replace('avatars/', '')}`;
       } catch (uploadError) {
@@ -556,7 +554,7 @@ router.patch('/update-password', protect, async (req, res) => {
       return res.status(400).json({ success: false, message: 'New password must be at least 6 characters' });
     }
 
-    const { GetCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+    // const { GetCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
     
     // Get user from DB
     const resultDoc = await db.collection('consulting_users').doc(userId).get();
@@ -640,7 +638,7 @@ router.patch('/profile/:id', protect, async (req, res) => {
       return res.status(403).json({ success: false, message: 'Not authorized to update this profile' });
     }
 
-    const { UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+    // const { UpdateCommand } = require('@aws-sdk/lib-dynamodb');
 
     // Recursively remove empty strings and empty objects for DynamoDB compatibility
     const cleanEmptyStrings = (obj) => {
@@ -674,19 +672,15 @@ router.patch('/profile/:id', protect, async (req, res) => {
       'avatarUrl'
     ];
 
-    if (req.body.avatarBase64 && s3Client) {
+    if (req.body.avatarBase64 && bucket) {
       try {
         const base64Data = req.body.avatarBase64.replace(/^data:image\/\w+;base64,/, '');
         const buffer = Buffer.from(base64Data, 'base64');
         const key = `avatars/${userIdToUpdate}-${Date.now()}.png`;
 
-        await s3Client.send(new PutObjectCommand({
-          Bucket: bucketName,
-          Key: key,
-          Body: buffer,
-          ContentEncoding: 'base64',
-          ContentType: 'image/png'
-        }));
+        await bucket.file(key).save(buffer, {
+          metadata: { contentType: 'image/png' }
+        });
 
         req.body.avatarUrl = `S3_KEY:${key.replace('avatars/', '')}`;
       } catch (uploadError) {

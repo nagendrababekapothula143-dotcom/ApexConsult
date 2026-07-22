@@ -1,8 +1,7 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { PutObjectCommand } = require('@aws-sdk/client-s3');
-const { s3Client, bucketName } = require('../config/s3');
+const { bucket } = require('../config/firebase');
 
 // File filter to allow only PDFs and Docs
 const fileFilter = (req, file, cb) => {
@@ -49,8 +48,8 @@ const uploadDisk = multer({
 }).single('resume');
 
 const handleUpload = (req, res, next) => {
-  if (s3Client) {
-    // Process S3 Upload
+  if (bucket) {
+    // Process Firebase Storage Upload
     uploadMemory(req, res, async (err) => {
       if (err) {
         return res.status(400).json({ success: false, message: err.message });
@@ -67,25 +66,24 @@ const handleUpload = (req, res, next) => {
       const fileName = `${Date.now()}-${req.file.originalname.replace(/\s+/g, '_')}`;
       
       try {
-        const command = new PutObjectCommand({
-          Bucket: bucketName,
-          Key: fileName,
-          Body: req.file.buffer,
-          ContentType: req.file.mimetype,
+        const file = bucket.file(fileName);
+        await file.save(req.file.buffer, {
+          metadata: {
+            contentType: req.file.mimetype,
+          }
         });
 
-        await s3Client.send(command);
-
-        // Construct S3 URL
-        const s3Url = `https://${bucketName}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${fileName}`;
+        // Make file public to get a direct URL (or use getSignedUrl if needed)
+        // Here we just construct the public URL format for Firebase Storage
+        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
         
-        req.file.location = s3Url;
+        req.file.location = publicUrl;
         req.file.key = fileName;
         
         next();
       } catch (uploadError) {
-        console.error('Error uploading file to AWS S3:', uploadError);
-        return res.status(500).json({ success: false, message: 'Failed to upload resume to S3' });
+        console.error('Error uploading file to Firebase Storage:', uploadError);
+        return res.status(500).json({ success: false, message: 'Failed to upload resume to Storage' });
       }
     });
   } else {
