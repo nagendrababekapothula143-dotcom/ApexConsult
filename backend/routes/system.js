@@ -30,47 +30,24 @@ router.get('/health', protect, authorize('admin', 'recruiter'), async (req, res)
       uptime: Math.round(process.uptime())
     };
 
-    // 2. S3 Free Tier Metrics (Actual S3 Bucket)
-    let s3UsedBytes = 0;
-    const s3TotalBytes = 5 * 1024 * 1024 * 1024; // 5 GB Free Tier
+    // 2. Storage Metrics (Firebase Storage)
+    let storageUsedBytes = 0;
+    const storageTotalBytes = 5 * 1024 * 1024 * 1024; // 5 GB Free Tier
     
     try {
-      const s3Client = new S3Client({
-        region: process.env.AWS_REGION || 'eu-north-1',
-        credentials: {
-          accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
-        }
+      const { bucket } = require('../config/firebase');
+      const [files] = await bucket.getFiles();
+      files.forEach(file => {
+        storageUsedBytes += Number(file.metadata.size) || 0;
       });
-      
-      const bucketName = process.env.AWS_BUCKET_NAME || 'apex-consulting';
-      let isTruncated = true;
-      let continuationToken = undefined;
-
-      while (isTruncated) {
-        const command = new ListObjectsV2Command({
-          Bucket: bucketName,
-          ContinuationToken: continuationToken
-        });
-        const response = await s3Client.send(command);
-        
-        if (response.Contents) {
-          response.Contents.forEach(item => {
-            s3UsedBytes += item.Size || 0;
-          });
-        }
-        
-        isTruncated = response.IsTruncated;
-        continuationToken = response.NextContinuationToken;
-      }
-    } catch (s3Err) {
-      console.error('Failed to fetch S3 bucket size:', s3Err);
+    } catch (storageErr) {
+      console.error('Failed to fetch Firebase Storage size:', storageErr);
     }
 
-    const s3Metrics = {
-      usedBytes: s3UsedBytes,
-      totalBytes: s3TotalBytes,
-      usagePercent: Math.min(100, (s3UsedBytes / s3TotalBytes) * 100)
+    const s3Metrics = { // Keep variable name same so frontend 's3' object matches
+      usedBytes: storageUsedBytes,
+      totalBytes: storageTotalBytes,
+      usagePercent: Math.min(100, (storageUsedBytes / storageTotalBytes) * 100)
     };
 
     // 3. Database Metrics (DynamoDB Free Tier)

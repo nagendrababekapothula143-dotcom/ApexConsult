@@ -10,7 +10,7 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
   try {
     const snapshot = await db.collection('consulting_audit_logs').get();
     
-    const items = snapshot.docs.map(doc => doc.data());
+    const items = snapshot.docs.map(doc => ({ ...doc.data(), _id: doc.id }));
     
     // Sort by timestamp descending
     const logs = items.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));

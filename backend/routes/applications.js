@@ -470,11 +470,8 @@ router.get('/job/:jobId', protect, authorize('admin', 'recruiter'), async (req, 
         if (studentCache[app.student]) {
           student = studentCache[app.student];
         } else {
-          const studentRes = await docClient.send(new GetCommand({
-            TableName: 'consulting_users',
-            Key: { id: app.student }
-          }));
-          student = studentRes.Item || null;
+          const studentDoc = await db.collection('consulting_users').doc(app.student).get();
+          student = studentDoc.exists ? studentDoc.data() : null;
           studentCache[app.student] = student;
         }
 

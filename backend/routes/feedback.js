@@ -37,7 +37,7 @@ router.post('/', protect, async (req, res) => {
 router.get('/', protect, authorize('admin'), async (req, res) => {
   try {
     const snapshot = await db.collection('consulting_feedback').get();
-    let items = snapshot.docs.map(doc => doc.data());
+    let items = snapshot.docs.map(doc => ({ ...doc.data(), _id: doc.id }));
     
     // Sort by newest first
     items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));

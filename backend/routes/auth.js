@@ -1,4 +1,5 @@
 const express = require('express');
+const { getAuth } = require('firebase-admin/auth');
 
 const { db } = require('../config/firebase');
 const { bucket } = require('../config/firebase');
@@ -69,8 +70,14 @@ router.post('/recruiters', protect, authorize('admin'), async (req, res) => {
       return res.status(400).json({ success: false, message: 'User with this email already exists' });
     }
 
-    // 2. Create user with bcrypt
-    const userId = crypto.randomUUID();
+    // 2. Create user with Firebase Auth & bcrypt
+    const userRecord = await getAuth().createUser({
+      email: formattedEmail,
+      password: password,
+      displayName: name,
+    });
+    
+    const userId = userRecord.uid;
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -165,7 +172,7 @@ router.delete('/recruiters/:id', protect, authorize('admin'), async (req, res) =
 // @route   POST /api/auth/register
 // @access  Public
 router.post('/register', async (req, res) => {
-  const { name, email, password } = req.body; 
+  const { name, email, password, firebaseUid } = req.body; 
 
   if (!email || !password || !name) {
     return res.status(400).json({ success: false, message: 'Please provide all required fields' });
@@ -181,7 +188,7 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ success: false, message: 'User already exists' });
     }
 
-    const userId = crypto.randomUUID();
+    const userId = firebaseUid || crypto.randomUUID();
     const apexId = 'KRY' + Math.floor(1000000 + Math.random() * 9000000);
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
@@ -441,16 +448,11 @@ router.get('/admins', protect, authorize('admin', 'recruiter'), async (req, res)
       return res.status(200).json(usersCache.get('admins'));
     }
 
-    const result = await docClient.send(new ScanCommand({
-      TableName: 'consulting_users',
-      FilterExpression: '#role = :role',
-      ExpressionAttributeNames: { '#role': 'role' },
-      ExpressionAttributeValues: { ':role': 'admin' }
-    }));
+    const resultSnapshot = await db.collection('consulting_users').where('role', '==', 'admin').get();
 
-    const admins = (result.Items || []).map(admin => ({
-      ...admin,
-      _id: admin.id // Maintain compatibility with frontend
+    const admins = resultSnapshot.docs.map(doc => ({
+      ...doc.data(),
+      _id: doc.id // Maintain compatibility with frontend
     })).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     const responseData = { success: true, count: admins.length, data: admins };

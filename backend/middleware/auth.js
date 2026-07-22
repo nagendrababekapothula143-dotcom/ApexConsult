@@ -36,7 +36,11 @@ const protect = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'The user belonging to this token no longer exists.' });
     }
     
-    const user = userDoc.data();
+    const user = {
+      ...userDoc.data(),
+      id: userDoc.id,
+      _id: userDoc.id
+    };
 
     if (user.status === 'inactive') {
       return res.status(403).json({ success: false, message: 'Your account has been deactivated. Please contact support.' });
