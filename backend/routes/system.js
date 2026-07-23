@@ -50,10 +50,10 @@ router.get('/health', protect, authorize('admin', 'recruiter'), async (req, res)
       usagePercent: Math.min(100, (storageUsedBytes / storageTotalBytes) * 100)
     };
 
-    // 3. Database Metrics (DynamoDB Free Tier)
+    // 3. Database Metrics (Firestore Free Tier)
     let dbStatus = 'Healthy'; // Default to healthy unless an error occurs
     let dbMetrics = {};
-    const dynamodbTotalBytes = 25 * 1024 * 1024 * 1024; // 25 GB Free Tier
+    const firestoreTotalBytes = 1 * 1024 * 1024 * 1024; // 1 GB Free Tier
     
     try {
       dbStatus = 'Healthy';
@@ -74,8 +74,8 @@ router.get('/health', protect, authorize('admin', 'recruiter'), async (req, res)
       dbMetrics = {
         itemCount: 150,
         sizeBytes: 500 * 1024,
-        totalBytes: dynamodbTotalBytes,
-        usagePercent: Math.min(100, ((500 * 1024) / dynamodbTotalBytes) * 100),
+        totalBytes: firestoreTotalBytes,
+        usagePercent: Math.min(100, ((500 * 1024) / firestoreTotalBytes) * 100),
         history
       };
     } catch (dbErr) {
