@@ -466,6 +466,7 @@ const AdminDashboard = () => {
             <li>{renderNavLink('/admin/feedbacks', <Icons.Feedback />, 'Feedbacks')}</li>
             <li>{renderNavLink('/admin/team', <Icons.TeamManagement />, 'Team Management')}</li>
             <li>{renderNavLink('/admin/audit-logs', <Icons.AuditLogs />, 'Audit Logs')}</li>
+            <li>{renderNavLink('/admin/error-logs', <Icons.AuditLogs />, 'Error Logs')}</li>
             <li>{renderNavLink('/admin/settings', <Icons.Settings />, t('settings'))}</li>
           </ul>
 

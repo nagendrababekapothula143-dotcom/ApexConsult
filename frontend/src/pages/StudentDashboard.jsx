@@ -7,6 +7,7 @@ import { useToast } from '../context/ToastContext';
 
 import Loader from '../components/Loader';
 import FeedbackModal from '../components/FeedbackModal';
+import OnboardingTour from '../components/OnboardingTour';
 
 const StudentDashboard = () => {
   const { user, logout } = useContext(AuthContext);
@@ -265,7 +266,7 @@ const StudentDashboard = () => {
   
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-500/30">
-      
+      <OnboardingTour />
       {/* Mobile Top Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 h-[64px] bg-white/70 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 z-40">
         <button
@@ -319,11 +320,11 @@ const StudentDashboard = () => {
           <div className="mt-2">
             <ul className="flex flex-col gap-1.5 list-none m-0 p-0">
             <li>{renderNavLink('/student', <Icons.Overview />, 'Overview', true)}</li>
-            <li>{renderNavLink('/student/jobs', <Icons.JobBoard />, 'Job Board')}</li>
+            <li className="tour-jobs-feed">{renderNavLink('/student/jobs', <Icons.JobBoard />, 'Job Board')}</li>
             <li>{renderNavLink('/student/applications', <Icons.Applications />, 'My Applications')}</li>
             <li>{renderNavLink('/student/payments', <Icons.Billing />, 'Payments')}</li>
-            <li>{renderNavLink('/student/profile', <Icons.Profile />, 'My Profile')}</li>
-            <li>{renderNavLink('/student/settings', <Icons.Settings />, 'Settings')}</li>
+            <li className="tour-sidebar-profile">{renderNavLink('/student/profile', <Icons.Profile />, 'My Profile')}</li>
+            <li className="tour-theme-toggle">{renderNavLink('/student/settings', <Icons.Settings />, 'Settings')}</li>
             </ul>
           </div>
         </div>

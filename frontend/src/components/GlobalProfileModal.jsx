@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import api, { getAvatarSource } from '../services/api';
+import ImageCropperModal from './ImageCropperModal';
 
 const GlobalProfileModal = ({ isOpen, onClose }) => {
   const { user, setUser } = useContext(AuthContext);
@@ -12,6 +13,10 @@ const GlobalProfileModal = ({ isOpen, onClose }) => {
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [saving, setSaving] = useState(false);
   const [alert, setAlert] = useState(null);
+  
+  // Cropper State
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [selectedImageSrc, setSelectedImageSrc] = useState(null);
 
   useEffect(() => {
     if (isOpen && user) {
@@ -38,11 +43,16 @@ const GlobalProfileModal = ({ isOpen, onClose }) => {
       }
       const reader = new FileReader();
       reader.onloadend = () => {
-        setAvatarPreview(reader.result);
-        setFormData(prev => ({ ...prev, avatarBase64: reader.result }));
+        setSelectedImageSrc(reader.result);
+        setCropperOpen(true);
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleCropComplete = (croppedBase64) => {
+    setAvatarPreview(croppedBase64);
+    setFormData(prev => ({ ...prev, avatarBase64: croppedBase64 }));
   };
 
   const handleSubmit = async (e) => {
@@ -157,6 +167,12 @@ const GlobalProfileModal = ({ isOpen, onClose }) => {
           </form>
         </div>
       </div>
+      <ImageCropperModal
+        isOpen={cropperOpen}
+        onClose={() => setCropperOpen(false)}
+        imageSrc={selectedImageSrc}
+        onCropComplete={handleCropComplete}
+      />
     </div>
   );
 };

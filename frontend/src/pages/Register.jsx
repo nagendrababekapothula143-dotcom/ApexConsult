@@ -1,6 +1,7 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import ImageCropperModal from '../components/ImageCropperModal';
 
 const Register = () => {
   const [name, setName] = useState('');
@@ -13,6 +14,9 @@ const Register = () => {
   const [submitting, setSubmitting] = useState(false);
   const [googleSubmitting, setGoogleSubmitting] = useState(false);
   
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [selectedImageSrc, setSelectedImageSrc] = useState(null);
+
   const { register, user } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -68,14 +72,19 @@ const Register = () => {
       
       const reader = new FileReader();
       reader.onloadend = () => {
-        setAvatarBase64(reader.result);
-        setAvatarPreview(reader.result);
+        setSelectedImageSrc(reader.result);
+        setCropperOpen(true);
       };
       reader.readAsDataURL(file);
     } else {
       setAvatarBase64(null);
       setAvatarPreview(null);
     }
+  };
+
+  const handleCropComplete = (croppedBase64) => {
+    setAvatarBase64(croppedBase64);
+    setAvatarPreview(croppedBase64);
   };
 
   return (
@@ -181,6 +190,13 @@ const Register = () => {
           </Link>
         </p>
       </div>
+      
+      <ImageCropperModal
+        isOpen={cropperOpen}
+        onClose={() => setCropperOpen(false)}
+        imageSrc={selectedImageSrc}
+        onCropComplete={handleCropComplete}
+      />
     </div>
   );
 };

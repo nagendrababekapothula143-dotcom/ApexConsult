@@ -250,4 +250,23 @@ router.put('/settings', protect, authorize('admin'), async (req, res) => {
   }
 });
 
+// @desc    Get system error logs
+// @route   GET /api/system/errors
+// @access  Private/Admin
+router.get('/errors', protect, authorize('admin'), async (req, res) => {
+  try {
+    const snapshot = await db.collection('consulting_error_logs').get();
+    
+    const errors = snapshot.docs.map(doc => ({ ...doc.data(), _id: doc.id }));
+    
+    // Sort by timestamp descending
+    const sortedErrors = errors.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    res.json({ success: true, data: sortedErrors });
+  } catch (err) {
+    console.error('Fetch error logs error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 module.exports = router;
