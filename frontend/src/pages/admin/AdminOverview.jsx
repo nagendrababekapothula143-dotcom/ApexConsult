@@ -56,6 +56,15 @@ const AdminOverview = () => {
       }
     };
     
+    const fetchCpuHealth = async () => {
+      try {
+        const res = await api.get('/system/health/cpu');
+        setSystemMetrics(prev => prev ? { ...prev, backend: res.data.data } : null);
+      } catch (err) {
+        console.error('Failed to fetch system CPU metrics', err);
+      }
+    };
+    
     const fetchSettings = async () => {
       try {
         const res = await api.get('/system/settings');
@@ -77,11 +86,20 @@ const AdminOverview = () => {
     fetchSettings();
     fetchBackups();
     fetchRateLimits();
+    
+    const cpuInterval = setInterval(() => {
+      fetchCpuHealth();
+    }, 2000); // refresh CPU every 2s
+
     const interval = setInterval(() => {
       fetchHealth();
       fetchRateLimits();
-    }, 30000); // refresh every 30s
-    return () => clearInterval(interval);
+    }, 30000); // refresh full health every 30s
+    
+    return () => {
+      clearInterval(interval);
+      clearInterval(cpuInterval);
+    };
   }, []);
 
   const fetchRateLimits = async () => {

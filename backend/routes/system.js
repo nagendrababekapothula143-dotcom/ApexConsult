@@ -5,6 +5,37 @@ const { protect, authorize } = require('../middleware/auth');
 // no aws sdk import
 const { db } = require('../config/firebase');
 
+// @desc    Get system health CPU/Memory metrics only
+// @route   GET /api/system/health/cpu
+// @access  Private/Admin
+router.get('/health/cpu', protect, authorize('admin', 'recruiter'), async (req, res) => {
+  try {
+    const cpus = os.cpus();
+    const loadavg = os.loadavg();
+    const coreCount = cpus.length;
+    const cpuUsagePercent = Math.min(100, Math.round((loadavg[0] / coreCount) * 100));
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+    const usedMem = totalMem - freeMem;
+    const memUsagePercent = Math.round((usedMem / totalMem) * 100);
+    
+    const backendHealth = {
+      status: cpuUsagePercent < 90 && memUsagePercent < 90 ? 'Healthy' : 'Degraded',
+      cpuUsage: cpuUsagePercent,
+      memoryUsage: memUsagePercent,
+      uptime: Math.round(process.uptime())
+    };
+
+    res.status(200).json({
+      success: true,
+      data: backendHealth
+    });
+  } catch (error) {
+    console.error('System CPU health error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // @desc    Get system health metrics
 // @route   GET /api/system/health
 // @access  Private/Admin
