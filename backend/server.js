@@ -98,7 +98,7 @@ app.use(cors({
     // Exact production domains
     const allowedOrigins = [
       'https://apexconsult.onrender.com', 
-      'https://apexconsulting-kohl.vercel.app',
+      'https://kryntelconsulting.vercel.app',
       'https://apex-consult-nine.vercel.app'
     ];
     
