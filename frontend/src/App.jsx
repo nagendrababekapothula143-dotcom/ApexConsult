@@ -145,7 +145,7 @@ function App() {
               <Route path="team" element={<AdminTeam />} />
               <Route path="audit-logs" element={<AdminAuditLogs />} />
               <Route path="error-logs" element={<AdminErrorLogs />} />
-              <Route path="feedback" element={<AdminFeedback />} />
+              <Route path="feedbacks" element={<AdminFeedback />} />
               <Route path="settings" element={<Settings />} />
             </Route>
 
