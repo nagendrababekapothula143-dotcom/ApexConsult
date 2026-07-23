@@ -381,7 +381,8 @@ router.post('/', protect, authorize('student'), handleUpload, async (req, res) =
       req.user.name || 'Student',
       req.body.requestAssistance === 'true' ? 'STUDENT_REQUESTED_ASSISTANCE' : 'SUBMIT_APPLICATION',
       newAppId,
-      { jobTitle: job.title, jobId: job.id }
+      { jobTitle: job.title, jobId: job.id },
+      req.ip
     );
 
     const responseApp = {
@@ -530,10 +531,21 @@ router.patch('/:id', protect, authorize('admin', 'recruiter'), async (req, res) 
     }
 
     const application = appDoc.data();
+    const previousStatus = application.status;
     application.status = status;
 
     // Save updated application
     await db.collection('consulting_applications').doc(application.id).set(application);
+    
+    const { logAuditAction } = require('../utils/auditLogger');
+    await logAuditAction(
+      req.user.id || req.user._id,
+      req.user.name || req.user.email,
+      'UPDATE_APP_STATUS',
+      application.id,
+      { previousStatus, newStatus: status },
+      req.ip
+    );
 
     const responseApp = {
       ...application,
@@ -726,7 +738,8 @@ router.patch('/:id/assign-recruiter', protect, authorize('admin'), async (req, r
       req.user.name || req.user.email,
       recruiterId ? 'ASSIGN_RECRUITER' : 'UNASSIGN_RECRUITER',
       application.id,
-      { recruiterId, recruiterName }
+      { recruiterId, recruiterName },
+      req.ip
     );
 
     // Socket.io Real-time Updates
@@ -798,7 +811,8 @@ router.post('/:id/upload-resume', protect, authorize('recruiter'), handleUpload,
       req.user.name || req.user.email,
       'RECRUITER_SUBMITTED_APPLICATION',
       application.id,
-      { status: 'application sent', originalStudent: studentName }
+      { status: 'application sent', originalStudent: studentName },
+      req.ip
     );
 
     const responseApp = {

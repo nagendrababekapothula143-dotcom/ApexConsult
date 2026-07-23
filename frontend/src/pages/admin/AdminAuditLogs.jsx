@@ -77,6 +77,8 @@ const AdminAuditLogs = () => {
         return <span className={`${baseClasses} bg-purple-50 text-purple-700 border border-purple-200`}>New Registration</span>;
       case 'CREATE_TICKET':
         return <span className={`${baseClasses} bg-rose-50 text-rose-700 border border-rose-200`}>Create Ticket</span>;
+      case 'UPDATE_APP_STATUS':
+        return <span className={`${baseClasses} bg-blue-50 text-blue-700 border border-blue-200`}>Status Changed</span>;
       default:
         return <span className={`${baseClasses} bg-slate-100 text-slate-600 border border-slate-200`}>{action}</span>;
     }
@@ -98,6 +100,14 @@ const AdminAuditLogs = () => {
         return `Registered with role: ${log.details.role}, Email: ${log.details.email}`;
       case 'CREATE_TICKET':
         return `Support Category: ${log.details.category} - Subject: "${log.details.subject}"`;
+      case 'UPDATE_APP_STATUS':
+        return (
+          <div className="flex items-center gap-2">
+            <span className="text-slate-500 line-through">{log.details.previousStatus}</span>
+            <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+            <span className="font-bold text-indigo-600">{log.details.newStatus}</span>
+          </div>
+        );
       default:
         const parts = Object.entries(log.details).map(([k, v]) => `${k}: ${v}`);
         return parts.join(' | ');
@@ -115,10 +125,16 @@ const AdminAuditLogs = () => {
             A chronological, immutable record of all major system actions. Used for compliance, debugging, and tracing history.
           </p>
         </div>
-        <button onClick={fetchLogs} className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors flex items-center justify-center gap-2 shadow-sm">
-          <svg className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-          Refresh Logs
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => window.open(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/audit-logs/export`, '_blank')} className="px-4 py-2 bg-indigo-50 border border-indigo-200 rounded-xl text-sm font-bold text-indigo-700 hover:bg-indigo-100 transition-colors flex items-center justify-center gap-2 shadow-sm">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+            Export CSV
+          </button>
+          <button onClick={fetchLogs} className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors flex items-center justify-center gap-2 shadow-sm">
+            <svg className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+            Refresh Logs
+          </button>
+        </div>
       </div>
 
       {/* FILTER BAR */}
@@ -195,7 +211,9 @@ const AdminAuditLogs = () => {
                         <div className="w-full truncate font-bold text-slate-900" title={log.actorName}>
                           {log.actorName || 'System'}
                         </div>
-                        <div className="text-[10px] uppercase font-bold text-slate-400 mt-0.5 tracking-wider">{log.actorRole}</div>
+                        <div className="text-[10px] uppercase font-bold text-slate-400 mt-0.5 tracking-wider">
+                          {log.ipAddress ? `IP: ${log.ipAddress}` : 'UNKNOWN IP'}
+                        </div>
                       </td>
                       
                       <td className="p-4">

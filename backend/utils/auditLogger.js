@@ -9,8 +9,9 @@ const { db } = require('../config/firebase');
  * @param {string} action - Describe the action (e.g., 'ASSIGN_RECRUITER', 'UPLOAD_RESUME')
  * @param {string} targetId - ID of the entity being acted upon (e.g., applicationId, studentId)
  * @param {object} details - Additional metadata (e.g., { previousAssignee: '...', newAssignee: '...' })
+ * @param {string} ipAddress - The IP address of the requester (req.ip)
  */
-const logAuditAction = async (actorId, actorName, action, targetId, details = {}) => {
+const logAuditAction = async (actorId, actorName, action, targetId, details = {}, ipAddress = 'unknown') => {
   try {
     const logEntry = {
       id: crypto.randomUUID(),
@@ -19,12 +20,13 @@ const logAuditAction = async (actorId, actorName, action, targetId, details = {}
       action,
       targetId,
       details,
+      ipAddress,
       timestamp: new Date().toISOString()
     };
 
     await db.collection('consulting_audit_logs').doc(logEntry.id).set(logEntry);
 
-    console.log(`[AUDIT LOG] ${action} by ${actorName} on target ${targetId}`);
+    console.log(`[AUDIT LOG] ${action} by ${actorName} on target ${targetId} from IP ${ipAddress}`);
   } catch (error) {
     console.error('Failed to write audit log:', error.message);
   }

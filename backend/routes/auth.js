@@ -232,7 +232,8 @@ router.post('/register', async (req, res) => {
       newUser.name,
       'REGISTER_ACCOUNT',
       userId,
-      { role: newUser.role, email: newUser.email }
+      { role: newUser.role, email: newUser.email },
+      req.ip
     );
 
     const sessionId = crypto.randomUUID();
@@ -595,7 +596,8 @@ router.patch('/update-password', protect, async (req, res) => {
       req.user.name,
       'UPDATE_PASSWORD',
       userId,
-      {}
+      {},
+      req.ip
     );
 
     res.status(200).json({ success: true, message: 'Password successfully updated' });
@@ -834,7 +836,7 @@ router.delete('/sessions/:sessionId', protect, async (req, res) => {
     });
 
     const { logAuditAction } = require('../utils/auditLogger');
-    await logAuditAction(req.user.id, req.user.name, 'REVOKE_SESSION', 'Revoked a session', { revokedSessionId: sessionId });
+    await logAuditAction(req.user.id, req.user.name, 'REVOKE_SESSION', 'Revoked a session', { revokedSessionId: sessionId }, req.ip);
 
     res.status(200).json({ success: true, message: 'Session revoked successfully' });
   } catch (error) {
